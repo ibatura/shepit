@@ -1,0 +1,6 @@
+Сьогодні я відкрив pull request у GitHub і попросив колегу зробити code review.
+Треба задеплоїти цей сервіс у Kubernetes, а потім перевірити логи в Kibana.
+Я оновив README і додав нову змінну в Terraform конфіг.
+Давай створимо feature branch, зробимо commit і запушимо зміни.
+Тест падає через NullPointerException, треба подивитися stack trace.
+На мітингу обговорили roadmap і дедлайн для нового release.

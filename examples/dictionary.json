@@ -1,0 +1,28 @@
+{
+  "terms": ["Kubernetes", "Terraform", "pull request", "PitchBook", "Hammerspoon",
+            "code review", "commit", "release", "stack trace", "Kibana",
+            "feature branch", "roadmap", "deadline", "config"],
+  "replace": {
+    "пул реквест": "pull request",
+    "пул реквести": "pull requests",
+    "кубернетіс": "Kubernetes",
+    "кубернетес": "Kubernetes",
+    "кубернетис": "Kubernetes",
+    "гіт хаб": "GitHub",
+    "гітхаб": "GitHub",
+    "терраформ": "Terraform",
+    "рідмі": "README",
+    "код рев'ю": "code review",
+    "код-рев'ю": "code review",
+    "коміт": "commit",
+    "коміти": "commits",
+    "реліз": "release",
+    "релізу": "release",
+    "родмап": "roadmap",
+    "кібана": "Kibana",
+    "kibanu": "Kibana",
+    "kibana": "Kibana",
+    "конфіг": "config"
+  },
+  "dropPhrases": []
+}

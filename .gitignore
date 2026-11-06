@@ -1,0 +1,7 @@
+.DS_Store
+tools/accuracy/recordings/
+tools/accuracy/__pycache__/
+.superpowers/
+app/.build/
+app/Vendor/
+build/
