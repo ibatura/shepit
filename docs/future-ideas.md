@@ -87,8 +87,13 @@ checks only.
 
 2026-10-29: after phase 3 the user wants Shepit to notice when a call starts in Teams, Zoom or Google Meet, the way Zoom does, and offer to start a meeting transcript already named after that call: one click to accept, nothing recorded without it. It needs its own research and plan:
 - How to detect a call reliably: the meeting app using the microphone (Core Audio "device is running somewhere" / per-process input), its call window appearing (Accessibility), or both.
-- Getting the meeting name for each app (Teams and Meet window titles are checked in Task 11; Zoom is new).
+- Getting the meeting name for each app. Done in phase 3 and reusable as is (`MeetingApps.scan`, `MeetingTitle`, `MeetingNames`):
+  - Teams: the call window title.
+  - Google Meet (Chrome): the tab title `Meet: "name" – …`, or the name after the clock in the page's bottom bar ("17:09 | name"). A quick meeting shows only a code (`abc-defg-hij`), which is not a name.
+  - Zoom (`us.zoom.xos`): shows no meeting topic anywhere. The name comes from `meeting-names.json`: the name used last time at this weekday and time (±15 min, last 36 days), or a daily repeat; otherwise the recent names list.
+  - The mute state is already read from each app (Teams and Zoom buttons, Zoom's Meeting menu, Meet's microphone button), so "is a call running" can use the same Accessibility scan.
 - Not nagging: no offer while a meeting is already being recorded, after a dismiss for the same call, or for apps the user turned off.
+- Everything stays local: no network, no calendar sign-in.
 
 This replaces "auto-start when a call begins" in the list below: it offers, it never starts on its own.
 
@@ -97,7 +102,7 @@ This replaces "auto-start when a call begins" in the list below: it offers, it n
 From the meeting transcription design (`docs/superpowers/specs/2026-10-17-meeting-transcription-design.md` §3), 2026-10-26.
 
 - **Real names from Teams/Meet** (UI scraping, Graph API) or automatic matching with an exported Teams transcript. *Why not now:* fragile or needs company sign-in; Rename speakers… covers it by hand.
-- **Meeting names from calendars** (Outlook, macOS Calendar). *Why not now:* window titles plus the name dialog are enough so far.
+- **Meeting names from calendars** (Outlook, macOS Calendar). *Why not now:* window titles, the Meet page, remembered names and the name dialog are enough so far. Option for later (2026-11-06): read macOS Calendar (EventKit) after the user adds their Google or Microsoft account in System Settings → Internet Accounts. Local only, no sign-in inside Shepit; the event that runs now gives the name.
 - **Speaker labels live during the call.** *Why not now:* diarization needs the whole call to be accurate; labels come right after Stop.
 - **On-screen live captions, auto-start when a call begins, meeting summaries.** *Why not now:* not needed for the notes; summaries would need a local LLM.
 - **Only the meeting app's audio** instead of all system audio. *Why not now:* the app has to be picked per call; headphones and muting other sound work for now.
