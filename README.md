@@ -2,13 +2,14 @@
 
 Local dictation for macOS («шепіт» — Ukrainian for "whisper"). Press a hotkey, speak Ukrainian (English terms mid-sentence are fine), press it again — the text is pasted where your cursor is. Speech recognition runs on your Mac; your audio and text never leave it. See [Privacy](#privacy) for exactly what is stored and what touches the network.
 
-Shepit is a native menu-bar app. It replaces the earlier Hammerspoon version of this tool and keeps its settings, dictionary and history files.
+Shepit is a native menu-bar app. It also transcribes Teams, Zoom and Google Meet calls into Markdown notes.
 
 ## Requirements
 
 - Mac with Apple Silicon (M1 or newer), macOS 14.2 or later; 16 GB RAM or more recommended
 - About 3 GB of free disk space (the default model + build)
-- Xcode or just the Command Line Tools (`xcode-select --install`), and `cmake` (the installer gets it with [Homebrew](https://brew.sh) if missing)
+- Xcode or just the Command Line Tools: run `xcode-select --install` in Terminal if you have neither
+- `cmake`: if it's missing, the installer installs it with [Homebrew](https://brew.sh), so install Homebrew first or run `brew install cmake` yourself
 - The optional Apple speech engine needs macOS 26
 - Meeting transcripts record the call through a Core Audio process tap (macOS 14.2+); headphones give the cleanest result
 
@@ -17,8 +18,8 @@ Shepit is a native menu-bar app. It replaces the earlier Hammerspoon version of 
 **1. Get the code:**
 
 ```bash
-git clone <repo-url> ~/Projects/dictation-tool
-cd ~/Projects/dictation-tool
+git clone https://github.com/ibatura/shepit.git ~/Projects/shepit
+cd ~/Projects/shepit
 ```
 
 **2. Run the installer:**
@@ -27,12 +28,13 @@ cd ~/Projects/dictation-tool
 scripts/install.sh
 ```
 
-It takes a few minutes, mostly building and downloading. It is safe to run again; it skips what's already done and never overwrites your settings. It:
+It takes several minutes: it builds the app and downloads about 1.6 GB. It is safe to run again; it skips what's already done and never overwrites your settings. It:
 - builds `Shepit.app`, signs it and installs it to `~/Applications`
 - downloads the default model, whisper.cpp `large-v3-turbo` (1.6 GB), the voice-detection model (1 MB) and the meeting models (voice detection 1 MB, speaker detection 21 MB) into `~/.local/share/dictation/models/`, checking their SHA-256
 - creates `~/.config/dictation/settings.json` and `dictionary.json` if they don't exist
-- removes the old Hammerspoon loader from `~/.hammerspoon/init.lua` if it's there (Hammerspoon itself stays installed — choose **Reload Config** in its menu)
 - opens Shepit; it also starts at login (Settings → General)
+
+When it finishes, a 🎙 icon appears in the menu bar at the top right of the screen. On a MacBook with a notch the icon can be hidden behind it if the menu bar is full; close a few menu-bar apps to see it.
 
 Other engines are optional and can also be downloaded later in **Settings → Engines & Models**: `scripts/install.sh --with-whisperkit --with-parakeet`.
 
@@ -40,7 +42,7 @@ Other engines are optional and can also be downloaded later in **Settings → En
 
 **3. One-time setup in macOS:**
 
-1. **System Settings → Privacy & Security → Accessibility** → turn on **Shepit**. It needs this to paste. Without it the text is put on the clipboard and Shepit says so.
+1. **System Settings → Privacy & Security → Accessibility** → turn on **Shepit**. It needs this to paste. If Shepit isn't in the list, click **+** and choose `Shepit.app` in your home folder → **Applications**. Without this permission the text is put on the clipboard and Shepit says so.
 2. Make your first dictation (below). macOS asks for **Microphone** access for Shepit — click **Allow**.
 3. For meeting transcripts: on the first **Start meeting transcript** macOS asks to let Shepit record system audio — click **Allow**. It's in **System Settings → Privacy & Security → Screen & System Audio Recording → System Audio Recording Only → Shepit**. Without it the call is recorded as silence (only your own voice gets into the note).
 
@@ -178,8 +180,6 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `meetingBlocksDictation` | `false` | `true`, `false` | The dictation hotkey does nothing while a meeting is recording |
 | `meetingLanguage` | `"auto"` | `"uk"`, `"en"`, `"auto"` | Language of meeting phrases; `auto` picks Ukrainian or English for each part of a phrase, cut at short pauses (whisper.cpp), so a speaker can switch language mid-phrase; English parts get only the dictionary terms as a hint, not the Ukrainian style sentence. A switch with no pause at all stays in one language |
 
-`serverPort` from the Hammerspoon version is accepted and ignored.
-
 **Meeting file names.** Placeholders: `{date}` (2026-10-26), `{time}` (14-05), `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`, `{weekday}` (Mon), `{title}` (the meeting name, up to 80 characters), `{app}` (Teams, Meet). Empty parts and the separators around them are dropped; a name that's taken gets ` (2)`. Not allowed outside placeholders: `\ : * ? " < > | # ^ [ ]`. Examples for a meeting "Weekly sync" on Monday 26 Oct 2026 at 14:05:
 
 | `meetingFileName` | Note |
@@ -225,7 +225,8 @@ Settings → Meetings shows a live example as you type.
 
 | Problem | Fix |
 |---|---|
-| Nothing happens on the hotkey | Open the 🎙 menu: "Hotkey taken" means the old Hammerspoon version still runs — Hammerspoon → Reload Config. Otherwise another app may use the same shortcut — change it in Settings → Hotkeys |
+| Nothing happens on the hotkey | Open the 🎙 menu: "Hotkey taken" means another app uses the same shortcut — change it in Settings → Hotkeys |
+| `brew: command not found` during install | Install [Homebrew](https://brew.sh), or install cmake another way, then run `scripts/install.sh` again |
 | Text isn't pasted, "Text copied — allow Accessibility" | System Settings → Privacy & Security → Accessibility → turn on Shepit. If it's on but doesn't work: remove Shepit with **−**, add it again with **+** from `~/Applications`. The text is on the clipboard and in history meanwhile |
 | "no microphone access" | System Settings → Privacy & Security → Microphone → turn on Shepit |
 | 🎙⚠ in the menu bar | Open the menu to read the error. Try **Reload models**. "Not downloaded" → Settings → Engines & Models → Download |
@@ -240,7 +241,7 @@ Settings → Meetings shows a live example as you type.
 ## Update
 
 ```bash
-cd ~/Projects/dictation-tool
+cd ~/Projects/shepit
 git pull
 scripts/install.sh
 ```
