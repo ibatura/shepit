@@ -56,10 +56,8 @@ The screens are in `docs/superpowers/specs/2026-11-11-visual-style/`.
 - **Calendar names** (EventKit) are not part of this; see below.
 
 Research before the plan:
-- First result (2026-11-11): Core Audio lists the processes that use audio and says for each whether it uses the microphone (`kAudioProcessPropertyIsRunningInput`), with no permission needed. `tools/call-probe/probe.swift` prints the changes; it still has to be run during real calls in each app (before joining, in the call muted and unmuted, after leaving).
-- How to detect a call reliably: the meeting app using the microphone (Core Audio "device is running somewhere" / per-process input), its call window appearing (Accessibility), or both. A full Accessibility scan is too heavy to run all the time, so something cheap has to trigger it.
-- How to tell "joined" from the pre-join screen, and how to see the call end, in each app.
-- What Slack, Teams in a browser, FaceTime and Telegram show through Accessibility.
+- Done 2026-11-11 for Teams, Zoom and Meet with `tools/call-probe/probe.swift`: each app holds the microphone for the whole call, also while muted, and releases it within a second of leaving. Results and the design are in `docs/superpowers/specs/2026-11-12-call-offer-design.md`.
+- Still to probe: Slack, Teams in a browser, FaceTime, Telegram; and the three checks in §9 of that design.
 
 Already there from phase 3 (`MeetingApps.scan`, `MeetingTitle`, `MeetingNames`):
 - Teams: the call window title.
