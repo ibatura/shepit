@@ -129,9 +129,8 @@ New sections:
 | key | default | allowed | meaning |
 |---|---|---|---|
 | `rememberVoices` | `false` | `true`, `false` | Keep voice prints of the people you name |
-| `unnamedVoiceDays` | `7` | 1–90 | Days a voice print of a person without a name is kept. The print has to be taken before the call audio is deleted, when the person is still "Person 1"; it is deleted after this many days if no name was given |
 
-A voice print is a few hundred numbers, about 1–2 KB per person, so storage is not a concern; the limit is there for privacy.
+A voice print has to be taken before the call audio is deleted, when the person is still "Person 1". The print of a person who got no name is deleted after 30 days. This is fixed, not a setting. A voice print is a few hundred numbers, about 1–2 KB per person.
 
 **Hotkeys** gets one more recorder: start or stop a meeting transcript (`meetingHotkey`, no default).
 
@@ -165,7 +164,6 @@ Gone from the menu, now in the window: Rename speakers (both), Copy last meeting
 - Slack is listed in Calls → Apps but off until research shows its calls can be detected.
 - Accent colour defaults to the macOS accent. The colour list is the macOS one.
 - Start from the panel skips the name dialog. `meetingAskTitle` then applies only to Start from the menu or the window.
-- `unnamedVoiceDays` default 7 (the author's number), with the 1–90 range mine.
 - Per-person word counts are kept with the saved voices, not in `stats.sqlite`, so the rule "no names in statistics" stays true.
 - Renaming a meeting renames its note file (the author's decision). Links to the note from other Obsidian notes are not updated: Obsidian only does that for renames made inside it.
 - Home shows the last 10 dictations; a long dictation is cut to two lines until clicked.
