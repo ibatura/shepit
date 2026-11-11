@@ -1,110 +1,90 @@
 # Future ideas
 
-Ideas discussed on 2026-10-06 and set aside for now. Each has a short note on what it is and why it waits.
+What comes next, and what was set aside and why. Reviewed with the author on 2026-11-11.
 
-## Re-paste the last dictation hotkey
+## Planned, in this order
 
-A second hotkey (e.g. ⌥⇧Space) that pastes the most recent transcript again — for when the text landed in the wrong place.
+1. **Visual style with mockups.** One spec for how the new Shepit looks: the main window, the floating panels, the menu. Everything below is built in that style.
+2. **Offer to record when a call starts**, as a floating panel.
+3. **The main window:** meetings, dictations, dictionary, statistics, settings.
 
-*Why not now:* the 🎙 → Recent submenu already lets you copy any recent dictation with one click.
+Each gets its own spec and plan.
 
-## Voice commands
+### The main window (decided 2026-11-11)
 
-Spoken commands replaced before pasting: «новий рядок» → line break, «новий абзац» → blank line, maybe «кома»/«крапка» for punctuation.
+2026-10-27: the author reviewed the phase 3 screens (Settings → Meetings, Rename speakers prompts, Statistics). They work, but everything is a menu item followed by a small dialog. Shepit should be a program you can work in; the menu stays for quick actions only.
 
-*Why not now:* whisper already punctuates well; line breaks haven't been needed yet.
+- **One window, not several.** The current Settings window grows into the main window: meetings, the call running now, dictation history, dictionary, statistics, settings.
+- **The menu keeps quick actions:** copy the last dictation again, start and stop a meeting transcript, engine, mode and language. Add word, edit dictionary, reload settings and reload model also live in the window, where many things can be changed without reopening the menu each time.
+- **The call running now** is shown in the window, with Start and Stop there too.
+- **Meetings list:** which transcripts were made and when. Open one to read it.
+- **Rename people in the window.** Opening a meeting shows its people (Person 1, Person 2, Person 3); each gets a name field.
+- **A local database of meetings** next to the Markdown notes. The note stays the transcript itself (for Obsidian or Notion). The database keeps a link to the file, the name, the app (Zoom, Teams, Meet), the start time and the duration.
+- **No search across transcripts.** Obsidian does that.
+- **Voice prints, optional.** A setting to keep voice prints of named people so they are recognised in later meetings. The author can see the saved people and delete any of them, or all.
+- **Import the same meeting's transcript** to take the participants' names from it. Files the author has: Teams `.vtt` and `.docx`, Zoom `.vtt`, Google Meet `.txt` written by a browser plugin.
 
-## Pause media while recording
+Open questions:
+- Fixing single lines given to the wrong person (3 lines in the Sprint Planning call).
+- Whether the transcript text can be edited in the window, or only read.
+- Whether import takes names only, or also text.
+- Whether voice prints are off by default.
+- What happens to a meeting in the list when its note was moved or renamed in Obsidian.
 
-Pause music/video when recording starts and resume it afterwards.
+### Offer to record when a call starts (decided 2026-11-11)
 
-*Why not now:* with headphones the music doesn't reach the microphone, and whisper ignores quiet background music. It only matters when music plays loudly through the laptop speakers — then song lyrics can leak into the transcript.
+2026-10-29: Shepit should notice a call in a meeting app, the way Zoom does, and offer a transcript already named after that call.
 
-## Per-app profiles
+- **A floating panel**, not a macOS notification.
+- **It appears when the author has joined the call**, not on the pre-join screen.
+- **With a name found:** the panel shows the name and a Start button; one click starts, with no name dialog. **Without a name** (Zoom): the panel says "Zoom call" and has the same Start button.
+- **Automatic start is a setting.** When on, the same panel shows a countdown bar and the transcript starts unless the author presses the stop button. When off, nothing is recorded without a click. This changes the earlier rule "it never starts on its own": it now starts on its own only when the author turned the setting on.
+- **End of the call:** a panel says the transcript stops in a few seconds, with a countdown bar and a "Continue" button.
+- **Dismiss** applies to this call only.
+- **Apps:** Teams, Zoom, Google Meet, Teams in a browser, Slack. FaceTime and Telegram if possible.
+- **Calendar names** (EventKit) are not part of this; see below.
 
-Different behaviour per app, e.g. in Terminal: no trailing period and a lowercase first letter; in Slack: as now.
+Research before the plan:
+- How to detect a call reliably: the meeting app using the microphone (Core Audio "device is running somewhere" / per-process input), its call window appearing (Accessibility), or both. A full Accessibility scan is too heavy to run all the time, so something cheap has to trigger it.
+- How to tell "joined" from the pre-join screen, and how to see the call end, in each app.
+- What Slack, Teams in a browser, FaceTime and Telegram show through Accessibility.
 
-*Why not now:* unclear if needed; revisit after using the tool for a while.
+Already there from phase 3 (`MeetingApps.scan`, `MeetingTitle`, `MeetingNames`):
+- Teams: the call window title.
+- Google Meet (Chrome): the tab title `Meet: "name" – …`, or the name after the clock in the page's bottom bar ("17:09 | name"). A quick meeting shows only a code (`abc-defg-hij`), which is not a name.
+- Zoom (`us.zoom.xos`): shows no meeting topic anywhere. The name comes from `meeting-names.json`: the name used last time at this weekday and time (±15 min, last 36 days), or a daily repeat; otherwise the recent names list.
+- The mute state is read from each app (Teams and Zoom buttons, Zoom's Meeting menu, Meet's microphone button), so "is a call running" can use the same scan.
 
-## Local LLM clean-up
+Everything stays local: no network, no calendar sign-in.
 
-Pass the transcript through a local LLM (e.g. via Ollama) to drop filler words («ну», «еее»), repetitions, and fix grammar — fully offline.
+## Set aside
 
-*Why not now:* adds 1–3 s per dictation and several GB of memory; current output is good enough.
+### Dictation
 
----
+- **Re-paste the last dictation hotkey** (e.g. ⌥⇧Space), for when the text landed in the wrong place. *Why not now:* the Recent submenu copies any recent dictation with one click.
+- **Voice commands:** «новий рядок» → line break, «новий абзац» → blank line, maybe «кома»/«крапка». *Why not now:* whisper punctuates well; line breaks haven't been needed.
+- **Pause media while recording.** *Why not now:* with headphones the music doesn't reach the microphone. It only matters with loud music through the laptop speakers.
+- **Per-app profiles**, e.g. in Terminal no trailing period and a lowercase first letter. *Why not now:* unclear if needed.
+- **Local LLM clean-up** of filler words and grammar. *Why not now:* adds 1–3 s per dictation and several GB of memory; the output is good enough.
+- **Cheaper live preview.** Every 2 s the last 20 s are transcribed again. Could follow speech activity, shrink the window, or send only the new audio.
 
-## From the security & resource audit (2026-10-06)
-
-Fixed already: clean child-process environment, token-protected whisper-server
-without CORS, private random temp audio, safe JSON writes, history retention
-controls, pinned whisper.cpp commit, shell-free paths, `serverPort` cap.
-Left for later:
-
-### Tighter file permissions *(declined for now)*
-Config and history are `0644` and their folders `0755`. The home folder is
-already closed to other users (`drwxr-x---`), so this is defence in depth:
-`umask 077` in the installer and `chmod 600/700` on existing files.
-
-### Lazy-load / unload the models *(declined: keep both in memory)*
-Both servers stay loaded (~5.3 GB idle). Options if memory ever matters: start the
-preview server on first recording, unload it after idle, or default `livePreview`
-to off (~1.8 GB saved).
-
-### Cheaper live preview
-Every 2 s the last 20 s are re-transcribed. Could adapt the interval to speech
-activity, shrink the window, or only send the new audio.
-
-### Cancellable preview requests and recorder stop timeout
-Kill an in-flight preview curl when recording stops; give each request its own
-snapshot file; force-terminate sox if it doesn't exit within a few seconds of
-SIGINT.
-
-### Integration tests
-Hammerspoon lifecycle, both servers, auth/CORS, temp-file symlink, recorder hang,
-I/O failures, and a long soak run — currently covered by unit tests and manual
-checks only.
-
-### Smaller items
-- `killStale` could check that the process it kills was started by this tool
-  (e.g. by its parent), not just by path and port.
-- Recorder: check the `sox` binary itself exists when a named microphone is used.
-- Recent menu reads the last 64 KB of history; a single huge transcript can push
-  older ones out of the menu.
-- Pre-commit guard against force-adding `tools/accuracy/recordings/`.
-
-## Full UI redesign (planned)
-
-2026-10-27: the user reviewed the phase 3 screens (Settings → Meetings, Rename speakers prompts, Statistics). They work, but the interface is not good enough, and it will be redesigned completely, with its own spec and implementation plans. What it needs:
-- A proper app window for meeting transcripts: list, open, read.
-- Renaming persons right in the transcript.
-- Importing the same meeting's transcript from Zoom, Google Meet or Teams and taking the participants' names from it.
-- The rest of the Settings window redone in the same style.
-
-*Why not now:* phase 3 is finished first, with the current UI, and checked on a real call.
-
-## Offer to record when a call starts (planned)
-
-2026-10-29: after phase 3 the user wants Shepit to notice when a call starts in Teams, Zoom or Google Meet, the way Zoom does, and offer to start a meeting transcript already named after that call: one click to accept, nothing recorded without it. It needs its own research and plan:
-- How to detect a call reliably: the meeting app using the microphone (Core Audio "device is running somewhere" / per-process input), its call window appearing (Accessibility), or both.
-- Getting the meeting name for each app. Done in phase 3 and reusable as is (`MeetingApps.scan`, `MeetingTitle`, `MeetingNames`):
-  - Teams: the call window title.
-  - Google Meet (Chrome): the tab title `Meet: "name" – …`, or the name after the clock in the page's bottom bar ("17:09 | name"). A quick meeting shows only a code (`abc-defg-hij`), which is not a name.
-  - Zoom (`us.zoom.xos`): shows no meeting topic anywhere. The name comes from `meeting-names.json`: the name used last time at this weekday and time (±15 min, last 36 days), or a daily repeat; otherwise the recent names list.
-  - The mute state is already read from each app (Teams and Zoom buttons, Zoom's Meeting menu, Meet's microphone button), so "is a call running" can use the same Accessibility scan.
-- Not nagging: no offer while a meeting is already being recorded, after a dismiss for the same call, or for apps the user turned off.
-- Everything stays local: no network, no calendar sign-in.
-
-This replaces "auto-start when a call begins" in the list below: it offers, it never starts on its own.
-
-## Meeting transcripts: set aside in v1
+### Meetings
 
 From the meeting transcription design (`docs/superpowers/specs/2026-10-17-meeting-transcription-design.md` §3), 2026-10-26.
 
-- **Real names from Teams/Meet** (UI scraping, Graph API) or automatic matching with an exported Teams transcript. *Why not now:* fragile or needs company sign-in; Rename speakers… covers it by hand.
-- **Meeting names from calendars** (Outlook, macOS Calendar). *Why not now:* window titles, the Meet page, remembered names and the name dialog are enough so far. Option for later (2026-11-06): read macOS Calendar (EventKit) after the user adds their Google or Microsoft account in System Settings → Internet Accounts. Local only, no sign-in inside Shepit; the event that runs now gives the name.
+- **Real names read from the Teams or Meet window, or through the Graph API.** *Why not now:* fragile or needs company sign-in. Names from an imported transcript are planned above.
+- **Meeting names from calendars.** *Why not now:* window titles, the Meet page, remembered names and the name dialog are enough so far. Option (2026-11-06): read macOS Calendar (EventKit) after the author adds their Google or Microsoft account in System Settings → Internet Accounts. Local only, no sign-in inside Shepit; the event that runs now gives the name. It would give Zoom calls a name the first time. To be discussed again after the offer panel works.
 - **Speaker labels live during the call.** *Why not now:* diarization needs the whole call to be accurate; labels come right after Stop.
-- **On-screen live captions, auto-start when a call begins, meeting summaries.** *Why not now:* not needed for the notes; summaries would need a local LLM.
-- **Only the meeting app's audio** instead of all system audio. *Why not now:* the app has to be picked per call; headphones and muting other sound work for now.
-- **Echo cancellation**, so speakers (not headphones) give clean attribution. *Why not now:* headphones solve it, and since Task 11 mic phrases that repeat the call within 5 s are dropped by their words (Test4: 17 of 19 repeats).
+- **On-screen live captions, meeting summaries.** *Why not now:* not needed for the notes; summaries would need a local LLM.
+- **Only the meeting app's audio** instead of all system audio. *Why not now:* the app has to be picked per call; headphones and muting other sound work for now. Worth another look once Shepit knows which app the call is in.
+- **Echo cancellation**, so speakers (not headphones) give clean attribution. *Why not now:* headphones solve it, and mic phrases that repeat the call within 5 s are dropped by their words (Test4: 17 of 19 repeats).
 - **Finishing an interrupted session** after a quit or crash. *Why not now:* audio is deleted on purpose; the note keeps what was written.
+
+### Security and housekeeping
+
+From the audit of 2026-10-06. The items about the old Lua tool (whisper-server, sox, curl, `killStale`, `serverPort`) went away with the native app.
+
+- **Tighter file permissions** *(declined for now)*. Config and history are `0644` and their folders `0755`. The home folder is already closed to other users, so this is defence in depth.
+- **Recent menu reads the last 64 KB of history** (`History.tailBytes`); one huge transcript can push older ones out of the menu.
+- **Pre-commit guard** against force-adding `tools/accuracy/recordings/`.
+- **Integration tests** for the running app (capture, engines, a long soak run): covered by unit tests and manual checks only.

@@ -40,6 +40,8 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 - Meeting names: Teams window title, Meet tab title or page bar, remembered names for repeats (`meeting-names.json`). Zoom shows no topic. Mute state is read from all three apps. Checked on real calls in each app.
 - Open manual checks: M1, M4, M7, M9, M22 (M22 needs repeating meetings over weeks).
 - Next, in this order unless the author says otherwise:
-  1. Offer to record when a call starts (detect a Teams, Zoom or Meet call and offer a named transcript; it never starts on its own). Research and a plan first.
-  2. Full UI redesign: a real window for transcripts (list, read, rename people, import the same meeting's transcript from Zoom, Meet or Teams for names), and the Settings window in the same style. The current UI was rejected; don't polish it piece by piece. Spec and plans first.
+  1. Visual style with mockups: one spec for the main window, the floating panels and the menu.
+  2. Offer to record when a call starts: a floating panel with the call's name and a Start button. It starts on its own only when the author turned on the automatic-start setting. Research and a plan first.
+  3. The main window: meetings (list, read, rename people, import a transcript for names), the call running now, dictation history, dictionary, statistics, settings. The menu keeps quick actions only. The current UI was rejected; don't polish it piece by piece. Spec and plans first.
+  Decisions and open questions are in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy with full history is on GitLab (`local-dictation-tool`); it is no longer updated.
