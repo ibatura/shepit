@@ -55,15 +55,16 @@ Sidebar, top to bottom:
 ## 5. Sections
 
 ### 5.1 Home
-- **Dictation group:** status line (as the menu's first line today), Mode, Language, Engine and model, Microphone, and the buttons Reload settings and Reload model.
+- **Dictation group:** status line (as the menu's first line today), Mode, Language, Microphone, and the buttons Reload settings and Reload model.
+- **Engines group:** one row per job, each with one picker "engine · model" and a hint saying what the job is: Dictation (the text that gets pasted), Live draft (the preview in the panel while you speak), Meetings (meeting transcripts).
 - **Meeting group:** "No call right now" with Start transcript, or the running call with Stop.
-- **Last dictations:** the newest few, each with Copy.
+- **Last dictations:** the newest 10, each with Copy, and a button to the Dictations section.
 
 ### 5.2 Meetings
 Two columns: the list (grouped by week; name, day and time, duration, app) and the chosen meeting.
 
 A finished meeting shows:
-- Name (editable; renames in the database and the note's front matter, not the file), app, date, duration.
+- Name (editable), app, date, duration. A new name is written to the database and the note's front matter, and the note file is renamed too: the `meetingFileName` template is filled again with the new name, in the same folder, with ` (2)` added if that name is taken. A missing note changes only the database.
 - Buttons: Copy, Open note, Import names….
 - **People:** one row per person with a colour, a name field, the share of words, and "Merge into" with the other people. Typing a name renames that person in the note. Merge gives all lines of one person to another.
 - **Transcript**, read only. Clicking a line opens a small list "Give this line to" with the meeting's people.
@@ -74,7 +75,7 @@ The running meeting is the first item of the list, with a red dot. It shows time
 All changes to the note keep the phase 3 rule: only header lines are rewritten, via temp file + rename.
 
 ### 5.3 Dictations
-The history by day: text, time, app, word count, Copy. At the bottom: how long history is kept, Open history file, Clear history….
+The history by day: text, time, app, word count, Copy. The section shows the whole kept history, loaded as the list scrolls. A long text shows its first two lines and "…"; a click opens the whole text in place. Copy always takes the whole text. At the bottom: how long history is kept, Open history file, Clear history….
 
 ### 5.4 Dictionary
 Terms as chips, replace rules as a two-column list, drop phrases as chips, and an Add word button (the same dialog as ⌃⌥D).
@@ -83,7 +84,7 @@ Terms as chips, replace rules as a two-column list, drop phrases as chips, and a
 The "Remember voices" switch with its explanation, the list of saved voices (name, number of meetings, last seen, Delete), and "Delete all voices…".
 
 ### 5.6 Statistics
-The same tiles and charts as today (`2026-10-18-native-app/05-statistics.md`), in this style.
+The same tiles and charts as today (`2026-10-18-native-app/05-statistics.md`), in this style. The author wants more here, to be able to analyse usage; what to add is discussed separately.
 
 ### 5.7 Settings
 A second column lists the sections: General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy, Appearance. Contents are as in `04-settings.md` §3, minus what moved to its own sidebar item (Dictionary, Statistics).
@@ -127,7 +128,7 @@ One panel style for everything Shepit shows on its own: a small rounded card in 
 
 ## 7. The menu
 
-Quick actions only (mockup 10): status line, Open Shepit, Start or Stop meeting transcript, Copy last dictation, Recent, Add word…, Mode, Language, Engine, Settings…, Quit. While recording, the status line shows the red dot, the name and the time.
+Quick actions only (mockup 10): status line, Open Shepit, Start or Stop meeting transcript, Copy last dictation, Recent, Add word…, Mode, Language, Dictation engine, Settings…, Quit. While recording, the status line shows the red dot, the name and the time.
 
 Gone from the menu, now in the window: Rename speakers (both), Copy last meeting transcript, Open meetings folder, Edit dictionary, Reload settings, Reload model, Statistics.
 
@@ -140,7 +141,9 @@ Gone from the menu, now in the window: Rename speakers (both), Copy last meeting
 - Slack is listed in Calls → Apps but off until research shows its calls can be detected.
 - Accent colour defaults to the macOS accent. The colour list is the macOS one.
 - Start from the panel skips the name dialog. `meetingAskTitle` then applies only to Start from the menu or the window.
-- The meeting name can be changed in the window; the file name stays.
+- Renaming a meeting renames its note file (the author's decision). Links to the note from other Obsidian notes are not updated: Obsidian only does that for renames made inside it.
+- Home shows the last 10 dictations; a long dictation is cut to two lines until clicked.
+- The menu's Engine item is the dictation engine and is named so. The other two engines are changed in the window.
 - A "Transcript ready" panel with a "Name people" button.
 - Panels sit in the top right corner.
 

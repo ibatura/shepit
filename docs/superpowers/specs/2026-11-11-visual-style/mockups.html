@@ -86,6 +86,7 @@ p.note { color: var(--text2); margin: 0 0 8px; max-width: 70ch; }
 .menu div.on { background: var(--accent); color: #fff; }
 .menu div.dim { color: var(--text2); }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 5px 8px; }
+.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 @media (max-width: 720px) { .win { grid-template-columns: 1fr; } .side { border-right: 0; border-bottom: 1px solid var(--line); }
   .split { grid-template-columns: 1fr; } .list { border-right: 0; border-bottom: 1px solid var(--line); } }
@@ -103,12 +104,17 @@ p.note { color: var(--text2); margin: 0 0 8px; max-width: 70ch; }
     <p class="title">Home</p>
     <p class="label">Dictation</p>
     <div class="group">
-      <div class="row"><span class="grow">Status</span><span class="sub">Ready · whisper.cpp large-v3-turbo</span></div>
+      <div class="row"><span class="grow">Status</span><span class="sub">Ready</span></div>
       <div class="row"><span class="grow">Mode</span><span class="sel">Toggle</span></div>
       <div class="row"><span class="grow">Language</span><span class="sel">Auto (uk, en)</span></div>
-      <div class="row"><span class="grow">Engine</span><span class="sel">whisper.cpp</span><span class="sel">large-v3-turbo</span></div>
       <div class="row"><span class="grow">Microphone</span><span class="sel">MacBook Pro Microphone</span></div>
       <div class="row"><span class="grow sub">Changes apply at once</span><button class="btn">Reload settings</button><button class="btn">Reload model</button></div>
+    </div>
+    <p class="label">Engines: which model does which job</p>
+    <div class="group">
+      <div class="row"><span class="grow">Dictation<br><span class="sub">The text that gets pasted</span></span><span class="sel">whisper.cpp · large-v3</span></div>
+      <div class="row"><span class="grow">Live draft<br><span class="sub">The preview in the panel while you speak</span></span><span class="sel">whisper.cpp · large-v3-turbo</span></div>
+      <div class="row"><span class="grow">Meetings<br><span class="sub">Meeting transcripts</span></span><span class="sel">whisper.cpp · large-v3-turbo</span></div>
     </div>
     <p class="label">Meeting</p>
     <div class="group">
@@ -118,6 +124,10 @@ p.note { color: var(--text2); margin: 0 0 8px; max-width: 70ch; }
     <div class="group">
       <div class="row"><span class="grow">Please move the release notes to Thursday.</span><span class="sub">14:02 · Slack</span><button class="btn">Copy</button></div>
       <div class="row"><span class="grow">Додай, будь ласка, тест на порожній список.</span><span class="sub">13:47 · Terminal</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">The build is green again after the retry.</span><span class="sub">11:20 · Mail</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow clamp">I looked at the report from last night and I think we should split it into two parts, one for the numbers and one for the comments, because right now nobody reads it to the end and the important part is at the bottom.</span><span class="sub">10:05 · Notes</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">Окей, давай після обіду.</span><span class="sub">09:48 · Slack</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow sub">The last 10 are shown here</span><button class="btn">All dictations</button></div>
     </div>
   </div>
 </div>
@@ -188,6 +198,10 @@ p.note { color: var(--text2); margin: 0 0 8px; max-width: 70ch; }
       <div class="row"><span class="grow">Please move the release notes to Thursday.</span><span class="sub">14:02 · Slack · 7 words</span><button class="btn">Copy</button></div>
       <div class="row"><span class="grow">Додай, будь ласка, тест на порожній список.</span><span class="sub">13:47 · Terminal · 7 words</span><button class="btn">Copy</button></div>
       <div class="row"><span class="grow">The build is green again after the retry.</span><span class="sub">11:20 · Mail · 8 words</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow clamp">I looked at the report from last night and I think we should split it into two parts, one for the numbers and one for the comments, because right now nobody reads it to the end and the important part is at the bottom.</span><span class="sub">10:05 · Notes · 44 words</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">I looked at the report from last night and I think we should split it into two parts, one for the numbers and one for the comments, because right now nobody reads it to the end and the important part is at the bottom.<br><span class="sub">The same entry after a click: the whole text</span></span><span class="sub">10:05 · Notes · 44 words</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">Окей, давай після обіду.</span><span class="sub">09:48 · Slack · 4 words</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">Can you check the second step of the pipeline?</span><span class="sub">09:12 · Slack · 9 words</span><button class="btn">Copy</button></div>
     </div>
     <p class="label">Yesterday</p>
     <div class="group">
@@ -305,7 +319,7 @@ p.note { color: var(--text2); margin: 0 0 8px; max-width: 70ch; }
 <h2>10. Menu-bar menu: quick actions only</h2>
 <div class="desk">
   <div class="menu">
-    <div class="dim">Ready · whisper.cpp large-v3-turbo</div><hr>
+    <div class="dim">Ready · whisper.cpp large-v3</div><hr>
     <div class="on">Open Shepit<span>⌘O</span></div><hr>
     <div>Start meeting transcript</div>
     <div>Copy last dictation<span>⌥⇧Space</span></div>
@@ -313,7 +327,7 @@ p.note { color: var(--text2); margin: 0 0 8px; max-width: 70ch; }
     <div>Add word…<span>⌃⌥D</span></div><hr>
     <div>Mode<span>Toggle ▸</span></div>
     <div>Language<span>Auto ▸</span></div>
-    <div>Engine<span>large-v3-turbo ▸</span></div><hr>
+    <div>Dictation engine<span>large-v3 ▸</span></div><hr>
     <div>Settings…<span>⌘,</span></div>
     <div>Quit Shepit<span>⌘Q</span></div>
   </div>
