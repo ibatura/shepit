@@ -68,6 +68,9 @@ A finished meeting shows:
 - Buttons: Copy, Open note, Import names….
 - **People:** one row per person with a colour, a name field, the share of words, and "Merge into" with the other people. Typing a name renames that person in the note. Merge gives all lines of one person to another.
 - **Transcript**, read only. Clicking a line opens a small list "Give this line to" with the meeting's people.
+- "Reset people" puts every line back to the person the speaker detection gave it. The database keeps that first labelling, so a wrong merge or a wrongly given line can be undone.
+- A person recognised by a saved voice gets the name at once, marked "recognised by voice"; the name can be changed like any other.
+- Two separate actions remove a meeting: "Remove from list" (the note stays) and "Move note to Trash" (both go).
 - A meeting whose note is missing shows "note not found" in the list, and "Locate note…" and "Remove from list" instead of the transcript.
 
 The running meeting is the first item of the list, with a red dot. It shows time, words, phrases waiting, the microphone's mute state, the live transcript, and Stop. People appear after Stop.
@@ -121,7 +124,16 @@ New sections:
 | `theme` | `"system"` | `"system"`, `"light"`, `"dark"` | Light or dark |
 | `accentColor` | `"system"` | `"system"`, `"blue"`, `"purple"`, `"pink"`, `"red"`, `"orange"`, `"yellow"`, `"green"`, `"graphite"` | Accent colour; `system` follows macOS |
 
-**People:** `rememberVoices`, default `false`.
+**People**
+
+| key | default | allowed | meaning |
+|---|---|---|---|
+| `rememberVoices` | `false` | `true`, `false` | Keep voice prints of the people you name |
+| `unnamedVoiceDays` | `7` | 1–90 | Days a voice print of a person without a name is kept. The print has to be taken before the call audio is deleted, when the person is still "Person 1"; it is deleted after this many days if no name was given |
+
+A voice print is a few hundred numbers, about 1–2 KB per person, so storage is not a concern; the limit is there for privacy.
+
+**Hotkeys** gets one more recorder: start or stop a meeting transcript (`meetingHotkey`, no default).
 
 ## 6. Floating panels
 
@@ -153,6 +165,7 @@ Gone from the menu, now in the window: Rename speakers (both), Copy last meeting
 - Slack is listed in Calls → Apps but off until research shows its calls can be detected.
 - Accent colour defaults to the macOS accent. The colour list is the macOS one.
 - Start from the panel skips the name dialog. `meetingAskTitle` then applies only to Start from the menu or the window.
+- `unnamedVoiceDays` default 7 (the author's number), with the 1–90 range mine.
 - Per-person word counts are kept with the saved voices, not in `stats.sqlite`, so the rule "no names in statistics" stays true.
 - Renaming a meeting renames its note file (the author's decision). Links to the note from other Obsidian notes are not updated: Obsidian only does that for renames made inside it.
 - Home shows the last 10 dictations; a long dictation is cut to two lines until clicked.

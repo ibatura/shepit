@@ -4,9 +4,16 @@ What comes next, and what was set aside and why. Reviewed with the author on 202
 
 ## Planned, in this order
 
-1. **Visual style with mockups.** One spec for how the new Shepit looks: the main window, the floating panels, the menu. Everything below is built in that style.
-2. **Offer to record when a call starts**, as a floating panel.
-3. **The main window:** meetings, dictations, dictionary, statistics, settings.
+Build order agreed on 2026-11-11:
+
+1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
+2. **Offer to record when a call starts**: research, then the floating panels.
+3. **Window shell** with Home and Settings.
+4. **Meetings**: the database, names, merging people, giving a line to another person.
+5. **Dictations and Dictionary.**
+6. **Statistics**, with the new numbers.
+7. **Voices**: voice prints and the People section.
+8. **Import names** from a transcript; the Meet `.txt` format last.
 
 Each gets its own spec and plan.
 
