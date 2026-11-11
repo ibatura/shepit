@@ -84,7 +84,19 @@ Terms as chips, replace rules as a two-column list, drop phrases as chips, and a
 The "Remember voices" switch with its explanation, the list of saved voices (name, number of meetings, last seen, Delete), and "Delete all voices…".
 
 ### 5.6 Statistics
-The same tiles and charts as today (`2026-10-18-native-app/05-statistics.md`), in this style. The author wants more here, to be able to analyse usage; what to add is discussed separately.
+The same tiles and charts as today (`2026-10-18-native-app/05-statistics.md`), in this style. Added (decided 2026-11-11):
+
+From numbers `stats.sqlite` already has:
+- **Languages:** share of Ukrainian and English, and how often the detected language differs from the chosen one.
+- **Speed:** wait time per second of audio, by engine and model, over time.
+- **Dictionary:** how many replacements were made and which terms most often.
+- **Failures:** share of "nothing recognized" and cancelled dictations.
+- **Meetings:** the author's share of words against the others, number of people, duration, failed chunks.
+
+New numbers to collect:
+- Meetings by app (Teams, Zoom, Meet).
+- Offers to record: accepted, dismissed, hidden by time.
+- **Words per saved person**, when Remember voices is on. `stats.sqlite` holds no names, so these counts live in the meetings database next to the saved voices and are deleted with them.
 
 ### 5.7 Settings
 A second column lists the sections: General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy, Appearance. Contents are as in `04-settings.md` §3, minus what moved to its own sidebar item (Dictionary, Statistics).
@@ -141,6 +153,7 @@ Gone from the menu, now in the window: Rename speakers (both), Copy last meeting
 - Slack is listed in Calls → Apps but off until research shows its calls can be detected.
 - Accent colour defaults to the macOS accent. The colour list is the macOS one.
 - Start from the panel skips the name dialog. `meetingAskTitle` then applies only to Start from the menu or the window.
+- Per-person word counts are kept with the saved voices, not in `stats.sqlite`, so the rule "no names in statistics" stays true.
 - Renaming a meeting renames its note file (the author's decision). Links to the note from other Obsidian notes are not updated: Obsidian only does that for renames made inside it.
 - Home shows the last 10 dictations; a long dictation is cut to two lines until clicked.
 - The menu's Engine item is the dictation engine and is named so. The other two engines are changed in the window.
