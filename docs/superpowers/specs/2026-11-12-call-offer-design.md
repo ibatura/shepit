@@ -52,9 +52,10 @@ Core Audio lists the processes that use audio (`kAudioHardwarePropertyProcessObj
 | Zoom | `us.zoom.xos` | 36 s, one stretch |
 | Meet in Chrome | `com.google.Chrome.helper` | 33 s, one stretch |
 
-- Each call gave exactly one "microphone on" and one "microphone off". Muting in the app did not release the microphone.
+- Each call gave exactly one "microphone on" and one "microphone off". The author muted and unmuted about three times in each app, a few seconds apart: muting in the app does not release the microphone.
 - The flag went off within about a second of leaving.
-- So the flag alone can't tell the pre-join screen from the call. Whether it turns on at the pre-join screen or at joining was not timed.
+- The author started these calls himself, so there was no pre-join screen. What the flag does on a pre-join screen (joining someone else's meeting by a link) is not known yet.
+- During the Teams call `systemsoundserverd` played three short sounds a few seconds apart, most likely the mute sounds. Not used: it is not tied to the app.
 - In Chrome the microphone belongs to a helper process, the same for any web page that uses it. The browser has to be found from the helper, and the page checked.
 - Teams plays its sounds from another process (`com.microsoft.teams2.helper`); only the microphone flag matters.
 
@@ -149,6 +150,6 @@ One row per offer in `stats.sqlite`: time, app, and how it ended (started by cli
 
 ## 9. To check before the plan (gate, with the author)
 
-1. On the pre-join screen and in the call of each app: when the microphone flag turns on, and which buttons the Accessibility tree shows (labels only). This fixes the "joined" rule.
+1. Joining an existing meeting by a link in each app, with a few seconds on the pre-join screen: when the microphone flag turns on, and which buttons the Accessibility tree shows before and after joining (labels only). This fixes the "joined" rule. The labels are read by a diagnostic command inside Shepit, which already has Accessibility; a script in the terminal would need its own permission.
 2. How long after leaving each app releases the microphone when the meeting window stays open (Teams keeps a "call ended" screen).
 3. Whether Core Audio property listeners fire for other processes' input, or a poll is needed.
