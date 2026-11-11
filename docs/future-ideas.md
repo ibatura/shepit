@@ -24,12 +24,15 @@ Each gets its own spec and plan.
 - **Voice prints, optional.** A setting to keep voice prints of named people so they are recognised in later meetings. The author can see the saved people and delete any of them, or all.
 - **Import the same meeting's transcript** to take the participants' names from it. Files the author has: Teams `.vtt` and `.docx`, Zoom `.vtt`, Google Meet `.txt` written by a browser plugin.
 
-Open questions:
-- Fixing single lines given to the wrong person (3 lines in the Sprint Planning call).
-- Whether the transcript text can be edited in the window, or only read.
-- Whether import takes names only, or also text.
-- Whether voice prints are off by default.
-- What happens to a meeting in the list when its note was moved or renamed in Obsidian.
+Decided later the same day:
+- A single line can be given to another person, and two people can be merged into one.
+- The transcript is read only in the window; editing happens in Obsidian.
+- Import takes names only. The Meet `.txt` format is done last, from a sample the author sends.
+- Voice prints are off by default.
+- A meeting whose note was moved or renamed stays in the list, marked "note not found", with a way to point at the file.
+- The look is restrained, like macOS System Settings, plus an Appearance section in Settings with a colour choice.
+
+The screens are in `docs/superpowers/specs/2026-11-11-visual-style/`.
 
 ### Offer to record when a call starts (decided 2026-11-11)
 
@@ -40,6 +43,7 @@ Open questions:
 - **With a name found:** the panel shows the name and a Start button; one click starts, with no name dialog. **Without a name** (Zoom): the panel says "Zoom call" and has the same Start button.
 - **Automatic start is a setting.** When on, the same panel shows a countdown bar and the transcript starts unless the author presses the stop button. When off, nothing is recorded without a click. This changes the earlier rule "it never starts on its own": it now starts on its own only when the author turned the setting on.
 - **End of the call:** a panel says the transcript stops in a few seconds, with a countdown bar and a "Continue" button.
+- **The offer hides after a number of seconds** set in Settings (default 15; 0 keeps it until a button is pressed).
 - **Dismiss** applies to this call only.
 - **Apps:** Teams, Zoom, Google Meet, Teams in a browser, Slack. FaceTime and Telegram if possible.
 - **Calendar names** (EventKit) are not part of this; see below.

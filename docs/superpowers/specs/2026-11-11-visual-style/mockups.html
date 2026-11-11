@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shepit mockups</title>
+<style>
+:root {
+  --accent: #0a84ff;
+  --bg: #ececec; --window: #ffffff; --sidebar: #f2f2f4; --group: #f6f6f7; --line: #dcdcde;
+  --text: #1d1d1f; --text2: #6e6e73; --sel: rgba(0,0,0,.08); --rec: #ff3b30; --field: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #161617; --window: #1e1e20; --sidebar: #29292c; --group: #2a2a2d; --line: #3a3a3d;
+    --text: #f5f5f7; --text2: #a1a1a6; --sel: rgba(255,255,255,.12); --field: #1a1a1c; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px 60px; background: var(--bg); color: var(--text);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+main { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+h2 { font-size: 13px; font-weight: 600; color: var(--text2); margin: 32px 0 8px; }
+p.note { color: var(--text2); margin: 0 0 8px; max-width: 70ch; }
+.accents { display: flex; gap: 8px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+.sw { width: 18px; height: 18px; border-radius: 50%; border: 0; cursor: pointer; padding: 0; }
+.sw.on { outline: 2px solid var(--text); outline-offset: 2px; }
+.win { display: grid; grid-template-columns: 190px minmax(0, 1fr); background: var(--window);
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; min-height: 380px; }
+.side { background: var(--sidebar); border-right: 1px solid var(--line); padding: 10px 8px; }
+.lights { display: flex; gap: 7px; padding: 4px 6px 12px; }
+.lights i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+.nav { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; }
+.nav.on { background: var(--accent); color: #fff; }
+.ic { width: 20px; height: 20px; border-radius: 5px; color: #fff; font-size: 11px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.sep { height: 1px; background: var(--line); margin: 8px 6px; }
+.live { margin: 0 2px 10px; padding: 8px 10px; border-radius: 8px; background: var(--window); border: 1px solid var(--line); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--rec); margin-right: 6px; }
+.body { padding: 16px 20px; min-width: 0; }
+.title { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+.sub { color: var(--text2); font-size: 12px; }
+.group { background: var(--group); border: 1px solid var(--line); border-radius: 8px; margin: 0 0 14px; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); min-height: 36px; }
+.row:first-child { border-top: 0; }
+.row .grow { flex: 1; min-width: 0; }
+.label { font-size: 12px; font-weight: 600; color: var(--text2); margin: 0 0 6px 4px; }
+.btn { font: inherit; color: var(--text); background: var(--field); border: 1px solid var(--line);
+  border-radius: 6px; padding: 3px 10px; white-space: nowrap; }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.rec { background: var(--rec); border-color: var(--rec); color: #fff; }
+.sel, .inp { font: inherit; color: var(--text); background: var(--field); border: 1px solid var(--line);
+  border-radius: 6px; padding: 3px 8px; min-width: 0; }
+.sel::after { content: " ▾"; color: var(--text2); }
+.tog { width: 34px; height: 20px; border-radius: 10px; background: var(--line); position: relative; flex: none; }
+.tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+.tog.on { background: var(--accent); }
+.tog.on::after { left: 16px; }
+.pill { font-size: 11px; padding: 1px 7px; border-radius: 9px; background: var(--sel); color: var(--text2); white-space: nowrap; }
+.split { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: 380px; }
+.list { border-right: 1px solid var(--line); padding: 10px 8px; }
+.item { padding: 6px 8px; border-radius: 6px; }
+.item.on { background: var(--sel); }
+.av { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 10px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.line { padding: 5px 6px; border-radius: 6px; }
+.line.on { background: var(--sel); }
+.pop { display: inline-block; background: var(--window); border: 1px solid var(--line); border-radius: 8px;
+  padding: 4px; margin: 2px 0 6px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.pop div { padding: 3px 10px; border-radius: 5px; }
+.pop div.on { background: var(--accent); color: #fff; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.tile { background: var(--group); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.tile b { display: block; font-size: 20px; font-weight: 600; }
+.bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; padding: 12px; }
+.bars span { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; opacity: .85; }
+.desk { background: var(--group); border: 1px solid var(--line); border-radius: 12px; padding: 18px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; align-items: start; }
+.panel { background: var(--window); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+.panel .cap { font-size: 11px; color: var(--text2); margin: 0 0 8px; }
+.prog { height: 3px; border-radius: 2px; background: var(--line); margin: 10px 0; overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--accent); }
+.menu { width: 270px; background: var(--window); border: 1px solid var(--line); border-radius: 8px; padding: 5px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+.menu div { padding: 3px 10px; border-radius: 5px; display: flex; justify-content: space-between; gap: 10px; }
+.menu div.on { background: var(--accent); color: #fff; }
+.menu div.dim { color: var(--text2); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 5px 8px; }
+.flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 720px) { .win { grid-template-columns: 1fr; } .side { border-right: 0; border-bottom: 1px solid var(--line); }
+  .split { grid-template-columns: 1fr; } .list { border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<main>
+<h1>Shepit: main window, panels and menu</h1>
+<p class="note">Mockups for the visual style spec (2026-11-11). All names and texts are made up. The page follows the system light or dark mode. Pick an accent colour to see Settings → Appearance at work.</p>
+<div class="accents" id="accents"><span class="sub">Accent</span></div>
+
+<h2>1. Home: status and quick controls</h2>
+<div class="win" data-nav="Home">
+  <div class="body">
+    <p class="title">Home</p>
+    <p class="label">Dictation</p>
+    <div class="group">
+      <div class="row"><span class="grow">Status</span><span class="sub">Ready · whisper.cpp large-v3-turbo</span></div>
+      <div class="row"><span class="grow">Mode</span><span class="sel">Toggle</span></div>
+      <div class="row"><span class="grow">Language</span><span class="sel">Auto (uk, en)</span></div>
+      <div class="row"><span class="grow">Engine</span><span class="sel">whisper.cpp</span><span class="sel">large-v3-turbo</span></div>
+      <div class="row"><span class="grow">Microphone</span><span class="sel">MacBook Pro Microphone</span></div>
+      <div class="row"><span class="grow sub">Changes apply at once</span><button class="btn">Reload settings</button><button class="btn">Reload model</button></div>
+    </div>
+    <p class="label">Meeting</p>
+    <div class="group">
+      <div class="row"><span class="grow">No call right now<br><span class="sub">Shepit offers a transcript when a call starts</span></span><button class="btn pri">Start transcript</button></div>
+    </div>
+    <p class="label">Last dictations</p>
+    <div class="group">
+      <div class="row"><span class="grow">Please move the release notes to Thursday.</span><span class="sub">14:02 · Slack</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">Додай, будь ласка, тест на порожній список.</span><span class="sub">13:47 · Terminal</span><button class="btn">Copy</button></div>
+    </div>
+  </div>
+</div>
+
+<h2>2. Meetings: a finished meeting, with a line being given to another person</h2>
+<div class="win" data-nav="Meetings">
+  <div class="split">
+    <div class="list">
+      <p class="label">This week</p>
+      <div class="item on"><b>Sprint planning</b><div class="sub">Tue 10:00 · 48 min · Teams</div></div>
+      <div class="item">Design review<div class="sub">Mon 15:30 · 31 min · Meet</div></div>
+      <div class="item">Zoom call<div class="sub">Mon 11:00 · 22 min · Zoom</div></div>
+      <p class="label" style="margin-top:12px">Last week</p>
+      <div class="item">Weekly sync<div class="sub">Fri 12:00 · 55 min · Teams</div></div>
+      <div class="item">Budget check<div class="sub">Thu 09:30 · note not found</div></div>
+    </div>
+    <div class="body">
+      <p class="title" style="margin-bottom:6px">Sprint planning</p>
+      <div class="flex" style="margin-bottom:12px"><span class="pill">Teams</span><span class="pill">10 Nov 2026, 10:00</span><span class="pill">48 min</span>
+        <span style="flex:1"></span><button class="btn">Copy</button><button class="btn">Open note</button><button class="btn">Import names…</button></div>
+      <p class="label">People</p>
+      <div class="group">
+        <div class="row"><span class="av" style="background:#34c759">IB</span><span class="inp grow">Ivan Batura</span><span class="sub">you · 41%</span></div>
+        <div class="row"><span class="av" style="background:#af52de">P1</span><span class="inp grow sub">Person 1</span><span class="sub">36%</span><span class="sel">Merge into</span></div>
+        <div class="row"><span class="av" style="background:#ff9500">OK</span><span class="inp grow">Olena K.</span><span class="sub">20%</span><span class="sel">Merge into</span></div>
+        <div class="row"><span class="av" style="background:#5ac8fa">P3</span><span class="inp grow sub">Person 3</span><span class="sub">3%</span><span class="sel">Merge into</span></div>
+      </div>
+      <p class="label">Transcript (read only)</p>
+      <div class="line"><span class="sub">Ivan Batura · 10:00:12</span><br>Okay, let's start with the board.</div>
+      <div class="line on"><span class="sub">Person 3 · 10:00:19</span><br>Two tickets moved from last sprint.</div>
+      <div class="pop"><div class="sub">Give this line to</div><div>Ivan Batura</div><div>Person 1</div><div class="on">Olena K.</div></div>
+      <div class="line"><span class="sub">Olena K. · 10:00:31</span><br>I can take the first one.</div>
+    </div>
+  </div>
+</div>
+
+<h2>3. Meetings: the call running now</h2>
+<div class="win" data-nav="Meetings" data-live="1">
+  <div class="split">
+    <div class="list">
+      <div class="item on"><b><span class="dot"></span>Weekly sync</b><div class="sub">Recording · 12:34 · Teams</div></div>
+      <p class="label" style="margin-top:12px">This week</p>
+      <div class="item">Sprint planning<div class="sub">Tue 10:00 · 48 min · Teams</div></div>
+      <div class="item">Design review<div class="sub">Mon 15:30 · 31 min · Meet</div></div>
+    </div>
+    <div class="body">
+      <div class="flex" style="margin-bottom:12px"><p class="title" style="margin:0"><span class="dot"></span>Weekly sync</p><span style="flex:1"></span><button class="btn rec">Stop</button></div>
+      <div class="tiles">
+        <div class="tile"><span class="sub">Time</span><b>12:34</b></div>
+        <div class="tile"><span class="sub">Words</span><b>1 482</b></div>
+        <div class="tile"><span class="sub">Phrases waiting</span><b>2</b></div>
+        <div class="tile"><span class="sub">Your microphone</span><b>Muted</b></div>
+      </div>
+      <p class="label">Live transcript</p>
+      <div class="line"><span class="sub">Співрозмовники · 12:11:02</span><br>We can ship the first part on Monday.</div>
+      <div class="line"><span class="sub">Ivan Batura · 12:11:09</span><br>Добре, тоді я підготую список змін.</div>
+      <div class="line"><span class="sub">Співрозмовники · 12:11:15</span><br>Thanks. People get names after Stop.</div>
+    </div>
+  </div>
+</div>
+
+<h2>4. Dictations: history</h2>
+<div class="win" data-nav="Dictations">
+  <div class="body">
+    <p class="title">Dictations</p>
+    <p class="label">Today</p>
+    <div class="group">
+      <div class="row"><span class="grow">Please move the release notes to Thursday.</span><span class="sub">14:02 · Slack · 7 words</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">Додай, будь ласка, тест на порожній список.</span><span class="sub">13:47 · Terminal · 7 words</span><button class="btn">Copy</button></div>
+      <div class="row"><span class="grow">The build is green again after the retry.</span><span class="sub">11:20 · Mail · 8 words</span><button class="btn">Copy</button></div>
+    </div>
+    <p class="label">Yesterday</p>
+    <div class="group">
+      <div class="row"><span class="grow">Подивись, чому падає другий крок у пайплайні.</span><span class="sub">17:31 · Slack · 7 words</span><button class="btn">Copy</button></div>
+    </div>
+    <div class="flex"><span class="sub grow" style="flex:1">Kept for 30 days</span><button class="btn">Open history file</button><button class="btn">Clear history…</button></div>
+  </div>
+</div>
+
+<h2>5. Dictionary</h2>
+<div class="win" data-nav="Dictionary">
+  <div class="body">
+    <div class="flex" style="margin-bottom:12px"><p class="title" style="margin:0">Dictionary</p><span style="flex:1"></span><button class="btn pri">Add word</button></div>
+    <p class="label">Terms: words the engine should know</p>
+    <div class="group"><div class="row"><span class="flex grow"><span class="pill">Kubernetes</span><span class="pill">pull request</span><span class="pill">Shepit</span><span class="pill">Obsidian</span><span class="pill">+ add</span></span></div></div>
+    <p class="label">Replace: heard → written</p>
+    <div class="group">
+      <div class="row"><span class="inp grow">шепіт</span><span class="sub">→</span><span class="inp grow">Shepit</span><button class="btn">−</button></div>
+      <div class="row"><span class="inp grow">пул реквест</span><span class="sub">→</span><span class="inp grow">pull request</span><button class="btn">−</button></div>
+      <div class="row"><span class="inp grow sub">heard</span><span class="sub">→</span><span class="inp grow sub">written</span><button class="btn">+</button></div>
+    </div>
+    <p class="label">Drop: phrases removed from every result</p>
+    <div class="group"><div class="row"><span class="flex grow"><span class="pill">Дякую за перегляд!</span><span class="pill">+ add</span></span></div></div>
+  </div>
+</div>
+
+<h2>6. People: saved voices</h2>
+<div class="win" data-nav="People">
+  <div class="body">
+    <p class="title">People</p>
+    <div class="group">
+      <div class="row"><span class="grow">Remember voices<br><span class="sub">Keeps a voice print for each person you name, so they are named in later meetings. Stored on this Mac only. Off by default.</span></span><span class="tog on"></span></div>
+    </div>
+    <p class="label">Saved voices</p>
+    <div class="group">
+      <div class="row"><span class="av" style="background:#ff9500">OK</span><span class="inp grow">Olena K.</span><span class="sub">6 meetings · last 10 Nov</span><button class="btn">Delete</button></div>
+      <div class="row"><span class="av" style="background:#af52de">MD</span><span class="inp grow">Marko D.</span><span class="sub">2 meetings · last 6 Nov</span><button class="btn">Delete</button></div>
+    </div>
+    <div class="flex"><span style="flex:1"></span><button class="btn">Delete all voices…</button></div>
+  </div>
+</div>
+
+<h2>7. Statistics</h2>
+<div class="win" data-nav="Statistics">
+  <div class="body">
+    <div class="flex" style="margin-bottom:12px"><p class="title" style="margin:0">Statistics</p><span style="flex:1"></span><span class="sel">Last 30 days</span></div>
+    <div class="tiles">
+      <div class="tile"><span class="sub">Dictations</span><b>412</b><span class="sub">+8%</span></div>
+      <div class="tile"><span class="sub">Words</span><b>18 930</b><span class="sub">+12%</span></div>
+      <div class="tile"><span class="sub">Meetings · hours</span><b>14 · 9.5</b><span class="sub">+3</span></div>
+      <div class="tile"><span class="sub">Time saved</span><b>6 h 10 m</b><span class="sub">at 40 wpm</span></div>
+    </div>
+    <p class="label">Words per day</p>
+    <div class="group"><div class="bars"><span style="height:40%"></span><span style="height:65%"></span><span style="height:30%"></span><span style="height:80%"></span><span style="height:55%"></span><span style="height:10%"></span><span style="height:5%"></span><span style="height:70%"></span><span style="height:90%"></span><span style="height:45%"></span><span style="height:60%"></span><span style="height:35%"></span></div></div>
+    <p class="sub">The other charts (engine speed, where text is pasted, heatmap, quality) keep their content and take this style.</p>
+  </div>
+</div>
+
+<h2>8. Settings: Calls and Appearance</h2>
+<div class="win" data-nav="Settings">
+  <div class="split">
+    <div class="list">
+      <div class="item">General</div><div class="item">Hotkeys</div><div class="item">Engines and models</div><div class="item">Dictation</div>
+      <div class="item">Overlay</div><div class="item">Meetings</div><div class="item on">Calls</div><div class="item">History and privacy</div><div class="item">Appearance</div>
+    </div>
+    <div class="body">
+      <p class="title">Calls</p>
+      <div class="group">
+        <div class="row"><span class="grow">Offer a transcript when a call starts<br><span class="sub">A small panel with the call's name and a Start button</span></span><span class="tog on"></span></div>
+        <div class="row"><span class="grow">Hide the panel after<br><span class="sub">0 keeps it until you press a button</span></span><span class="inp">15</span><span class="sub">s</span></div>
+        <div class="row"><span class="grow">Start automatically<br><span class="sub">The panel counts down and starts unless you press Don't record</span></span><span class="tog"></span></div>
+        <div class="row"><span class="grow">Start after</span><span class="inp">5</span><span class="sub">s</span></div>
+        <div class="row"><span class="grow">When the call ends, stop after</span><span class="inp">10</span><span class="sub">s</span></div>
+      </div>
+      <p class="label">Apps</p>
+      <div class="group">
+        <div class="row"><span class="grow">Microsoft Teams</span><span class="tog on"></span></div>
+        <div class="row"><span class="grow">Zoom</span><span class="tog on"></span></div>
+        <div class="row"><span class="grow">Google Meet</span><span class="tog on"></span></div>
+        <div class="row"><span class="grow">Slack</span><span class="tog"></span></div>
+      </div>
+      <p class="title" style="margin-top:22px">Appearance</p>
+      <div class="group">
+        <div class="row"><span class="grow">Theme</span><span class="sel">Same as macOS</span></div>
+        <div class="row"><span class="grow">Accent colour</span><span class="flex" id="accents2"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>9. Floating panels</h2>
+<div class="desk">
+  <div class="panel"><p class="cap">Call started, automatic start off</p>
+    <b>Weekly sync</b><div class="sub">Teams call · hides in 9 s</div>
+    <div class="prog"><i style="width:60%"></i></div>
+    <div class="flex"><button class="btn pri" style="flex:1">Start transcript</button><button class="btn">Not this call</button></div></div>
+  <div class="panel"><p class="cap">Hide after = 0: stays until a button is pressed</p>
+    <b>Zoom call</b><div class="sub">No name found</div>
+    <div style="height:23px"></div>
+    <div class="flex"><button class="btn pri" style="flex:1">Start transcript</button><button class="btn">Not this call</button></div></div>
+  <div class="panel"><p class="cap">Call started, automatic start on</p>
+    <b>Design review</b><div class="sub">Google Meet · transcript starts in 3 s</div>
+    <div class="prog"><i style="width:40%"></i></div>
+    <div class="flex"><button class="btn pri" style="flex:1">Start now</button><button class="btn">Don't record</button></div></div>
+  <div class="panel"><p class="cap">Call ended while recording</p>
+    <b>Call ended</b><div class="sub">Transcript stops in 7 s</div>
+    <div class="prog"><i style="width:30%"></i></div>
+    <div class="flex"><button class="btn pri" style="flex:1">Keep recording</button><button class="btn">Stop now</button></div></div>
+  <div class="panel"><p class="cap">After Stop</p>
+    <b>Transcript ready</b><div class="sub">Weekly sync · 55 min · 4 people</div>
+    <div style="height:23px"></div>
+    <div class="flex"><button class="btn pri" style="flex:1">Name people</button><button class="btn">Close</button></div></div>
+</div>
+
+<h2>10. Menu-bar menu: quick actions only</h2>
+<div class="desk">
+  <div class="menu">
+    <div class="dim">Ready · whisper.cpp large-v3-turbo</div><hr>
+    <div class="on">Open Shepit<span>⌘O</span></div><hr>
+    <div>Start meeting transcript</div>
+    <div>Copy last dictation<span>⌥⇧Space</span></div>
+    <div>Recent<span>▸</span></div>
+    <div>Add word…<span>⌃⌥D</span></div><hr>
+    <div>Mode<span>Toggle ▸</span></div>
+    <div>Language<span>Auto ▸</span></div>
+    <div>Engine<span>large-v3-turbo ▸</span></div><hr>
+    <div>Settings…<span>⌘,</span></div>
+    <div>Quit Shepit<span>⌘Q</span></div>
+  </div>
+  <div class="menu">
+    <div class="dim"><span><span class="dot"></span>Recording · Weekly sync · 12:34</span></div><hr>
+    <div>Open Shepit<span>⌘O</span></div><hr>
+    <div class="on">Stop meeting transcript</div>
+    <div>Copy last dictation<span>⌥⇧Space</span></div>
+    <div>Recent<span>▸</span></div><hr>
+    <div>Settings…<span>⌘,</span></div>
+    <div>Quit Shepit<span>⌘Q</span></div>
+  </div>
+</div>
+</main>
+<script>
+const items = [["Home", "⌂", "#8e8e93"], ["Meetings", "M", "#34c759"], ["Dictations", "D", "#ff9500"], ["Dictionary", "A", "#5856d6"],
+  ["People", "P", "#af52de"], ["Statistics", "S", "#ff2d55"], null, ["Settings", "⚙", "#8e8e93"]];
+for (const win of document.querySelectorAll(".win")) {
+  const side = document.createElement("div");
+  side.className = "side";
+  let html = '<div class="lights"><i></i><i></i><i></i></div>';
+  if (win.dataset.live) html += '<div class="live"><span class="dot"></span><b>Recording</b> 12:34<div class="sub">Weekly sync · Teams</div></div>';
+  for (const item of items) {
+    html += item ? `<div class="nav${item[0] === win.dataset.nav ? " on" : ""}"><span class="ic" style="background:${item[2]}">${item[1]}</span>${item[0]}</div>` : '<div class="sep"></div>';
+  }
+  side.innerHTML = html;
+  win.prepend(side);
+}
+const accents = ["#0a84ff", "#af52de", "#ff2d55", "#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#8e8e93"];
+for (const id of ["accents", "accents2"]) {
+  for (const color of accents) {
+    const button = document.createElement("button");
+    button.className = "sw" + (color === accents[0] ? " on" : "");
+    button.style.background = color;
+    button.setAttribute("aria-label", "Accent " + color);
+    button.onclick = () => {
+      document.documentElement.style.setProperty("--accent", color);
+      for (const other of document.querySelectorAll(".sw")) other.classList.toggle("on", other.style.background === button.style.background);
+    };
+    document.getElementById(id).append(button);
+  }
+}
+</script>
+</body>
+</html>
