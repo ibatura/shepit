@@ -40,8 +40,7 @@ extension AppHost {
         var detected = first.detected
         var muteButton = first.mute
         var title = detected.title
-        let namesFile = Paths.dataDir.appending(path: MeetingNames.fileName)
-        let names = MeetingNames.load(namesFile)
+        let names = MeetingNames.load(Paths.dataDir.appending(path: MeetingNames.fileName))
         if settings.meetingAskTitle, settings.meetingFileName.contains("{title}") {
             // The call window's tree can still be building: keep looking while the dialog is open.
             let later = LaterScan()
@@ -71,20 +70,31 @@ extension AppHost {
             title = answer.isEmpty ? nil : answer
         }
         front?.activate()
+        startMeeting(title: title, app: detected.app, mute: muteButton)
+    }
 
+    /// Starts a transcript with the name and app as given, without asking (call offer design §5.4).
+    /// Without `mute`, `MuteWatch` looks for the button itself.
+    func startMeeting(title: String?, app: String?, mute muteButton: MuteButton? = nil) {
+        guard !meetingActive, meetingMissing == nil else { return }
+        let settings = settings
         let start = Date()
+        meetingNamesBefore = nil
         if let title {
+            let namesFile = Paths.dataDir.appending(path: MeetingNames.fileName)
+            let names = MeetingNames.load(namesFile)
             do {
-                try MeetingNames.save(MeetingNames.adding(names, title: title, app: detected.app, start: start), to: namesFile)
+                try MeetingNames.save(MeetingNames.adding(names, title: title, app: app, start: start), to: namesFile)
+                meetingNamesBefore = names
             } catch {
                 NSLog("Shepit meeting names: %@", String(describing: error))
             }
         }
         let folder = settings.meetingsFolderURL(home: Paths.home)
-        let relative = MeetingFileName.relativePath(settings.meetingFileName, start: start, title: title, app: detected.app)
+        let relative = MeetingFileName.relativePath(settings.meetingFileName, start: start, title: title, app: app)
         let note = MeetingFileName.unique(relative, in: folder) { FileManager.default.fileExists(atPath: $0.path) }
         let engine = settings.engines[.meetings] ?? Settings.defaults.engines[.meetings]!
-        let config = MeetingConfig(noteFile: note, frontMatter: MeetingNote.frontMatter(start: start, title: title, app: detected.app),
+        let config = MeetingConfig(noteFile: note, frontMatter: MeetingNote.frontMatter(start: start, title: title, app: app),
                                    myName: settings.myName(),
                                    sessionDir: Self.meetingSessionsRoot.appending(path: "meeting-\(UUID().uuidString)", directoryHint: .isDirectory),
                                    stateDir: Paths.dataDir, engine: engine)
@@ -118,6 +128,20 @@ extension AppHost {
         meetingMute = MuteWatch(muteButton) { [weak session] muted in session?.micMuted(muted, at: recorder.streamPosition) }
         panel.message("⏺ Meeting transcript started", detail: startNotices.items.joined(separator: " "))
         menu?.refreshTitle()
+    }
+
+    /// A finished transcript of a call without a single entry leaves nothing behind (call offer design §5.4):
+    /// no note, no name in `meeting-names.json`, the earlier `last-meeting`. Called in place of `recordMeeting`.
+    func removeEmptyMeeting() {
+        guard let meeting, meeting.removeEmptyNote() else { return }
+        if let names = meetingNamesBefore {
+            do {
+                try MeetingNames.save(names, to: Paths.dataDir.appending(path: MeetingNames.fileName))
+            } catch {
+                NSLog("Shepit meeting names: %@", String(describing: error))
+            }
+        }
+        meetingNamesBefore = nil
     }
 
     /// One stats row per meeting: numbers and the engine only (`05-statistics.md` §1).

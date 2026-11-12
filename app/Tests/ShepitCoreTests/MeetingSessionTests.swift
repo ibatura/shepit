@@ -181,6 +181,43 @@ struct MeetingSessionTests {
             == r.config.noteFile.path + "\n")
     }
 
+    @Test func anEmptyTranscriptIsRemovedAndTheEarlierLastMeetingComesBack() async throws {
+        let r = rig()
+        defer { try? FileManager.default.removeItem(at: r.root) }
+        let last = r.config.stateDir.appending(path: MeetingSession.lastMeetingFile)
+        try FileManager.default.createDirectory(at: r.config.stateDir, withIntermediateDirectories: true)
+        try Data("/earlier.md\n".utf8).write(to: last)
+        try r.session.start()
+        #expect(!r.session.removeEmptyNote()) // still recording
+        r.clock.now += 4
+        await r.session.stop()
+        #expect(r.session.entries == 0)
+        #expect(r.session.removeEmptyNote())
+        #expect(!FileManager.default.fileExists(atPath: r.config.noteFile.path))
+        #expect(try String(contentsOf: last, encoding: .utf8) == "/earlier.md\n")
+    }
+
+    @Test func anEmptyFirstTranscriptLeavesNoLastMeeting() async throws {
+        let r = rig()
+        defer { try? FileManager.default.removeItem(at: r.root) }
+        try r.session.start()
+        await r.session.stop()
+        #expect(r.session.removeEmptyNote())
+        #expect(!FileManager.default.fileExists(atPath: r.config.stateDir.appending(path: MeetingSession.lastMeetingFile).path))
+    }
+
+    @Test func aTranscriptWithEntriesIsNotRemoved() async throws {
+        let r = rig()
+        defer { try? FileManager.default.removeItem(at: r.root) }
+        try r.session.start()
+        talk(r)
+        r.clock.now += 4
+        await r.session.stop()
+        #expect(r.session.entries == 2)
+        #expect(!r.session.removeEmptyNote())
+        #expect(FileManager.default.fileExists(atPath: r.config.noteFile.path))
+    }
+
     @Test func stopDetectsSpeakersRelabelsAndReportsTheMeeting() async throws {
         var r = rig()
         defer { try? FileManager.default.removeItem(at: r.root) }

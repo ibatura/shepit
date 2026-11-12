@@ -26,6 +26,8 @@ final class AppHost: ControllerHost {
     var meeting: MeetingSession?
     var meetingTimer: TimerBox?
     var meetingMute: MuteWatch?
+    /// `meeting-names.json` as it was before this session added its name; nil when it added none.
+    var meetingNamesBefore: [MeetingNames.Entry]?
     private lazy var settingsModel = SettingsModel(store: settingsStore, dictionaryStore: dictionaryStore)
     private lazy var settingsWindow = SettingsWindow(model: settingsModel, actions: SettingsActions(
         microphones: { AudioRecorder.inputDevices().map(\.name) },

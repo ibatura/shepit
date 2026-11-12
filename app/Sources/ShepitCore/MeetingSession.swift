@@ -141,6 +141,8 @@ public final class MeetingSession {
     private var warnedSilentCall = false
     private var written: [(timestamp: String, stream: MeetingStream, offsets: Range<Double>)] = []
     private var words: [MeetingStream: Int] = [.mine: 0, .call: 0]
+    /// `last-meeting` as it was before this session wrote its own.
+    private var earlierLast: Data?
     private var leanings: [MeetingStream: LanguageLeaning] = [:]
     private var failedChunks = 0
     private var stopping = false
@@ -202,7 +204,9 @@ public final class MeetingSession {
             cleanUpAudio()
             throw error is MeetingError ? error : MeetingError(error.localizedDescription)
         }
-        try? Data((config.noteFile.path + "\n").utf8).write(to: config.stateDir.appending(path: Self.lastMeetingFile), options: .atomic)
+        let last = config.stateDir.appending(path: Self.lastMeetingFile)
+        earlierLast = try? Data(contentsOf: last)
+        try? Data((config.noteFile.path + "\n").utf8).write(to: last, options: .atomic)
         state = .recording(elapsed: 0, waiting: 0)
         if services.speakers == nil {
             onNotice?("Speakers won't be detected: download the speaker model in Settings → Meetings")
@@ -480,6 +484,23 @@ public final class MeetingSession {
         let relabelled = Speakers.relabel(note, live: config.liveLabel, entries: entries)
         if relabelled != note { try Data(relabelled.utf8).write(to: config.noteFile, options: .atomic) }
         return Set(labels.compactMap { $0 }).count
+    }
+
+    /// Entries written to the note so far.
+    public var entries: Int { written.count }
+
+    /// A finished transcript without a single entry: deletes the note and puts the earlier `last-meeting` back
+    /// (call offer design §5.4). False, and nothing changes, when there are entries or the session is not done.
+    @discardableResult public func removeEmptyNote() -> Bool {
+        guard case .done = state, written.isEmpty else { return false }
+        try? FileManager.default.removeItem(at: config.noteFile)
+        let last = config.stateDir.appending(path: Self.lastMeetingFile)
+        if let earlierLast {
+            try? earlierLast.write(to: last, options: .atomic)
+        } else {
+            try? FileManager.default.removeItem(at: last)
+        }
+        return true
     }
 
     /// Quit or logout mid-session: keep what's written, mark it, delete the audio (spec §5.10). No resume.
