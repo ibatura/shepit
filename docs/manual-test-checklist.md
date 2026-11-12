@@ -58,14 +58,14 @@ Date: ____
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
-| C1 | Start a call in Teams, in Zoom, in Google Meet (Chrome) | In each, one panel within 5 s with the call's name (Zoom: "Zoom call") ||
-| C2 | Press Start transcript | Starts at once, no name dialog; the note has the panel's name ||
-| C3 | Leave the panel alone (`callOfferSeconds` 15) | Hides after 15 s; no second panel in this call; Start from the menu works ||
-| C4 | `callOfferSeconds` 0, start a call | The panel stays until a button is pressed ||
-| C5 | Start automatically on, start a call | Counts down 5 s, then the transcript starts ||
-| C6 | Start automatically on, press Don't record | Nothing starts; no more panels in this call ||
-| C7 | Press Not this call, stay in the call 1 min | No second panel ||
-| C8 | Leave a call with a transcript running | "Call ended" counts down, then the transcript stops; in another call Keep recording leaves it running, with no second stop panel ||
-| C9 | Switch headphones mid-call with a transcript running | No stop panel; the transcript goes on ||
-| C10 | Dictate into another app with no call; then Start on a Teams pre-join screen and close it | No panel for dictation; after closing, the stop panel runs and no note is left ||
+| C1 | Start a call in Teams, in Zoom, in Google Meet (Chrome) | In each, one panel within 5 s with the call's name (Zoom: "Zoom call") || ✅ 2026-11-12: Teams, Zoom, Meet; the Teams offer on the pre-join screen is named "Meeting join" (the pre-join window title)
+| C2 | Press Start transcript | Starts at once, no name dialog; the note has the panel's name || ✅ 2026-11-12: all three apps
+| C3 | Leave the panel alone (`callOfferSeconds` 15) | Hides after 15 s; no second panel in this call; Start from the menu works || ✅ 2026-11-12 Teams
+| C4 | `callOfferSeconds` 0, start a call | The panel stays until a button is pressed || ✅ 2026-11-12
+| C5 | Start automatically on, start a call | Counts down 5 s, then the transcript starts || ✅ 2026-11-12 Teams
+| C6 | Start automatically on, press Don't record | Nothing starts; no more panels in this call || ✅ 2026-11-12 Teams
+| C7 | Press Not this call, stay in the call 1 min | No second panel || ✅ 2026-11-12 (author; the call was shorter than 1 min)
+| C8 | Leave a call with a transcript running | "Call ended" counts down, then the transcript stops; in another call Keep recording leaves it running, with no second stop panel || ✅ 2026-11-12: stopped by itself in all three apps
+| C9 | Switch headphones mid-call with a transcript running | No stop panel; the transcript goes on || ✅ 2026-11-12
+| C10 | Dictate into another app with no call; then Start on a Teams pre-join screen and close it | No panel for dictation; after closing, the stop panel runs and no note is left || open 2026-11-12: the author saw the transcript go on after closing the pre-join screen; the empty note was removed about a minute after Start. To repeat with `Shepit call-watch` running
 
