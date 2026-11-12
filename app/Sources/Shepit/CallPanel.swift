@@ -51,15 +51,23 @@ private final class FirstClickHostingView<Content: View>: NSHostingView<Content>
 @MainActor
 private final class CallPanelModel: ObservableObject {
     @Published var text: CallOffer.Panel.Text?
+    /// How full the countdown bar is, 0...1.
+    @Published var fraction = 1.0
     /// The countdown's first value in this state: the full width of the bar.
-    @Published var total = 0
+    private var total = 0
     var onMain: () -> Void = {}
     var onOther: () -> Void = {}
 
     func show(_ new: CallOffer.Panel.Text, onMain: @escaping () -> Void, onOther: @escaping () -> Void) {
         let sameState = text?.main == new.main && text?.seconds != nil
         total = max(sameState ? total : 0, new.seconds ?? 0)
+        if !sameState { fraction = 1 }
         text = new
+        if let seconds = new.seconds, total > 0 {
+            // The bar glides through the coming second instead of jumping at its end.
+            let target = Double(max(0, seconds - 1)) / Double(total)
+            DispatchQueue.main.async { withAnimation(.linear(duration: 1)) { self.fraction = target } }
+        }
         self.onMain = onMain
         self.onOther = onOther
     }
@@ -75,10 +83,16 @@ private struct CallPanelView: View {
                     Text(text.title).font(.headline).lineLimit(1)
                     Text(text.status).font(.subheadline).foregroundStyle(.secondary).lineLimit(1).monospacedDigit()
                 }
-                if let seconds = text.seconds, model.total > 0 {
-                    ProgressView(value: Double(seconds), total: Double(model.total))
-                        .progressViewStyle(.linear)
-                        .animation(.linear(duration: 1), value: seconds)
+                if text.seconds != nil {
+                    // Drawn by hand: the standard linear ProgressView does not animate between values.
+                    GeometryReader { bar in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.quaternary)
+                            Capsule().fill(Color.accentColor).frame(width: bar.size.width * model.fraction)
+                        }
+                    }
+                    .frame(height: 4)
+                    .accessibilityHidden(true) // the status line says the seconds
                 }
                 HStack {
                     Spacer()
