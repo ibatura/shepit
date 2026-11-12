@@ -74,8 +74,8 @@ extension AppHost {
     }
 
     /// Starts a transcript with the name and app as given, without asking (call offer design §5.4).
-    /// Without `mute`, `MuteWatch` looks for the button itself.
-    func startMeeting(title: String?, app: String?, mute muteButton: MuteButton? = nil) {
+    /// Without `mute`, `MuteWatch` looks for the button itself. `fromCall`: started by the call panel.
+    func startMeeting(title: String?, app: String?, mute muteButton: MuteButton? = nil, fromCall: Bool = false) {
         guard !meetingActive, meetingMissing == nil else { return }
         let settings = settings
         let start = Date()
@@ -100,18 +100,28 @@ extension AppHost {
                                    stateDir: Paths.dataDir, engine: engine)
         let session = MeetingSession(config: config, mic: MicSource(recorder: recorder, device: settings.microphone),
                                      call: CallTapSource(), services: meetingServices(language: settings.meetingLanguage))
-        session.onState = { [weak self] _ in self?.menu?.refreshTitle() }
+        session.onState = { [weak self] state in
+            self?.menu?.refreshTitle()
+            switch state {
+            case .finishing, .detectingSpeakers: self?.callEvent(.sessionStopping)
+            default: break
+            }
+        }
         // Notices from start() (no speaker model, microphone fallback) go with the "started" message:
         // shown on their own, the next message replaced them at once.
         final class Box { var items: [String] = [] }
         let startNotices = Box()
         session.onNotice = { startNotices.items.append($0) }
-        session.onFinished = { [weak self] record in
-            self?.meetingTimer?.cancel()
-            self?.meetingTimer = nil
-            self?.meetingMute?.cancel()
-            self?.meetingMute = nil
-            self?.recordMeeting(record)
+        session.onFinished = { [weak self, weak session] record in
+            guard let self, let session else { return }
+            self.meetingTimer?.cancel()
+            self.meetingTimer = nil
+            self.meetingMute?.cancel()
+            self.meetingMute = nil
+            let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers)
+            // An empty transcript of a call is removed and gets no statistics row.
+            let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
+            if !effects.contains(.removeEmptyNote) { self.recordMeeting(record) }
         }
         recorder.onDictationStart = { [weak session] in session?.dictationStarted(at: $0) }
         recorder.onDictationEnd = { [weak session] in session?.dictationEnded(at: $0) }
@@ -121,19 +131,22 @@ extension AppHost {
             showAlert(error.localizedDescription)
             return
         }
-        session.onNotice = { [weak self] in self?.panel.message($0) }
+        // The call panel says "Transcript ready" in place of the session's notice.
+        session.onNotice = { [weak self] in if !$0.hasPrefix("Transcript ready") { self?.panel.message($0) } }
         meeting = session
         meetingTimer = TimerBox(repeating: 1) { [weak session] in session?.tick() }
         let recorder = recorder
         meetingMute = MuteWatch(muteButton) { [weak session] muted in session?.micMuted(muted, at: recorder.streamPosition) }
         panel.message("⏺ Meeting transcript started", detail: startNotices.items.joined(separator: " "))
         menu?.refreshTitle()
+        callEvent(.sessionStarted(byPanel: fromCall))
     }
 
     /// A finished transcript of a call without a single entry leaves nothing behind (call offer design §5.4):
     /// no note, no name in `meeting-names.json`, the earlier `last-meeting`. Called in place of `recordMeeting`.
     func removeEmptyMeeting() {
         guard let meeting, meeting.removeEmptyNote() else { return }
+        panel.message("Empty meeting transcript removed")
         if let names = meetingNamesBefore {
             do {
                 try MeetingNames.save(names, to: Paths.dataDir.appending(path: MeetingNames.fileName))

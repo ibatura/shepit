@@ -52,7 +52,8 @@ enum MeetingApps {
 
     /// Titles of windows and browser tabs, and the mute button of a call (Teams, Zoom, or a Meet tab), within `limit`.
     /// `name: false` (the mute watch) stops at the mute button instead of walking a Meet page on for its name.
-    static func scan(limit: TimeInterval, name: Bool = true) -> Scan {
+    /// `titlesOnly` (is there a Meet tab?) doesn't walk the call windows at all.
+    static func scan(limit: TimeInterval, name: Bool = true, titlesOnly: Bool = false) -> Scan {
         let deadline = Date().addingTimeInterval(limit)
         var scan = Scan()
         var callRoots: [(element: AXUIElement, window: Int)] = []
@@ -88,6 +89,7 @@ enum MeetingApps {
                 }
             }
         }
+        if titlesOnly { return scan }
         // One breadth-first walk over all call windows together: a chat window walked first must not use up the time.
         // A Meet page is walked on past its mute button, for the meeting name in its bottom bar.
         var queue = callRoots

@@ -391,4 +391,10 @@ struct CallOfferTests {
         #expect(CallOffer.Panel.ready(detail: "42 min · 3 people").text
             == Text(title: "Transcript ready", status: "42 min · 3 people", seconds: nil, main: "Name people", other: "Close"))
     }
+
+    @Test func readyDetailTexts() {
+        #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 42 * 60 + 10, speakers: 3) == "Weekly sync · 42 min · 3 people")
+        #expect(CallOffer.readyDetail(title: nil, duration: 20, speakers: 1) == "1 min · 1 person")
+        #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: nil) == "10 min")
+    }
 }

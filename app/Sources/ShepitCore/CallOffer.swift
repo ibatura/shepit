@@ -266,6 +266,15 @@ public struct CallOffer: Sendable {
     }
 }
 
+extension CallOffer {
+    /// The line of the "Transcript ready" panel: "Weekly sync · 42 min · 3 people".
+    public static func readyDetail(title: String?, duration: TimeInterval, speakers: Int?) -> String {
+        let minutes = max(1, Int((duration / 60).rounded()))
+        let people = speakers.map { "\($0) \($0 == 1 ? "person" : "people")" }
+        return [title, "\(minutes) min", people].compactMap { $0 }.joined(separator: " · ")
+    }
+}
+
 extension CallOffer.Panel {
     /// What the floating panel says (visual style §6). `seconds` is the countdown behind the progress bar.
     public struct Text: Equatable, Sendable {
