@@ -10,6 +10,9 @@
 
 ## Execution notes
 
+- **Style: Ponytail (full)** for every task (`~/.claude/skills/ponytail`): the smallest complete change, a test for every non-trivial branch, no options nobody asked for.
+- **Review per task:** the task's diff is checked against the Ponytail rules; Tasks 2, 3 and 6 also get `/code-review` on their diff.
+- **Review at the end (Task 8):** the author runs `/thermo-nuclear-code-quality-review` on the branch (only the author can start it); then `/code-review` and `/security-review` on the whole branch. Findings are shown to the author as a list; the author picks what to change.
 - One task at a time, a commit per task, `make test` green after each (407 tests on 2026-11-10).
 - Tests first for everything in `ShepitCore`.
 - The author's own `~/.config/dictation/settings.json` is not changed by code or tests.
@@ -167,7 +170,7 @@ public struct CallOffer {
 ### Task 8: GATE — real calls and review (with the author)
 
 - [ ] Run C1–C10 with the author on real calls in Teams, Zoom and Meet.
-- [ ] Review the whole branch diff against the Review focus list; fix what it finds.
+- [ ] The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks.
 - [ ] Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`. Ask the author before merging into `main`.
 
 ---
