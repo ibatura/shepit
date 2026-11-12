@@ -211,3 +211,16 @@ public enum Stats {
         return sorted.count % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
     }
 }
+
+/// One call offer and how it ended (call offer design §5.7). No call name.
+public struct OfferRow: Equatable, Sendable {
+    public var time: Date
+    public var app: CallApp
+    public var outcome: CallOffer.Outcome
+
+    public init(time: Date, app: CallApp, outcome: CallOffer.Outcome) {
+        self.time = time
+        self.app = app
+        self.outcome = outcome
+    }
+}

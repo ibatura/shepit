@@ -13,6 +13,7 @@ final class SettingsModel {
         case hotkeys = "Hotkeys"
         case dictation = "Dictation"
         case meetings = "Meetings"
+        case calls = "Calls"
         case engines = "Engines & Models"
         case overlay = "Overlay"
         case dictionary = "Dictionary"
@@ -27,6 +28,7 @@ final class SettingsModel {
             case .hotkeys: "keyboard"
             case .dictation: "mic"
             case .meetings: "person.2.wave.2"
+            case .calls: "phone"
             case .engines: "cpu"
             case .overlay: "rectangle.bottomhalf.inset.filled"
             case .dictionary: "character.book.closed"
@@ -42,6 +44,7 @@ final class SettingsModel {
             case .hotkeys: ["mode", "hotkey", "cancelKey", "addWordHotkey"]
             case .dictation: ["microphone", "stylePrompt", "refocusOriginalApp", "restoreClipboard", "maxRecordingSeconds"]
             case .meetings: ["meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"]
+            case .calls: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"]
             case .engines: ["engines", "idleUnloadMinutes"]
             case .overlay: ["overlay", "livePreview", "overlayStyle"]
             case .dictionary: [] // dictionary.json: terms, replace, dropPhrases

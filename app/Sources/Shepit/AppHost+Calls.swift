@@ -96,10 +96,15 @@ extension AppHost {
             removeEmptyMeeting()
         case .namePeople:
             if let note = lastMeetingNote() { renameSpeakers(in: note) }
-        case .record(let outcome, _):
+        case .record(let outcome, let app):
             // A start that failed (model missing, folder error) is not counted as started.
             if outcome == .started || outcome == .startedAutomatically, !meetingActive { break }
-            // statistics of offers: plan Task 7
+            guard settings.collectStats else { break }
+            do {
+                try stats.insertOffer(OfferRow(time: Date(), app: app, outcome: outcome))
+            } catch {
+                NSLog("Shepit statistics: %@", String(describing: error))
+            }
         }
     }
 }

@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-/// stats.sqlite (`05-statistics.md` §1): one row per dictation attempt, per meeting and per model load.
+/// stats.sqlite (`05-statistics.md` §1): one row per dictation attempt, per meeting, per call offer and per model load.
 /// Numbers and names only; nothing dictated is ever written here.
 public final class StatsDatabase {
     public struct DatabaseError: Error, CustomStringConvertible {
@@ -41,6 +41,31 @@ public final class StatsDatabase {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [record.start.timeIntervalSince1970, record.duration, record.wordsMine, record.wordsCall, record.speakers,
                   record.engine.engine.rawValue, record.engine.model, record.diarizationSeconds, record.failedChunks])
+    }
+
+    public func insertOffer(_ row: OfferRow) throws {
+        try run("INSERT INTO offers (time, app, outcome) VALUES (?, ?, ?)",
+                [row.time.timeIntervalSince1970, row.app.rawValue, row.outcome.rawValue])
+    }
+
+    /// Call offers in `range` (all of them when nil), oldest first.
+    public func offers(in range: DateInterval?) throws -> [OfferRow] {
+        let start = range?.start.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
+        let end = range?.end.timeIntervalSince1970 ?? .greatestFiniteMagnitude
+        let statement = try prepare("SELECT time, app, outcome FROM offers WHERE time >= ? AND time < ? ORDER BY time", [start, end])
+        defer { sqlite3_finalize(statement) }
+        var rows: [OfferRow] = []
+        var result = sqlite3_step(statement)
+        while result == SQLITE_ROW {
+            func text(_ i: Int32) -> String { sqlite3_column_text(statement, i).map { String(cString: $0) } ?? "" }
+            // A row with an app or outcome this version doesn't know is left out.
+            if let app = CallApp(rawValue: text(1)), let outcome = CallOffer.Outcome(rawValue: text(2)) {
+                rows.append(OfferRow(time: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), app: app, outcome: outcome))
+            }
+            result = sqlite3_step(statement)
+        }
+        guard result == SQLITE_DONE else { throw error(try open()) }
+        return rows
     }
 
     /// Meetings that started in `range` (all of them when nil), oldest first.
@@ -133,6 +158,8 @@ public final class StatsDatabase {
               engine TEXT, model TEXT, diarization_seconds REAL, failed_chunks INTEGER)
             """,
             "CREATE INDEX IF NOT EXISTS meetings_time ON meetings (time)",
+            // Call offers; older databases get it on open. The app's name and how the offer ended: no call names.
+            "CREATE TABLE IF NOT EXISTS offers (time REAL NOT NULL, app TEXT NOT NULL, outcome TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS model_events (time REAL NOT NULL, engine TEXT, model TEXT, load_seconds REAL, resident_mb REAL)",
             "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)",
             "INSERT INTO schema_version (version) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_version)",

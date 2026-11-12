@@ -183,6 +183,32 @@ struct SettingsModelTests {
         #expect(SettingsModel.Section.meetings.keys == ["meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"])
     }
 
+    @Test func callKeysAreInTheCallsSection() {
+        #expect(SettingsModel.Section.calls.keys == ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"])
+    }
+
+    @Test func theOfferSecondsStepperSkipsOneToFour() {
+        #expect(SettingsModel.offerSeconds(after: 0, up: true) == 5)
+        #expect(SettingsModel.offerSeconds(after: 5, up: false) == 0)
+        #expect(SettingsModel.offerSeconds(after: 0, up: false) == 0)
+        #expect(SettingsModel.offerSeconds(after: 15, up: true) == 20)
+        #expect(SettingsModel.offerSeconds(after: 118, up: true) == 120)
+        #expect(SettingsModel.offerSeconds(after: 120, up: true) == 120)
+        #expect(SettingsModel.offerSeconds(after: 7, up: false) == 5)
+    }
+
+    @Test func aCallAppSwitchWritesTheListInOrder() throws {
+        #expect(SettingsModel.callApps(["Meet", "Teams"], .zoom, on: true) == ["Teams", "Zoom", "Meet"])
+        #expect(SettingsModel.callApps(["Teams", "Zoom", "Meet"], .teams, on: false) == ["Zoom", "Meet"])
+        let file = try makeFile("{}")
+        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+        let store = SettingsStore(file: file)
+        store.load()
+        let model = SettingsModel(store: store, dictionaryStore: DictionaryStore(file: file.deletingLastPathComponent().appending(path: "dictionary.json")))
+        model.set("callApps", SettingsModel.callApps(model.settings.callApps, .meet, on: false))
+        #expect(model.lastError == nil && model.settings.callApps == ["Teams", "Zoom"])
+    }
+
     @Test func serverPortIsShownNowhere() {
         #expect(!SettingsModel.Section.allCases.flatMap(\.keys).contains("serverPort"))
     }

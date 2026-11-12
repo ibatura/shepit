@@ -32,12 +32,25 @@ struct StatsDatabaseTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         try db.insert(statsRow())
         try db.insertMeeting(meetingRow())
+        try db.insertOffer(OfferRow(time: .now, app: .zoom, outcome: .started))
         try db.insertModelLoad(engine: EngineChoice(engine: .whispercpp, model: "large-v3"), seconds: 1.2, residentMB: 3500, at: .now)
         #expect(FileManager.default.fileExists(atPath: db.file.path))
         try db.clear()
         #expect(!FileManager.default.fileExists(atPath: db.file.path))
         #expect(try db.dictations(in: nil).isEmpty)
         #expect(try db.meetings(in: nil).isEmpty)
+        #expect(try db.offers(in: nil).isEmpty)
+    }
+
+    @Test func offersInsertAndReadBackWithRange() throws {
+        let (db, dir) = makeDatabase()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let early = OfferRow(time: Date(timeIntervalSince1970: 1_000), app: .teams, outcome: .startedAutomatically)
+        let late = OfferRow(time: Date(timeIntervalSince1970: 2_000), app: .meet, outcome: .hidden)
+        try db.insertOffer(early)
+        try db.insertOffer(late)
+        #expect(try db.offers(in: nil) == [early, late])
+        #expect(try db.offers(in: DateInterval(start: early.time, end: late.time)) == [early])
     }
 
     @Test func meetingsInsertAndReadBackWithRange() throws {
@@ -61,6 +74,8 @@ struct StatsDatabaseTests {
         sqlite3_close(handle)
         try db.insertMeeting(meetingRow())
         #expect(try db.meetings(in: nil).count == 1)
+        try db.insertOffer(OfferRow(time: .now, app: .teams, outcome: .dismissed))
+        #expect(try db.offers(in: nil).count == 1)
     }
 
     /// No transcript text and no speaker names: the meetings table holds numbers and the engine only.
@@ -81,5 +96,23 @@ struct StatsDatabaseTests {
         #expect(columns.filter { $0.value == "TEXT" }.keys.sorted() == ["engine", "model"])
         #expect(columns.keys.sorted() == ["diarization_seconds", "duration_seconds", "engine", "failed_chunks", "model", "speakers",
                                           "time", "words_call", "words_mine"])
+    }
+
+    /// No call names: an offer row holds the time, the app and how it ended.
+    @Test func offersTableHasNoTextColumnsBeyondAppAndOutcome() throws {
+        let (db, dir) = makeDatabase()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        _ = try db.offers(in: nil)
+        var handle: OpaquePointer?
+        #expect(sqlite3_open(db.file.path, &handle) == SQLITE_OK)
+        defer { sqlite3_close(handle) }
+        var statement: OpaquePointer?
+        #expect(sqlite3_prepare_v2(handle, "SELECT name, type FROM pragma_table_info('offers')", -1, &statement, nil) == SQLITE_OK)
+        defer { sqlite3_finalize(statement) }
+        var columns: [String: String] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            columns[String(cString: sqlite3_column_text(statement, 0))] = String(cString: sqlite3_column_text(statement, 1))
+        }
+        #expect(columns == ["time": "REAL", "app": "TEXT", "outcome": "TEXT"])
     }
 }

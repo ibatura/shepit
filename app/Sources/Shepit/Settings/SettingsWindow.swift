@@ -101,6 +101,7 @@ struct SettingsView: View {
                     case .hotkeys: HotkeysSection(model: model, actions: actions)
                     case .dictation: DictationSection(model: model, actions: actions)
                     case .meetings: MeetingsSection(model: model, actions: actions)
+                    case .calls: CallsSection(model: model)
                     case .engines: EnginesSection(model: model, actions: actions)
                     case .overlay: OverlaySection(model: model, actions: actions)
                     case .dictionary: DictionarySection(model: model)

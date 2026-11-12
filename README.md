@@ -95,6 +95,27 @@ Shepit can write a transcript of a Teams, Meet or any other call into a Markdown
 3. 🎙 → **Stop meeting transcript** when the call ends. The last phrases are finished, then remote voices are told apart: `[Співрозмовники]` becomes `[Person 1]`, `[Person 2]`, … ("Meeting: detecting speakers…" in the menu meanwhile).
 4. 🎙 → **Rename speakers…** asks who each Person is, showing the first thing they said so you can find them in the Teams transcript. Empty keeps the label; the same name for two labels merges them; Cancel stops asking.
 
+### The call panel
+
+You don't have to open the menu. When Teams, Zoom or a Google Meet tab (Chrome, Edge, Brave, Arc) has held the microphone for 3 seconds, a small panel appears in the top right corner with the call's name and **Start transcript**. It never takes the keyboard.
+
+- **Start transcript** starts at once, without the name dialog. The name is the one found in the call window, or the one a repeating meeting had last time; without a name the panel says "Zoom call".
+- **Not this call**, or the panel hiding by itself after 15 seconds (`callOfferSeconds`), means no more panels for this call. Start from the menu still works.
+- **Nothing is recorded without your click**, unless you turn on **Start automatically** (`callAutoStart`): then the panel counts down and the transcript starts unless you press **Don't record**.
+- When the call ends, the panel counts down 10 seconds (`callAutoStopSeconds`) and the transcript stops by itself; **Keep recording** leaves it running. This applies to a transcript started from the panel, or from the menu during the call. A transcript started with no call is never stopped this way.
+- After Stop the panel says **Transcript ready**, with **Name people** (the same as Rename speakers…).
+- A call's transcript without a single line is removed (for example Start on a pre-join screen that you then closed).
+
+The settings are in 🎙 → Settings… → **Calls**. Known limits, because a call is detected only by an app holding the microphone:
+
+- The panel can appear on the pre-join screen (Teams turns the microphone on there).
+- A microphone test or a voice message in Teams or Zoom longer than 3 seconds gives a panel.
+- Another web page using the microphone in the browser while a Meet tab is open gives a panel.
+- Google Meet needs Accessibility (to read tab titles); Teams and Zoom panels work without it, but without names.
+- Meet in Safari or Firefox, Slack, Teams in a browser and FaceTime give no panel yet.
+
+Shepit only asks macOS which app uses the microphone; it listens to nothing until a transcript starts. With **Collect statistics** on, each panel leaves one row in `stats.sqlite`: the time, the app and how it ended, never the call's name.
+
 What the note looks like:
 
 ```markdown

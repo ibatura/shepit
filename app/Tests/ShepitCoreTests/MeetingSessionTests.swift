@@ -219,9 +219,8 @@ struct MeetingSessionTests {
     }
 
     @Test func stopDetectsSpeakersRelabelsAndReportsTheMeeting() async throws {
-        var r = rig()
+        let r = rig()
         defer { try? FileManager.default.removeItem(at: r.root) }
-        let notices = collectNotices(&r)
         var record: MeetingRecord?
         r.session.onFinished = { record = $0 }
         var states: [MeetingState] = []

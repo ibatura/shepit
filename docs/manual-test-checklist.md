@@ -51,3 +51,21 @@ Date: ____  Engine: whisper.cpp large-v3-turbo  Headphones: ____
 | M20 | Teams call: Start with the call window open; mute in Teams, speak, unmute, speak | Name dialog shows the meeting name; only the unmuted speech is under your name || ✅ 2026-11-04 Sprint Planning: name found in 1.2 s; muted speech left out; 4 speakers, 3 short lines mislabelled
 | M21 | Zoom call, then a Google Meet call (meet.new, then one from Google Calendar): Start each; mute, speak, unmute, speak | Note says Zoom / Meet; the calendar Meet's name is in the dialog; muted speech left out || ✅ 2026-11-06: Zoom recorded as Zoom, no topic (Zoom shows none), mute from "Mute my audio"; Meet name from the tab and the page, mute from «Вимкнути мікрофон»
 | M22 | Start a meeting, name it, Stop; a week later (or on 2 days for a daily one) Start at the same time | The dialog is prefilled with that name; ▾ lists recent names ||
+
+## Call panel
+
+Date: ____
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| C1 | Start a call in Teams, in Zoom, in Google Meet (Chrome) | In each, one panel within 5 s with the call's name (Zoom: "Zoom call") ||
+| C2 | Press Start transcript | Starts at once, no name dialog; the note has the panel's name ||
+| C3 | Leave the panel alone (`callOfferSeconds` 15) | Hides after 15 s; no second panel in this call; Start from the menu works ||
+| C4 | `callOfferSeconds` 0, start a call | The panel stays until a button is pressed ||
+| C5 | Start automatically on, start a call | Counts down 5 s, then the transcript starts ||
+| C6 | Start automatically on, press Don't record | Nothing starts; no more panels in this call ||
+| C7 | Press Not this call, stay in the call 1 min | No second panel ||
+| C8 | Leave a call with a transcript running | "Call ended" counts down, then the transcript stops; in another call Keep recording leaves it running, with no second stop panel ||
+| C9 | Switch headphones mid-call with a transcript running | No stop panel; the transcript goes on ||
+| C10 | Dictate into another app with no call; then Start on a Teams pre-join screen and close it | No panel for dictation; after closing, the stop panel runs and no note is left ||
+
