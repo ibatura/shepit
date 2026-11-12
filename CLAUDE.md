@@ -25,7 +25,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
   - `ShepitCore`: pure logic with tests (settings, dictionary, meeting session and notes, meeting names, language choice).
   - `ShepitEngines`: whisper.cpp, WhisperKit, Parakeet, Apple Speech.
   - `Shepit`: the app (menu, hotkeys, overlay, audio, call tap, Accessibility scan of meeting apps in `MeetingApps.swift`).
-- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (407 tests on 2026-11-10).
+- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (452 tests on 2026-11-12).
 - `scripts/`: build, sign, install, uninstall, model downloads (pinned SHA-256 in `scripts/models/`).
 
 ## Docs
@@ -34,13 +34,13 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 - `docs/superpowers/specs/`: designs. `docs/superpowers/plans/`: implementation plans of phases 1–3.
 - `docs/manual-test-checklist.md`: manual checks on a real Mac and real calls.
 
-## Where things stand (2026-11-10)
+## Where things stand (2026-11-12)
 
 - Phases 1–3 are done: dictation, settings, statistics, meeting transcripts.
 - Meeting names: Teams window title, Meet tab title or page bar, remembered names for repeats (`meeting-names.json`). Zoom shows no topic. Mute state is read from all three apps. Checked on real calls in each app.
 - Open manual checks: M1, M4, M7, M9, M22 (M22 needs repeating meetings over weeks).
 - Next, in this order unless the author says otherwise:
-  1. Offer to record when a call starts: a floating panel with the call's name and a Start button. It starts on its own only when the author turned on the automatic-start setting. Design and plan are written (`docs/superpowers/specs/2026-11-12-call-offer-design.md`, `docs/superpowers/plans/2026-11-12-call-offer.md`); not started.
+  1. Offer to record when a call starts: built on branch `call-offer`, not merged. A floating panel with the call's name and a Start button (`CallWatch` polls which app holds the microphone, `CallOffer` in `ShepitCore` decides, `CallPanel` shows it, `AppHost+Calls.swift` wires them); it starts on its own only with `callAutoStart` on. `Shepit call-watch` and `Shepit panel-test` are its debug commands. Open: manual checks C1–C10 (only the Zoom path was tried), then the author's end-of-branch reviews, then the merge.
   2. The main window, built in parts: shell with Home and Settings; Meetings (database, names, merge, reassign a line); Dictations and Dictionary; Statistics; voice prints; import names. The menu keeps quick actions only. The current UI was rejected; don't polish it piece by piece. A plan for each part first.
   The look and the screens are fixed in `docs/superpowers/specs/2026-11-11-visual-style/` (spec and `mockups.html`).
   Decisions and the build order are in `docs/future-ideas.md`.

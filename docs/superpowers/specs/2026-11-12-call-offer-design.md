@@ -47,7 +47,7 @@ Today a meeting transcript starts only when the author opens the menu and presse
 
 ## 4. Facts
 
-### 4.1 Probes on real calls (`tools/call-probe/probe.swift`)
+### 4.1 Probes on real calls (a probe script, since replaced by `Shepit call-watch`)
 
 Core Audio lists the processes that use audio (`kAudioHardwarePropertyProcessObjectList`) and tells for each whether it runs input (`kAudioProcessPropertyIsRunningInput`). No permission is needed.
 
