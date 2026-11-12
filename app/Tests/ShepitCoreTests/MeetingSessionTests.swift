@@ -233,7 +233,6 @@ struct MeetingSessionTests {
         #expect(r.body == "[Ivan Batura] 2026-07-31 18:22:30\nмій текст\n[Person 1] 2026-07-31 18:22:31\nїхній текст\n")
         #expect(r.session.state == .done(speakers: 1))
         #expect(states.contains(.detectingSpeakers))
-        #expect(notices().last == "Transcript ready: 1 speaker")
         let got = try #require(record)
         #expect(got.wordsMine == 2 && got.wordsCall == 2 && got.speakers == 1 && got.failedChunks == 0)
         #expect(got.duration == 4)

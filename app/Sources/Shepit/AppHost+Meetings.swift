@@ -121,18 +121,21 @@ extension AppHost {
             let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers)
             // An empty transcript of a call is removed and gets no statistics row.
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
-            if !effects.contains(.removeEmptyNote) { self.recordMeeting(record) }
+            guard !effects.contains(.removeEmptyNote) else { return }
+            self.recordMeeting(record)
+            // The call panel says "Transcript ready", unless an offer or a stop countdown is in its place.
+            if case .ready = self.callOffer.panel {} else { self.panel.message("Transcript ready", detail: detail) }
         }
         recorder.onDictationStart = { [weak session] in session?.dictationStarted(at: $0) }
         recorder.onDictationEnd = { [weak session] in session?.dictationEnded(at: $0) }
         do {
             try session.start()
         } catch {
+            restoreMeetingNames() // a transcript that never started leaves no name behind
             showAlert(error.localizedDescription)
             return
         }
-        // The call panel says "Transcript ready" in place of the session's notice.
-        session.onNotice = { [weak self] in if !$0.hasPrefix("Transcript ready") { self?.panel.message($0) } }
+        session.onNotice = { [weak self] in self?.panel.message($0) }
         meeting = session
         meetingTimer = TimerBox(repeating: 1) { [weak session] in session?.tick() }
         let recorder = recorder
@@ -147,6 +150,11 @@ extension AppHost {
     func removeEmptyMeeting() {
         guard let meeting, meeting.removeEmptyNote() else { return }
         panel.message("Empty meeting transcript removed")
+        restoreMeetingNames()
+    }
+
+    /// Puts `meeting-names.json` back as it was before this transcript's name was added.
+    private func restoreMeetingNames() {
         if let names = meetingNamesBefore {
             do {
                 try MeetingNames.save(names, to: Paths.dataDir.appending(path: MeetingNames.fileName))

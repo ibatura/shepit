@@ -16,10 +16,16 @@ final class CallPanel {
         let panel = ensurePanel()
         // It stays on the screen it appeared on.
         if !panel.isVisible { screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main }
-        guard let visible = screen?.visibleFrame, let size = panel.contentView?.fittingSize else { return }
+        place()
+        panel.orderFrontRegardless()
+        // Again once SwiftUI has drawn the new state: its size can differ from the one before.
+        DispatchQueue.main.async { [self] in if panel.isVisible { place() } }
+    }
+
+    private func place() {
+        guard let panel, let visible = screen?.visibleFrame, let size = panel.contentView?.fittingSize else { return }
         panel.setFrame(NSRect(x: visible.maxX - size.width - 16, y: visible.maxY - size.height - 16, width: size.width, height: size.height),
                        display: true)
-        panel.orderFrontRegardless()
     }
 
     func hide() {

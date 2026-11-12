@@ -50,10 +50,11 @@ enum MeetingApps {
         }
     }
 
+    /// How far a look goes: window and tab titles only; also the call's mute button; also the name on a Meet page.
+    enum Depth { case titles, mute, name }
+
     /// Titles of windows and browser tabs, and the mute button of a call (Teams, Zoom, or a Meet tab), within `limit`.
-    /// `name: false` (the mute watch) stops at the mute button instead of walking a Meet page on for its name.
-    /// `titlesOnly` (is there a Meet tab?) doesn't walk the call windows at all.
-    static func scan(limit: TimeInterval, name: Bool = true, titlesOnly: Bool = false) -> Scan {
+    static func scan(limit: TimeInterval, depth: Depth = .name) -> Scan {
         let deadline = Date().addingTimeInterval(limit)
         var scan = Scan()
         var callRoots: [(element: AXUIElement, window: Int)] = []
@@ -89,11 +90,11 @@ enum MeetingApps {
                 }
             }
         }
-        if titlesOnly { return scan }
+        if depth == .titles { return scan }
         // One breadth-first walk over all call windows together: a chat window walked first must not use up the time.
         // A Meet page is walked on past its mute button, for the meeting name in its bottom bar.
         var queue = callRoots
-        let meetWindows = name ? Set(callRoots.map(\.window).filter { MeetingTitle.browsers.contains(scan.windows[$0].app) }) : []
+        let meetWindows = depth == .name ? Set(callRoots.map(\.window).filter { MeetingTitle.browsers.contains(scan.windows[$0].app) }) : []
         while !queue.isEmpty, scan.visited < 20_000, Date() < deadline {
             let (element, window) = queue.removeFirst()
             AXUIElementSetMessagingTimeout(element, 0.3)
@@ -212,7 +213,7 @@ final class MuteWatch: @unchecked Sendable {
             if button == nil {
                 guard tick % (looks < 20 ? 6 : 60) == 0 else { return }
                 looks += 1
-                button = MeetingApps.scan(limit: 2, name: false).mute
+                button = MeetingApps.scan(limit: 2, depth: .mute).mute
                 return
             }
             let state = button?.muted

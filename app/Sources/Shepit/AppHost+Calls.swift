@@ -23,7 +23,7 @@ extension AppHost {
     @discardableResult
     func callEvent(_ event: CallOffer.Event) -> [CallOffer.Effect] {
         let effects = callOffer.handle(event, at: Date(), settings: settings)
-        for effect in effects { run(effect) }
+        // The panel first: an effect can open a dialog and stay in it.
         if let shown = callOffer.panel {
             callPanel.show(shown, onMain: { [unowned self] in self.callEvent(.pressedMain) },
                            onOther: { [unowned self] in self.callEvent(.pressedOther) })
@@ -39,6 +39,7 @@ extension AppHost {
             callTicker?.cancel()
             callTicker = nil
         }
+        for effect in effects { run(effect) }
         return effects
     }
 
@@ -55,25 +56,33 @@ extension AppHost {
         case .lookForMeet:
             Task.detached {
                 // Titles of browser windows and tabs only; a Teams window must not hide a Meet tab.
-                let windows = MeetingApps.scan(limit: 2, titlesOnly: true).windows.filter { MeetingTitle.browsers.contains($0.app) }
+                let windows = MeetingApps.scan(limit: 2, depth: .titles).windows.filter { MeetingTitle.browsers.contains($0.app) }
                 let found = MeetingTitle.detect(windows).app == CallApp.meet.rawValue
                 await MainActor.run { _ = self.callEvent(.meetFound(found)) }
             }
         case .lookForName:
             guard let app = offeredApp?.rawValue else { return }
+            // A repeating meeting (same time last week, or daily) is named like last time, at once.
+            let names = MeetingNames.load(Paths.dataDir.appending(path: MeetingNames.fileName))
+            if let name = MeetingNames.repeating(names, at: Date(), app: app) { callEvent(.named(name)) }
             callNameLookup?.cancel()
             callNameLookup = Task {
-                // The call window's tree can still be building: look up to 5 times, as Start does.
-                var name: String?
-                for attempt in 0..<5 where name == nil {
+                // The name the app shows wins. The call window's tree can still be building: look up to 5 times, as Start does.
+                for attempt in 0..<5 {
                     if attempt > 0 { try? await Task.sleep(for: .seconds(1)) }
-                    let found = await Task.detached { MeetingApps.scan(limit: 2).detected }.value
-                    if found.app == app { name = found.title }
+                    if Task.isCancelled { return }
+                    let found = await Task.detached {
+                        // Only the windows of the call's own kind: a Teams window must not hide the Meet call's name.
+                        var scan = MeetingApps.scan(limit: 2)
+                        scan.windows = scan.windows.filter { MeetingTitle.browsers.contains($0.app) == (app == CallApp.meet.rawValue) }
+                        return scan.detected
+                    }.value
+                    if Task.isCancelled { return }
+                    if found.app == app, let name = found.title {
+                        self.callEvent(.named(name))
+                        return
+                    }
                 }
-                // A repeating meeting (same time last week, or daily) is named like last time.
-                let names = MeetingNames.load(Paths.dataDir.appending(path: MeetingNames.fileName))
-                name = name ?? MeetingNames.repeating(names, at: Date(), app: app)
-                if !Task.isCancelled, let name { self.callEvent(.named(name)) }
             }
         case .start(let title, let app):
             if let missing = meetingMissing {
@@ -87,8 +96,10 @@ extension AppHost {
             removeEmptyMeeting()
         case .namePeople:
             if let note = lastMeetingNote() { renameSpeakers(in: note) }
-        case .record:
-            break // statistics of offers: plan Task 7
+        case .record(let outcome, _):
+            // A start that failed (model missing, folder error) is not counted as started.
+            if outcome == .started || outcome == .startedAutomatically, !meetingActive { break }
+            // statistics of offers: plan Task 7
         }
     }
 }

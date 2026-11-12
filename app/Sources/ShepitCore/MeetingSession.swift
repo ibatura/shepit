@@ -469,7 +469,6 @@ public final class MeetingSession {
                                    wordsCall: words[.call] ?? 0, speakers: speakers, engine: config.engine,
                                    diarizationSeconds: diarizationSeconds, failedChunks: failedChunks)
         state = .done(speakers: speakers)
-        onNotice?(speakers.map { "Transcript ready: \($0) speaker\($0 == 1 ? "" : "s")" } ?? "Transcript ready")
         onFinished?(record)
     }
 

@@ -270,7 +270,7 @@ extension CallOffer {
     /// The line of the "Transcript ready" panel: "Weekly sync · 42 min · 3 people".
     public static func readyDetail(title: String?, duration: TimeInterval, speakers: Int?) -> String {
         let minutes = max(1, Int((duration / 60).rounded()))
-        let people = speakers.map { "\($0) \($0 == 1 ? "person" : "people")" }
+        let people = speakers.flatMap { $0 > 0 ? "\($0) \($0 == 1 ? "person" : "people")" : nil }
         return [title, "\(minutes) min", people].compactMap { $0 }.joined(separator: " · ")
     }
 }

@@ -396,5 +396,6 @@ struct CallOfferTests {
         #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 42 * 60 + 10, speakers: 3) == "Weekly sync · 42 min · 3 people")
         #expect(CallOffer.readyDetail(title: nil, duration: 20, speakers: 1) == "1 min · 1 person")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: nil) == "10 min")
+        #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 0) == "10 min")
     }
 }
