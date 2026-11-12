@@ -46,7 +46,7 @@ The screens are in `docs/superpowers/specs/2026-11-11-visual-style/`.
 2026-10-29: Shepit should notice a call in a meeting app, the way Zoom does, and offer a transcript already named after that call.
 
 - **A floating panel**, not a macOS notification.
-- **It appears when the author has joined the call**, not on the pre-join screen.
+- **A call is detected by the microphone only** (decided 2026-11-12): a meeting app holding the microphone is a call, as other note takers do it. So the panel may already appear on the pre-join screen (Teams turns the microphone on there).
 - **With a name found:** the panel shows the name and a Start button; one click starts, with no name dialog. **Without a name** (Zoom): the panel says "Zoom call" and has the same Start button.
 - **Automatic start is a setting.** When on, the same panel shows a countdown bar and the transcript starts unless the author presses the stop button. When off, nothing is recorded without a click. This changes the earlier rule "it never starts on its own": it now starts on its own only when the author turned the setting on.
 - **End of the call:** a panel says the transcript stops in a few seconds, with a countdown bar and a "Continue" button.
@@ -55,9 +55,9 @@ The screens are in `docs/superpowers/specs/2026-11-11-visual-style/`.
 - **Apps:** Teams, Zoom, Google Meet, Teams in a browser, Slack. FaceTime and Telegram if possible.
 - **Calendar names** (EventKit) are not part of this; see below.
 
-Research before the plan:
-- Done 2026-11-11 for Teams, Zoom and Meet with `tools/call-probe/probe.swift`: each app holds the microphone for the whole call, also while muted, and releases it within a second of leaving. Results and the design are in `docs/superpowers/specs/2026-11-12-call-offer-design.md`.
-- Still to probe: Slack, Teams in a browser, FaceTime, Telegram; and the three checks in §9 of that design.
+Design: `docs/superpowers/specs/2026-11-12-call-offer-design.md`. Plan: `docs/superpowers/plans/2026-11-12-call-offer.md`.
+
+Still to probe with `tools/call-probe/probe.swift`: Zoom and Meet joined by a link (pre-join screen), Slack, Teams in a browser, FaceTime, Telegram.
 
 Already there from phase 3 (`MeetingApps.scan`, `MeetingTitle`, `MeetingNames`):
 - Teams: the call window title.
