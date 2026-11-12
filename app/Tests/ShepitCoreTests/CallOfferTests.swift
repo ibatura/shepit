@@ -276,6 +276,78 @@ struct CallOfferTests {
         #expect(m.panel == .offer(title: "Zoom call", app: .zoom, hidesIn: 15))
     }
 
+    @Test func aBreakRestartsTheThreeSeconds() {
+        var m = Machine()
+        m.send(.took(.app(.zoom), pid: 1), at: 0)
+        m.send(.released(pid: 1), at: 1)
+        m.send(.took(.app(.zoom), pid: 1), at: 2.5)
+        m.send(.tick, at: 4)
+        #expect(m.panel == nil)
+        m.send(.tick, at: 5.5)
+        #expect(m.panel == .offer(title: "Zoom call", app: .zoom, hidesIn: 15))
+    }
+
+    @Test func aTranscriptStartedByHandBeforeMeetIsConfirmedBelongsToTheCall() {
+        var m = Machine()
+        m.send(.took(.browser, pid: 7), at: 0)
+        m.send(.sessionStarted(byPanel: false), at: 1)
+        m.send(.tick, at: 3)
+        m.send(.meetFound(true), at: 3.5)
+        #expect(m.panel == nil)
+        m.send(.released(pid: 7), at: 100)
+        m.send(.tick, at: 103)
+        #expect(m.panel == .ended(stopsIn: 10))
+    }
+
+    @Test func aTranscriptStartedWhileABrowserWithoutMeetHoldsTheMicrophoneIsNeverStopped() {
+        var m = Machine()
+        m.send(.took(.browser, pid: 7), at: 0)
+        m.send(.sessionStarted(byPanel: false), at: 1)
+        m.send(.tick, at: 3)
+        m.send(.meetFound(false), at: 3.5)
+        m.send(.released(pid: 7), at: 100)
+        m.send(.tick, at: 200)
+        #expect(m.panel == nil && !m.log.contains(.stop))
+    }
+
+    @Test func aQuickRejoinBeatsAShortStopCountdown() {
+        var m = Machine()
+        m.settings.callAutoStopSeconds = 3
+        m.teamsCall()
+        m.send(.pressedMain, at: 4)
+        m.send(.sessionStarted(byPanel: true), at: 4.2)
+        m.send(.released(pid: 1), at: 100)
+        m.send(.tick, at: 103)
+        m.send(.took(.app(.teams), pid: 1), at: 104)
+        for second in stride(from: 105.0, through: 120, by: 1) { m.send(.tick, at: second) }
+        #expect(m.panel == nil && !m.log.contains(.stop))
+    }
+
+    @Test func aBlipDuringTheStopCountdownOnlyDelaysTheStop() {
+        var m = Machine()
+        m.teamsCall()
+        m.send(.pressedMain, at: 4)
+        m.send(.sessionStarted(byPanel: true), at: 4.2)
+        m.send(.released(pid: 1), at: 100)
+        m.send(.tick, at: 103)
+        m.send(.took(.app(.zoom), pid: 2), at: 104)
+        m.send(.released(pid: 2), at: 105)
+        for second in stride(from: 106.0, through: 125, by: 1) { m.send(.tick, at: second) }
+        #expect(m.log.contains(.stop))
+    }
+
+    @Test func theNextCallIsAnAppBeforeABrowser() {
+        var m = Machine()
+        m.teamsCall()
+        m.send(.pressedOther, at: 4)
+        m.send(.took(.browser, pid: 2), at: 10)
+        m.send(.took(.app(.zoom), pid: 9), at: 11)
+        m.send(.released(pid: 1), at: 30)
+        m.send(.tick, at: 33)
+        m.send(.tick, at: 36)
+        #expect(m.panel == .offer(title: "Zoom call", app: .zoom, hidesIn: 15))
+    }
+
     @Test func anEmptyTranscriptOfACallIsRemoved() {
         var m = Machine()
         m.teamsCall()

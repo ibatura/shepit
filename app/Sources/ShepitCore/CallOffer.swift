@@ -93,6 +93,8 @@ public struct CallOffer: Sendable {
     private struct Session {
         /// Started from the panel, or by hand during a call: stops when the call ends.
         var ours: Bool
+        /// Started by hand while a call was not confirmed yet: ours once it is.
+        var awaitsCall = false
         var keep = false
         var stopping = false
         var endingSince: Date?
@@ -117,7 +119,12 @@ public struct CallOffer: Sendable {
         case .took(let source, let pid):
             guard settings.callApps.contains((source.app ?? .meet).rawValue) else { break }
             holders[pid] = source
-            if call?.pid == pid { call?.releasedAt = nil } else if call == nil { begin(pid, source, now) }
+            if call?.pid == pid {
+                call?.releasedAt = nil
+                if call?.phase == .pending { call?.since = now } // the hold counts unbroken seconds
+            } else if call == nil {
+                begin(pid, source, now)
+            }
         case .released(let pid):
             holders[pid] = nil
             if call?.pid == pid, call?.releasedAt == nil { call?.releasedAt = now }
@@ -154,8 +161,8 @@ public struct CallOffer: Sendable {
                 ready = nil
             }
         case .sessionStarted(let byPanel):
-            let inCall = call?.app != nil && call?.phase != .pending
-            session = Session(ours: byPanel || inCall)
+            let confirmed = call?.app != nil && call?.phase != .pending
+            session = Session(ours: byPanel || confirmed, awaitsCall: call != nil && !confirmed)
             if case .offered = call?.phase { call?.phase = .quiet }
             ready = nil
         case .sessionStopping:
@@ -183,6 +190,7 @@ public struct CallOffer: Sendable {
     /// The call is confirmed: offer it, unless offers are off or a transcript already runs.
     private mutating func offer(_ now: Date, _ settings: Settings) -> [Effect] {
         session?.endingSince = nil // a new call while the stop countdown runs: the transcript goes on
+        if session?.awaitsCall == true { session?.ours = true }
         guard settings.callOffer, session == nil else {
             call?.phase = .quiet
             return []
@@ -198,7 +206,16 @@ public struct CallOffer: Sendable {
             if case .offered = current.phase, let app = current.app { effects.append(.record(.hidden, app: app)) }
             if let running = session, running.ours, !running.stopping, !running.keep { session?.endingSince = now }
             call = nil
-            if let next = holders.first { begin(next.key, next.value, now) }
+            session?.awaitsCall = false
+            // Another holder becomes the call: an app before a browser, then the lowest pid.
+            if let next = holders.min(by: { ($0.value.app == nil ? 1 : 0, $0.key) < ($1.value.app == nil ? 1 : 0, $1.key) }) {
+                begin(next.key, next.value, now)
+            }
+        }
+        // While a new holder may still turn out to be a call, the stop countdown waits.
+        if let current = call, current.releasedAt == nil, session?.endingSince != nil,
+           current.phase == .pending || current.phase == .checkingMeet(next: nil) {
+            session?.endingSince = now
         }
         if let current = call {
             switch current.phase {

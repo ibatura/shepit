@@ -83,7 +83,7 @@ P releases the microphone for 3 s ──▶ call ended ──▶ stop panel ─�
 ```
 
 ### 5.1 Watching the microphone (`Shepit/CallWatch.swift`)
-- Reads the process list and `IsRunningInput` of each audio process, and reports "app took the microphone" and "app released it". Listeners if they fire for other processes' input; otherwise a poll once a second, as the probe does.
+- Reads the process list and `IsRunningInput` of each audio process, and reports "app took the microphone" and "app released it". It polls once a second, as the probe does: on a real Teams call (2026-11-12) Core Audio's property listeners reported none of the changes.
 - Bundle ID to app, by prefix (pure logic in `ShepitCore`):
 
   | prefix | app |

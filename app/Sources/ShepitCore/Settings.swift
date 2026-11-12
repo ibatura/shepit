@@ -146,7 +146,7 @@ public struct Settings: Equatable, Sendable {
     /// Apps that get an offer: any of `Settings.callAppNames`.
     public var callApps: [String]
 
-    public static let callAppNames = ["Teams", "Zoom", "Meet"]
+    public static let callAppNames = CallApp.allCases.map(\.rawValue)
 
     public init(
         mode: String,
