@@ -377,4 +377,18 @@ struct CallOfferTests {
         #expect(m.send(.pressedMain, at: 61) == [.namePeople])
         #expect(m.panel == nil)
     }
+
+    @Test func panelTexts() {
+        typealias Text = CallOffer.Panel.Text
+        #expect(CallOffer.Panel.offer(title: "Weekly sync", app: .teams, hidesIn: 12).text
+            == Text(title: "Weekly sync", status: "Teams · hides in 12 s", seconds: 12, main: "Start transcript", other: "Not this call"))
+        #expect(CallOffer.Panel.offer(title: "Zoom call", app: .zoom, hidesIn: nil).text
+            == Text(title: "Zoom call", status: "Zoom", seconds: nil, main: "Start transcript", other: "Not this call"))
+        #expect(CallOffer.Panel.autoStart(title: "Meet call", app: .meet, startsIn: 4).text
+            == Text(title: "Meet call", status: "Meet · transcript starts in 4 s", seconds: 4, main: "Start now", other: "Don't record"))
+        #expect(CallOffer.Panel.ended(stopsIn: 9).text
+            == Text(title: "Call ended", status: "Transcript stops in 9 s", seconds: 9, main: "Keep recording", other: "Stop now"))
+        #expect(CallOffer.Panel.ready(detail: "42 min · 3 people").text
+            == Text(title: "Transcript ready", status: "42 min · 3 people", seconds: nil, main: "Name people", other: "Close"))
+    }
 }

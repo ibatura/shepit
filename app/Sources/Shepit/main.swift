@@ -27,6 +27,8 @@ case "capture-test":
     runCommand { await CaptureTest.run(arguments: Array(arguments.dropFirst())) }
 case "call-watch":
     CallWatchTest.run()
+case "panel-test":
+    CallPanelTest.run()
 case "login-item":
     // `Shepit login-item on|off` — for scripts/uninstall.sh: only the app itself can change its login item.
     let on = arguments.dropFirst().first == "on"

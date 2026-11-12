@@ -265,3 +265,28 @@ public struct CallOffer: Sendable {
         return ready.map { .ready(detail: $0.detail) }
     }
 }
+
+extension CallOffer.Panel {
+    /// What the floating panel says (visual style §6). `seconds` is the countdown behind the progress bar.
+    public struct Text: Equatable, Sendable {
+        public var title, status: String
+        public var seconds: Int?
+        public var main, other: String
+    }
+
+    public var text: Text {
+        switch self {
+        case .offer(let title, let app, let hidesIn):
+            Text(title: title, status: hidesIn.map { "\(app.rawValue) · hides in \($0) s" } ?? app.rawValue, seconds: hidesIn,
+                 main: "Start transcript", other: "Not this call")
+        case .autoStart(let title, let app, let startsIn):
+            Text(title: title, status: "\(app.rawValue) · transcript starts in \(startsIn) s", seconds: startsIn,
+                 main: "Start now", other: "Don't record")
+        case .ended(let stopsIn):
+            Text(title: "Call ended", status: "Transcript stops in \(stopsIn) s", seconds: stopsIn,
+                 main: "Keep recording", other: "Stop now")
+        case .ready(let detail):
+            Text(title: "Transcript ready", status: detail, seconds: nil, main: "Name people", other: "Close")
+        }
+    }
+}
