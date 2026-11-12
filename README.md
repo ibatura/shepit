@@ -179,6 +179,12 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `meetingMyName` | `""` | any text | Label for your microphone; `""` = your macOS account name |
 | `meetingBlocksDictation` | `false` | `true`, `false` | The dictation hotkey does nothing while a meeting is recording |
 | `meetingLanguage` | `"auto"` | `"uk"`, `"en"`, `"auto"` | Language of meeting phrases; `auto` picks Ukrainian or English for each part of a phrase, cut at short pauses (whisper.cpp), so a speaker can switch language mid-phrase; English parts get only the dictionary terms as a hint, not the Ukrainian style sentence. A switch with no pause at all stays in one language |
+| `callOffer` | `true` | `true`, `false` | Show a small panel when a call starts in Teams, Zoom or Google Meet, with the call's name and a Start button |
+| `callOfferSeconds` | `15` | `0`, or 5–120 | Seconds until that panel hides; `0` keeps it until you press a button |
+| `callAutoStart` | `false` | `true`, `false` | The panel counts down and the transcript starts by itself unless you press Don't record |
+| `callAutoStartSeconds` | `5` | 3–60 | Length of that countdown |
+| `callAutoStopSeconds` | `10` | 3–120 | Seconds from the call's end until the transcript stops, unless you press Keep recording |
+| `callApps` | `["Teams", "Zoom", "Meet"]` | any of these | Apps that get the panel |
 
 **Meeting file names.** Placeholders: `{date}` (2026-10-26), `{time}` (14-05), `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`, `{weekday}` (Mon), `{title}` (the meeting name, up to 80 characters), `{app}` (Teams, Meet). Empty parts and the separators around them are dropped; a name that's taken gets ` (2)`. Not allowed outside placeholders: `\ : * ? " < > | # ^ [ ]`. Examples for a meeting "Weekly sync" on Monday 26 Oct 2026 at 14:05:
 

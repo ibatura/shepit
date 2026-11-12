@@ -136,6 +136,17 @@ public struct Settings: Equatable, Sendable {
     public var meetingBlocksDictation: Bool
     public var meetingMyName: String
     public var meetingLanguage: String
+    /// Offer a transcript when a call starts (call offer design §5.6).
+    public var callOffer: Bool
+    /// Seconds until the offer panel hides; 0 keeps it until a button is pressed.
+    public var callOfferSeconds: Int
+    public var callAutoStart: Bool
+    public var callAutoStartSeconds: Int
+    public var callAutoStopSeconds: Int
+    /// Apps that get an offer: any of `Settings.callAppNames`.
+    public var callApps: [String]
+
+    public static let callAppNames = ["Teams", "Zoom", "Meet"]
 
     public init(
         mode: String,
@@ -169,7 +180,13 @@ public struct Settings: Equatable, Sendable {
         meetingAskTitle: Bool = true,
         meetingBlocksDictation: Bool = false,
         meetingMyName: String = "",
-        meetingLanguage: String = "auto"
+        meetingLanguage: String = "auto",
+        callOffer: Bool = true,
+        callOfferSeconds: Int = 15,
+        callAutoStart: Bool = false,
+        callAutoStartSeconds: Int = 5,
+        callAutoStopSeconds: Int = 10,
+        callApps: [String] = Settings.callAppNames
     ) {
         self.mode = mode
         self.hotkey = hotkey
@@ -203,6 +220,12 @@ public struct Settings: Equatable, Sendable {
         self.meetingBlocksDictation = meetingBlocksDictation
         self.meetingMyName = meetingMyName
         self.meetingLanguage = meetingLanguage
+        self.callOffer = callOffer
+        self.callOfferSeconds = callOfferSeconds
+        self.callAutoStart = callAutoStart
+        self.callAutoStartSeconds = callAutoStartSeconds
+        self.callAutoStopSeconds = callAutoStopSeconds
+        self.callApps = callApps
     }
 
     /// `meetingsFolder` with a leading `~/` expanded.

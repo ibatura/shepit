@@ -33,6 +33,12 @@
   "meetingAskTitle": true,
   "meetingMyName": "",
   "meetingLanguage": "auto",
+  "callOffer": true,
+  "callOfferSeconds": 15,
+  "callAutoStart": false,
+  "callAutoStartSeconds": 5,
+  "callAutoStopSeconds": 10,
+  "callApps": ["Teams", "Zoom", "Meet"],
   "overlayStyle": {
     "position": "bottom",
     "width": 560,

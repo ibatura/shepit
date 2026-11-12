@@ -267,6 +267,47 @@ struct SettingsTests {
         #expect(validateSettings(["meetingsFolder": "~"]).1.count == 1)
     }
 
+    @Test func callDefaults() {
+        let settings = validateSettings([:]).0
+        #expect(settings?.callOffer == true)
+        #expect(settings?.callOfferSeconds == 15)
+        #expect(settings?.callAutoStart == false)
+        #expect(settings?.callAutoStartSeconds == 5)
+        #expect(settings?.callAutoStopSeconds == 10)
+        #expect(settings?.callApps == ["Teams", "Zoom", "Meet"])
+    }
+
+    @Test func callValuesAreAccepted() {
+        let (settings, errors) = validateSettings([
+            "callOffer": false, "callOfferSeconds": 0, "callAutoStart": true,
+            "callAutoStartSeconds": 3, "callAutoStopSeconds": 120, "callApps": ["Zoom"],
+        ])
+        #expect(errors.isEmpty)
+        #expect(settings?.callOffer == false)
+        #expect(settings?.callOfferSeconds == 0)
+        #expect(settings?.callAutoStart == true)
+        #expect(settings?.callAutoStartSeconds == 3)
+        #expect(settings?.callAutoStopSeconds == 120)
+        #expect(settings?.callApps == ["Zoom"])
+        #expect(validateSettings(["callOfferSeconds": 5]).0?.callOfferSeconds == 5)
+        #expect(validateSettings(["callOfferSeconds": 120]).0?.callOfferSeconds == 120)
+        #expect(validateSettings(["callApps": [String]()]).0?.callApps == [])
+    }
+
+    @Test func callValuesAreRejected() {
+        let offer = #"settings.json: "callOfferSeconds" must be 0 or a whole number from 5 to 120"#
+        for bad in [1, 4, 121, -1] { #expect(validateSettings(["callOfferSeconds": bad]).1 == [offer]) }
+        let apps = #"settings.json: "callApps" must be a list of: Teams, Zoom, Meet, each at most once"#
+        let badApps: [Any] = [["Slack"], ["Zoom", "Zoom"], "Zoom", [1]]
+        for bad in badApps { #expect(validateSettings(["callApps": bad]).1 == [apps]) }
+        #expect(validateSettings(["callOffer": 1, "callAutoStart": "yes", "callAutoStartSeconds": 2, "callAutoStopSeconds": 121]).1 == [
+            #"settings.json: "callAutoStart" must be a boolean"#,
+            #"settings.json: "callAutoStartSeconds" must be a whole number from 3 to 60"#,
+            #"settings.json: "callAutoStopSeconds" must be a whole number from 3 to 120"#,
+            #"settings.json: "callOffer" must be a boolean"#,
+        ])
+    }
+
     @Test func meetingsFolderExpandsTildeAndMyNameFallsBackToTheAccountName() {
         var settings = Settings.defaults
         let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)

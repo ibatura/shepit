@@ -43,7 +43,24 @@ public func validateSettings(
         ("meetingAskTitle", kindCheck("boolean")),
         ("meetingBlocksDictation", kindCheck("boolean")),
         ("meetingMyName", kindCheck("string")),
-        ("meetingLanguage", enumCheck(["uk", "en", "auto"]))
+        ("meetingLanguage", enumCheck(["uk", "en", "auto"])),
+        ("callOffer", kindCheck("boolean")),
+        ("callOfferSeconds", { value in
+            guard let seconds = integerValue(value), seconds == 0 || (5...120).contains(seconds) else {
+                return "must be 0 or a whole number from 5 to 120"
+            }
+            return nil
+        }),
+        ("callAutoStart", kindCheck("boolean")),
+        ("callAutoStartSeconds", integerCheck(3, 60)),
+        ("callAutoStopSeconds", integerCheck(3, 120)),
+        ("callApps", { value in
+            guard let apps = value as? [String], Set(apps).count == apps.count,
+                  apps.allSatisfy(Settings.callAppNames.contains) else {
+                return "must be a list of: \(Settings.callAppNames.joined(separator: ", ")), each at most once"
+            }
+            return nil
+        })
     ]
 
     for (key, check) in settingChecks {
@@ -306,6 +323,12 @@ private func assign(_ value: Any, to key: String, settings: inout Settings) {
     case "meetingBlocksDictation": settings.meetingBlocksDictation = value as! Bool
     case "meetingMyName": settings.meetingMyName = value as! String
     case "meetingLanguage": settings.meetingLanguage = value as! String
+    case "callOffer": settings.callOffer = value as! Bool
+    case "callOfferSeconds": settings.callOfferSeconds = integerValue(value)!
+    case "callAutoStart": settings.callAutoStart = value as! Bool
+    case "callAutoStartSeconds": settings.callAutoStartSeconds = integerValue(value)!
+    case "callAutoStopSeconds": settings.callAutoStopSeconds = integerValue(value)!
+    case "callApps": settings.callApps = value as! [String]
     default: break
     }
 }
