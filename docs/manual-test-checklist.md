@@ -67,5 +67,5 @@ Date: ____
 | C7 | Press Not this call, stay in the call 1 min | No second panel || ✅ 2026-11-12 (author; the call was shorter than 1 min)
 | C8 | Leave a call with a transcript running | "Call ended" counts down, then the transcript stops; in another call Keep recording leaves it running, with no second stop panel || ✅ 2026-11-12: stopped by itself in all three apps
 | C9 | Switch headphones mid-call with a transcript running | No stop panel; the transcript goes on || ✅ 2026-11-12
-| C10 | Dictate into another app with no call; then Start on a Teams pre-join screen and close it | No panel for dictation; after closing, the stop panel runs and no note is left || open 2026-11-12: the author saw the transcript go on after closing the pre-join screen; the empty note was removed about a minute after Start. To repeat with `Shepit call-watch` running
+| C10 | Dictate into another app with no call; then Start on a Teams pre-join screen and close it | No panel for dictation; after closing, the stop panel runs and no note is left || ✅ 2026-11-13: no panel for dictation; Start on the Teams pre-join screen, Cancel 19 s later: Teams released the microphone, "Call ended" counted down and the transcript stopped 15 s after Cancel (`Shepit call-watch`). The note stays when something was said. The run of 2026-11-12 did not repeat
 
