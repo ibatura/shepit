@@ -34,6 +34,8 @@ final class AppHost: ControllerHost {
     let callPanel = CallPanel()
     var callTicker: TimerBox?
     var callNameLookup: Task<Void, Never>?
+    /// Start from the menu is under way (its scan, its name dialog): an automatic start stays out.
+    var startingByHand = false
     private lazy var settingsModel = SettingsModel(store: settingsStore, dictionaryStore: dictionaryStore)
     private lazy var settingsWindow = SettingsWindow(model: settingsModel, actions: SettingsActions(
         microphones: { AudioRecorder.inputDevices().map(\.name) },
@@ -482,8 +484,10 @@ final class TimerBox: TimerToken {
     }
 
     @MainActor
-    init(repeating seconds: Double, _ action: @escaping @MainActor () -> Void) {
-        timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { _ in MainActor.assumeIsolated { action() } }
+    init(repeating seconds: Double, underDialogs: Bool = false, _ action: @escaping @MainActor () -> Void) {
+        let timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { _ in MainActor.assumeIsolated { action() } }
+        if underDialogs { RunLoop.main.add(timer, forMode: .common) }
+        self.timer = timer
     }
 
     func cancel() {

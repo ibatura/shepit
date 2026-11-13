@@ -287,6 +287,26 @@ struct CallOfferTests {
         #expect(m.panel == .offer(title: "Zoom call", app: .zoom, hidesIn: 15))
     }
 
+    @Test func aBrowserWithoutMeetDoesNotHoldUpAnAppsCall() {
+        var m = Machine()
+        m.send(.took(.browser, pid: 7), at: 0)
+        m.send(.tick, at: 3)
+        m.send(.meetFound(false), at: 4)
+        m.send(.took(.app(.teams), pid: 1), at: 20)
+        m.send(.tick, at: 23)
+        #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 15))
+        // A late answer about the browser changes nothing; a confirmed Meet call is not replaced.
+        m.send(.meetFound(true), at: 24)
+        #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 14))
+        var meet = Machine()
+        meet.send(.took(.browser, pid: 7), at: 0)
+        meet.send(.tick, at: 3)
+        meet.send(.meetFound(true), at: 4)
+        meet.send(.took(.app(.teams), pid: 1), at: 5)
+        meet.send(.tick, at: 9)
+        #expect(meet.panel == .offer(title: "Meet call", app: .meet, hidesIn: 10))
+    }
+
     @Test func aBreakRestartsTheThreeSeconds() {
         var m = Machine()
         m.send(.took(.app(.zoom), pid: 1), at: 0)

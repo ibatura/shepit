@@ -30,7 +30,9 @@ extension AppHost {
     }
 
     func startMeeting() async {
-        guard !meetingActive, meetingMissing == nil else { return }
+        guard !meetingActive, meetingMissing == nil, !startingByHand else { return }
+        startingByHand = true
+        defer { startingByHand = false }
         let settings = settings
         let front = NSWorkspace.shared.frontmostApplication
         let first = await Task.detached {

@@ -126,7 +126,8 @@ public struct CallOffer: Sendable {
             if call?.pid == pid {
                 call?.releasedAt = nil
                 if call?.phase == .pending { call?.since = now } // the hold counts unbroken seconds
-            } else if call == nil {
+            } else if call == nil || (call?.app == nil && source.app != nil) {
+                // A browser that has shown no Meet tab does not hold up an app's call; it stays in `holders`.
                 begin(pid, source, now)
             }
         case .released(let pid):

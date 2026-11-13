@@ -6,12 +6,15 @@ import ShepitCore
 extension AppHost {
     func startCallWatch() {
         let watch = CallWatch { [weak self] change in
-            Task { @MainActor in
-                switch change {
-                case .took(let bundleID, let pid):
-                    if let source = CallSource(bundleID: bundleID) { self?.callEvent(.took(source, pid: pid)) }
-                case .released(let pid):
-                    self?.callEvent(.released(pid: pid))
+            // The main queue keeps the changes in order; separate Tasks would not.
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    switch change {
+                    case .took(let bundleID, let pid):
+                        if let source = CallSource(bundleID: bundleID) { self?.callEvent(.took(source, pid: pid)) }
+                    case .released(let pid):
+                        self?.callEvent(.released(pid: pid))
+                    }
                 }
             }
         }
@@ -34,7 +37,8 @@ extension AppHost {
         if offeredApp == nil { callNameLookup?.cancel() }
         // The timer runs only while time alone can change something.
         if callOffer.needsTick {
-            callTicker = callTicker ?? TimerBox(repeating: 1) { [unowned self] in self.callEvent(.tick) }
+            // Also under a dialog or an open menu: the next call's offer and the stop countdown don't wait for it.
+            callTicker = callTicker ?? TimerBox(repeating: 1, underDialogs: true) { [unowned self] in self.callEvent(.tick) }
         } else {
             callTicker?.cancel()
             callTicker = nil
@@ -85,7 +89,9 @@ extension AppHost {
                 }
             }
         case .start(let title, let app):
-            if let missing = meetingMissing {
+            if startingByHand {
+                break // the name dialog is open: that Start decides
+            } else if let missing = meetingMissing {
                 panel.message("⚠ Meeting transcript not started", detail: missing)
             } else {
                 startMeeting(title: title, app: app.rawValue, fromCall: true)
