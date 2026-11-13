@@ -43,7 +43,7 @@ Today Shepit has a Settings window and a long menu. This part turns the Settings
 
 ## 4. The window
 
-- Title "Shepit". Default size 980 × 640, minimum 760 × 480, resizable. It remembers its frame (a new autosave name, so the old Settings frame is not reused), the sidebar section and the Settings section. These three are window state in the app's preferences, not keys of `settings.json`.
+- The title bar shows the section's name, as System Settings does. Default size 980 × 640, minimum 760 × 480, resizable. It remembers its frame (a new autosave name, so the old Settings frame is not reused), the sidebar section and the Settings section. These three are window state in the app's preferences, not keys of `settings.json`.
 - **Opened by:** the menu's Open Shepit (the section it had last), the menu's Settings… or ⌘, (Settings), launching the app again (the section it had last). The first time it opens on Home.
 - **Dock:** opening the window makes Shepit a regular app (Dock icon, ⌘Tab, its own menu bar). Closing the window makes it a menu-bar app again. The red button and ⌘W close the window; dictation, the call watch and a running transcript go on.
 - **Menu bar while the window is open:** Shepit (Settings… ⌘,, Quit Shepit ⌘Q), Edit (as today), Window (Minimize ⌘M, Close ⌘W). ⌘Q quits the whole app, with today's question during a meeting.
@@ -171,7 +171,8 @@ Manual (added to `docs/manual-test-checklist.md` as W1–W10):
 - Last dictations show no app name.
 - No app icon in this part.
 - `theme` covers dialogs and call panels too, not only the window.
-- A meeting hotkey that clashes is refused, not just warned about.
+- A meeting hotkey that clashes is refused, not just warned about. The dictation and add-word recorders refuse the meeting hotkey's keys the same way.
+- Mode and Language on Home are off while a dictation runs, and Microphone also while a transcript runs, as the menu items they replace were.
 
 ## 11. Open questions for the plan
 

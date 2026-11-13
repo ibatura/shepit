@@ -51,6 +51,8 @@ from the meeting design (`meetingsFolder`, `meetingFileName`, …).
 
 ## 3. The Settings window
 
+*Replaced on 2026-11-13 by the main window: `../2026-11-13-window-shell-design.md`. Settings is one of its sections; Dictionary and Statistics are sidebar items of their own. §1 and §2 still hold.*
+
 A standard macOS settings window with a sidebar, as in the approved mockup.
 SwiftUI. Opened from the menu (Settings…, ⌘,) or by launching the app again.
 

@@ -36,7 +36,7 @@ It takes several minutes: it builds the app and downloads about 1.6 GB. It is sa
 
 When it finishes, a 🎙 icon appears in the menu bar at the top right of the screen. On a MacBook with a notch the icon can be hidden behind it if the menu bar is full; close a few menu-bar apps to see it.
 
-Other engines are optional and can also be downloaded later in **Settings → Engines & Models**: `scripts/install.sh --with-whisperkit --with-parakeet`.
+Other engines are optional and can also be downloaded later in **Settings → Engines and models**: `scripts/install.sh --with-whisperkit --with-parakeet`.
 
 **Signing.** On the first build, if no Apple Development or Shepit signing identity exists, the build creates the local self-signed **Shepit Local Signing** certificate; macOS asks for your login password once while it is added to your login Keychain. That keeps macOS permissions across rebuilds. To use another identity: `DICTATION_SIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" scripts/install.sh`.
 
@@ -63,28 +63,40 @@ While you speak, a small panel shows **🔴 Слухаю**, a timer, a frequency
 
 ### The 🎙 menu
 
+The menu has the quick actions; everything else is in [the window](#the-window).
+
 | Item | What it does |
 |---|---|
-| Status line | Ready / Loading / Recording / Transcribing, or the current error; ⚠ lines below it name settings errors or permission problems |
-| Mode | Toggle or Hold to talk |
-| Engine | The engine for the pasted text — only downloaded ones are listed |
-| Language | Ukrainian, English or Auto-detect |
-| Microphone | System default or a specific device |
-| Start / Stop meeting transcript | See [Meeting transcripts](#meeting-transcripts). While a meeting runs, a second status line shows its time and how many phrases wait for recognition |
+| Status line | Ready / Loading / Recording / Transcribing, or the current error; ⚠ lines below it name settings errors or permission problems. While a meeting runs, a second line shows its name, its time and how many phrases wait for recognition |
+| Open Shepit (⌘O) | Opens the window on the section it showed last (also: launch Shepit again) |
+| Start / Stop meeting transcript | See [Meeting transcripts](#meeting-transcripts) |
 | Copy last meeting transcript | The newest note without its front matter, to the clipboard |
 | Rename speakers… / … in another note… | Give `Person 1`, `Person 2` real names in the last note, or in a note you pick |
 | Open meetings folder | The folder with the notes, in Finder |
-| Add to dictionary… | Same as ⌃⌥D |
-| Edit dictionary… | Opens `dictionary.json` in your text editor |
-| Settings… (⌘,) | Opens the Settings window (also: launch Shepit again) |
-| Statistics | Opens Settings → Statistics |
-| Reload config | Re-reads both files now (normally automatic within 2 s) |
-| Reload models | Reloads the speech engines if something got stuck |
+| Copy last dictation | The newest dictation, to the clipboard |
 | Recent | Your last dictations. Click one to copy its full text |
-| Open history / Clear history… | The log of everything you dictated; clearing also deletes kept audio of failed attempts (asks first) |
-| Quit | Quits Shepit |
+| Add word… | Same as ⌃⌥D |
+| Mode | Toggle or Hold to talk |
+| Language | Ukrainian, English or Auto-detect |
+| Dictation engine | The engine for the pasted text — only downloaded ones are listed |
+| Settings… (⌘,) | Opens the window on Settings |
+| Quit Shepit | Quits Shepit |
 
 Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open the menu to see it) · ⏺ in front while a meeting transcript runs.
+
+### The window
+
+**Open Shepit** in the menu (or launching Shepit again) opens its window. While it is open, Shepit has a Dock icon and is in ⌘Tab; closing the window (⌘W) leaves Shepit running in the menu bar. ⌘Q quits Shepit.
+
+| Section | What is there |
+|---|---|
+| Home | Dictation status, Mode, Language, Microphone, **Reload settings** (re-reads both files now; normally automatic within 2 s) and **Reload model** (if an engine got stuck); the engine for each job; the meeting transcript with Start and Stop; your last 10 dictations with Copy |
+| Dictionary | Terms, replace rules and drop phrases (see [Dictionary](#dictionary)) |
+| Statistics | Numbers about your dictations and meetings, kept on this Mac |
+| Settings | All settings (see [Settings](#settings)) |
+| Meetings, Dictations, People | Not built yet. Meeting actions are in the menu; Dictations has **Open history file** |
+
+While a meeting transcript runs, a card at the top of the sidebar shows its time and name.
 
 ## Meeting transcripts
 
@@ -149,9 +161,9 @@ Yes, the release candidate is ready.
 
 ## Settings
 
-Everything is in **Settings…** (⌘,): General, Hotkeys, Dictation, Meetings, Engines & Models, Overlay, Dictionary, History & Privacy, Statistics. Every change is saved at once.
+Everything is in the window's **Settings** section (**Settings…**, ⌘,): General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy. Every change is saved at once. **History and privacy** has Open history and Clear history… (clearing also deletes kept audio of failed attempts, and asks first). **Hotkeys** can also record a shortcut that starts or stops a meeting transcript (`meetingHotkey`); a shortcut another Shepit hotkey already uses is refused.
 
-The window reads and writes `~/.config/dictation/settings.json`, which you can also edit by hand (**Settings → General → Open settings file**). Hand edits apply within 2 seconds. Only the fields you set are stored; anything missing uses the default. If the file has an error (wrong value or broken JSON), Shepit keeps working with the last good settings, and the menu and the Settings window name the field and what's allowed — the window is read-only until the file is fixed.
+The window reads and writes `~/.config/dictation/settings.json`, which you can also edit by hand (**Settings → General → Open settings file**). Hand edits apply within 2 seconds. Only the fields you set are stored; anything missing uses the default. If the file has an error (wrong value or broken JSON), Shepit keeps working with the last good settings, and the menu and the window name the field and what's allowed — the window is read-only until the file is fixed.
 
 ### Engines
 
@@ -176,7 +188,7 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `cancelKey` | `"escape"` | a key name | Cancels a recording. Only active while recording |
 | `addWordHotkey` | `{"mods": ["ctrl", "alt"], "key": "d"}` | same format as `hotkey` | Adds the selected word to the dictionary |
 | `meetingHotkey` | none | same format as `hotkey`, or `null` | Starts a meeting transcript, or stops the running one. Leave it out for no shortcut |
-| `engines` | whisper.cpp `large-v3-turbo` for every task | `{"dictation": {"engine": …, "model": …}, "preview": …, "meetings": …}`; engines `whispercpp`, `whisperkit`, `parakeet`, `apple` | Engine and model per task (Settings → Engines & Models). Old files with `model` / `previewModel` still work |
+| `engines` | whisper.cpp `large-v3-turbo` for every task | `{"dictation": {"engine": …, "model": …}, "preview": …, "meetings": …}`; engines `whispercpp`, `whisperkit`, `parakeet`, `apple` | Engine and model per task (Settings → Engines and models). Old files with `model` / `previewModel` still work |
 | `language` | `"uk"` | `"uk"`, `"en"`, `"auto"` | Keep `"uk"` for Ukrainian with English terms. `"auto"` may translate your speech into one language |
 | `stylePrompt` | a Ukrainian sentence with English terms | any text | Example text the engine imitates. Keep English terms in Latin script — this is what makes it write `pull request` instead of «пул реквест» |
 | `microphone` | `""` | `""` or a device name | `""` follows the system default input. If the named device isn't connected, the default is used and the panel says so |
@@ -241,7 +253,7 @@ Settings → Meetings shows a live example as you type.
 
 ## Dictionary
 
-`~/.config/dictation/dictionary.json`, also editable in **Settings → Dictionary**.
+`~/.config/dictation/dictionary.json`, also editable in the window's **Dictionary** section.
 
 **Quick way:** select a word that came out wrong, in any app (e.g. «кубернетіс»), press **⌃⌥D**, type how it should be written (`Kubernetes`) and press Enter. This adds the rule `"кубернетіс": "Kubernetes"` to `replace` and `Kubernetes` to `terms`. With nothing selected, type `wrong = right` (e.g. `джира = Jira`) or just a word for `terms`.
 
@@ -259,12 +271,12 @@ Settings → Meetings shows a live example as you type.
 | `brew: command not found` during install | Install [Homebrew](https://brew.sh), or install cmake another way, then run `scripts/install.sh` again |
 | Text isn't pasted, "Text copied — allow Accessibility" | System Settings → Privacy & Security → Accessibility → turn on Shepit. If it's on but doesn't work: remove Shepit with **−**, add it again with **+** from `~/Applications`. The text is on the clipboard and in history meanwhile |
 | "no microphone access" | System Settings → Privacy & Security → Microphone → turn on Shepit |
-| 🎙⚠ in the menu bar | Open the menu to read the error. Try **Reload models**. "Not downloaded" → Settings → Engines & Models → Download |
-| No draft text in the panel | The draft engine isn't downloaded (Settings → Engines & Models), or Overlay → Live draft is off |
+| 🎙⚠ in the menu bar | Open the menu to read the error. Try **Reload model** on the window's Home. "Not downloaded" → Settings → Engines and models → Download |
+| No draft text in the panel | The draft engine isn't downloaded (Settings → Engines and models), or Overlay → Live draft is off |
 | English words come out in Cyrillic | Add them to `terms` and a `replace` rule (see Dictionary) |
 | First words cut off / worse recognition with Bluetooth headphones | Using their microphone switches Bluetooth to a low-quality headset mode, which also takes ~0.5 s to start. Choose 🎙 → Microphone → MacBook Pro Microphone; your music stays in high quality |
 | Meeting note has only your voice | System Settings → Privacy & Security → Screen & System Audio Recording → turn on Shepit (Shepit says so after 2 min of your speech with a silent call) |
-| "Start meeting transcript (download the model in Settings)" | Settings → Meetings → Download voice detection, and the meetings engine in Engines & Models |
+| "Start meeting transcript (download the model in Settings)" | Settings → Meetings → Download voice detection, and the meetings engine in Engines and models |
 | Speakers stay `[Співрозмовники]` | Settings → Meetings → Download speaker detection; it applies to the next meeting |
 | Lost text | Everything is in 🎙 → Open history. Audio of failed attempts is kept for 24 h in `~/.local/share/dictation/failed/` |
 

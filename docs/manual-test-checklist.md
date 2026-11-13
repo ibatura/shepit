@@ -69,3 +69,19 @@ Date: ____
 | C9 | Switch headphones mid-call with a transcript running | No stop panel; the transcript goes on || ✅ 2026-11-12
 | C10 | Dictate into another app with no call; then Start on a Teams pre-join screen and close it | No panel for dictation; after closing, the stop panel runs and no note is left || ✅ 2026-11-13: no panel for dictation; Start on the Teams pre-join screen, Cancel 19 s later: Teams released the microphone, "Call ended" counted down and the transcript stopped 15 s after Cancel (`Shepit call-watch`). The note stays when something was said. The run of 2026-11-12 did not repeat
 
+## Main window: shell, Home, Settings
+
+Date: ____
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| W1 | Open the window from the menu (Open Shepit), by Settings… / ⌘,, and by launching Shepit again; move and resize it, pick sections, quit and start Shepit, open again | Open Shepit and a relaunch show the section it had last, Settings… shows Settings; the frame and both section choices are remembered ||
+| W2 | Open the window, then close it with the red button and with ⌘W; minimize it and click the Dock icon | Dock icon, ⌘Tab and the Shepit / Edit / Window menu bar only while the window is open; the menu bar answers clicks right away; a minimized window comes back; dictation works after closing ||
+| W3 | With the window in front, dictate; then dictate with the cursor in a text field of the window | The text is pasted where the cursor is, or is on the clipboard with a notice; write down what happens ||
+| W4 | Watch Home → Status through a dictation and through Reload model | Recording → Transcribing → Ready; Loading… while the model reloads ||
+| W5 | Change Mode, Language and Microphone on Home; then edit `mode` in `settings.json` by hand | Settings → Hotkeys / General / Dictation and the file show the change; the hand edit shows on Home within a few seconds ||
+| W6 | Change each of the three engines on Home; open a picker while dictating and while a transcript runs | The engine changes for that job; the picker of a running job is off; Mode, Language and Microphone are off while their job runs ||
+| W7 | Join a real call with the window open; press Not this call on the panel; press Start transcript on Home; Stop | Home shows the call's name and app; Start uses that name with no dialog; the recording card and the red Stop appear; after Stop the row says finishing, then "No call right now" or the call again ||
+| W8 | Dictate a short and a very long text with Home open; press Copy; press All dictations | Both appear at the top within a few seconds; the long one is cut to two lines; Copy gives the whole text; All dictations opens the placeholder with Open history file ||
+| W9 | Settings → Appearance: each theme and a few accent colours; `Shepit panel-test`; open a dialog (Clear history…) | The window, the call panel and the dialog follow the theme and the colour ||
+| W10 | Settings → Hotkeys: record a meeting hotkey; press it with no meeting, during one, and right after Stop; try to record the dictation hotkey's keys; Remove | Starts as the menu's Start; stops; "Transcript is finishing"; the clash is refused inline; after Remove the key is gone from `settings.json` and the shortcut does nothing ||
