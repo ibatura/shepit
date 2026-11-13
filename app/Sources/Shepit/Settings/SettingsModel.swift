@@ -37,7 +37,7 @@ final class SettingsModel {
         var keys: [String] {
             switch self {
             case .general: ["launchAtLogin", "sounds", "language"]
-            case .hotkeys: ["mode", "hotkey", "cancelKey", "addWordHotkey"]
+            case .hotkeys: ["mode", "hotkey", "cancelKey", "addWordHotkey", "meetingHotkey"]
             case .dictation: ["microphone", "stylePrompt", "refocusOriginalApp", "restoreClipboard", "maxRecordingSeconds"]
             case .meetings: ["meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"]
             case .calls: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"]
@@ -99,6 +99,18 @@ final class SettingsModel {
 
     func set(_ key: String, hotkey: Hotkey) {
         set(key, ["mods": hotkey.mods, "key": hotkey.key])
+    }
+
+    /// Takes the key out of settings.json, so its default applies (for `meetingHotkey`: no shortcut).
+    func remove(_ key: String) {
+        set(key, NSNull())
+    }
+
+    /// Why these keys can't be the meeting hotkey, or nil when they can.
+    func meetingHotkeyClash(_ hotkey: Hotkey) -> String? {
+        if hotkey == settings.hotkey { return "That is the dictation hotkey" }
+        if hotkey == settings.addWordHotkey { return "That is the add-word hotkey" }
+        return nil
     }
 
     /// One task's engine; writes the whole `engines` object (the store then drops the legacy model keys).

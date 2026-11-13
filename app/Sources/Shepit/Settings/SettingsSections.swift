@@ -63,6 +63,12 @@ struct HotkeysSection: View {
                     model.set("addWordHotkey", hotkey: $0)
                 }
             }
+            Hinted(hint: "Starts a meeting transcript, or stops the running one. No shortcut until you record one") {
+                ShortcutField(title: "Meeting transcript hotkey", hotkey: model.settings.meetingHotkey, allowsModifiers: true, actions: actions,
+                              refuse: model.meetingHotkeyClash, onRemove: { model.remove("meetingHotkey") }) {
+                    model.set("meetingHotkey", hotkey: $0)
+                }
+            }
             if let problem = actions.hotkeyProblem() {
                 Text("⚠ \(problem)").foregroundStyle(.orange)
             }
@@ -77,9 +83,14 @@ struct HotkeysSection: View {
 /// Click, then press the keys. The global hotkeys are off meanwhile, so pressing the current one records it.
 struct ShortcutField: View {
     let title: String
-    let hotkey: Hotkey
+    /// nil: no shortcut set.
+    let hotkey: Hotkey?
     let allowsModifiers: Bool
     let actions: SettingsActions
+    /// Why a recorded shortcut can't be used, or nil when it can.
+    var refuse: (Hotkey) -> String? = { _ in nil }
+    /// Set for a shortcut that may be absent: shows Remove.
+    var onRemove: (() -> Void)?
     let onChange: (Hotkey) -> Void
     @State private var monitor: Any?
     @State private var problem: String?
@@ -92,12 +103,14 @@ struct ShortcutField: View {
                     monitor == nil ? start() : stop()
                 }
                 .frame(minWidth: 150)
+                if let onRemove, hotkey != nil, monitor == nil { Button("Remove", action: onRemove) }
             }
         }
         .onDisappear(perform: stop)
     }
 
     private var label: String {
+        guard let hotkey else { return "Record shortcut" }
         let symbols = ["ctrl": "⌃", "alt": "⌥", "shift": "⇧", "cmd": "⌘"]
         return hotkey.mods.compactMap { symbols[$0] }.joined() + hotkey.key.capitalized
     }
@@ -117,7 +130,12 @@ struct ShortcutField: View {
                 problem = "Add ⌃, ⌥, ⇧ or ⌘"
                 return nil
             }
-            onChange(Hotkey(mods: allowsModifiers ? mods : [], key: key))
+            let recorded = Hotkey(mods: allowsModifiers ? mods : [], key: key)
+            if let reason = refuse(recorded) {
+                problem = reason
+                return nil
+            }
+            onChange(recorded)
             stop()
             return nil
         }

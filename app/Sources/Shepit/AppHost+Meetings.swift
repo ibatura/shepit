@@ -29,6 +29,20 @@ extension AppHost {
         }
     }
 
+    /// The meeting hotkey: what the menu's Start or Stop does at this moment.
+    func toggleMeeting() {
+        switch meeting?.state {
+        case .recording: Task { await meeting?.stop() }
+        case .finishing, .detectingSpeakers: panel.message("Transcript is finishing")
+        default:
+            if let missing = meetingMissing {
+                panel.message("⚠ Meeting transcript not started", detail: missing)
+            } else {
+                Task { await startMeeting() }
+            }
+        }
+    }
+
     func startMeeting() async {
         guard !meetingActive, meetingMissing == nil, !startingByHand else { return }
         startingByHand = true

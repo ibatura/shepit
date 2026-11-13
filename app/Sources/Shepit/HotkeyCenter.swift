@@ -11,7 +11,7 @@ protocol HotkeyRegistrar: AnyObject {
     func unregister(id: UInt32)
 }
 
-/// Dictation, cancel and add-word hotkeys (port of bindHotkeys in init.lua).
+/// Dictation, cancel, add-word and meeting hotkeys (port of bindHotkeys in init.lua).
 @MainActor
 final class HotkeyCenter {
     enum State: Equatable {
@@ -20,13 +20,14 @@ final class HotkeyCenter {
     }
 
     private enum ID: UInt32 {
-        case dictation = 1, cancel, addWord
+        case dictation = 1, cancel, addWord, meeting
     }
 
     var onDictationDown: (() -> Void)?
     var onDictationUp: (() -> Void)?
     var onCancel: (() -> Void)?
     var onAddWord: (() -> Void)?
+    var onMeeting: (() -> Void)?
     private(set) var state = State.active
 
     private let registrar: any HotkeyRegistrar
@@ -56,6 +57,14 @@ final class HotkeyCenter {
         }
         if !register(.addWord, settings.addWordHotkey) {
             errors.append("cannot bind addWordHotkey \(KeyNames.label(settings.addWordHotkey)) — change it in settings.json")
+        }
+        if let meeting = settings.meetingHotkey {
+            // The same keys as another hotkey would shadow it, so the meeting hotkey is the one left out.
+            if meeting == settings.hotkey || meeting == settings.addWordHotkey {
+                errors.append("meetingHotkey \(KeyNames.label(meeting)) is already the dictation or add-word hotkey — change it in Settings → Hotkeys")
+            } else if !register(.meeting, meeting) {
+                errors.append("cannot bind meetingHotkey \(KeyNames.label(meeting)) — change it in Settings → Hotkeys")
+            }
         }
         state = errors.isEmpty ? .active : .failed(errors)
         if cancelWanted { setCancelEnabled(true) }
@@ -94,6 +103,7 @@ final class HotkeyCenter {
         case (.dictation, false): onDictationUp?()
         case (.cancel, true): onCancel?()
         case (.addWord, true): onAddWord?()
+        case (.meeting, true): onMeeting?()
         default: break
         }
     }

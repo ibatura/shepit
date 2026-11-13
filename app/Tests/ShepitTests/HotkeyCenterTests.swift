@@ -98,4 +98,38 @@ struct HotkeyCenterTests {
         #expect(registrar.active.count == 2)
     }
 
+
+    @Test func theMeetingHotkeyIsRegisteredOnlyWhenSetAndReachesItsHandler() {
+        let registrar = FakeRegistrar()
+        let center = HotkeyCenter(registrar: registrar)
+        var presses = 0
+        center.onMeeting = { presses += 1 }
+        var settings = Settings.defaults
+        settings.meetingHotkey = Hotkey(mods: ["ctrl", "alt"], key: "m")
+        #expect(center.apply(settings) == .active)
+        #expect(registrar.active[4].map { $0 == (UInt32(kVK_ANSI_M), UInt32(controlKey | optionKey)) } == true)
+        registrar.handler?(4, true)
+        registrar.handler?(4, false)
+        #expect(presses == 1)
+
+        settings.meetingHotkey = nil // removed in Settings
+        #expect(center.apply(settings) == .active)
+        #expect(registrar.active[4] == nil && registrar.active.count == 2)
+    }
+
+    @Test func aMeetingHotkeyThatClashesIsLeftOutAndReported() {
+        let registrar = FakeRegistrar()
+        let center = HotkeyCenter(registrar: registrar)
+        var settings = Settings.defaults
+        for taken in [settings.hotkey, settings.addWordHotkey] {
+            settings.meetingHotkey = taken
+            #expect(center.apply(settings) == .failed([
+                "meetingHotkey \(KeyNames.label(taken)) is already the dictation or add-word hotkey — change it in Settings → Hotkeys",
+            ]))
+            #expect(registrar.active.count == 2 && registrar.active[4] == nil)
+        }
+        registrar.refuse = [UInt32(kVK_ANSI_M)] // another app holds it
+        settings.meetingHotkey = Hotkey(mods: ["ctrl"], key: "m")
+        #expect(center.apply(settings) == .failed(["cannot bind meetingHotkey ctrl+m — change it in Settings → Hotkeys"]))
+    }
 }

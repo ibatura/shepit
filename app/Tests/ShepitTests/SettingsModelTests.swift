@@ -234,6 +234,23 @@ struct SettingsModelTests {
         #expect(unknown.section == .home && unknown.settingsSection == .general)
     }
 
+    @Test func theMeetingHotkeyIsSetRefusedOnAClashAndRemoved() throws {
+        let file = try makeFile(#"{"sounds": false}"#)
+        let store = SettingsStore(file: file)
+        store.load()
+        let model = SettingsModel(store: store, dictionaryStore: DictionaryStore(file: file.deletingLastPathComponent().appending(path: "dictionary.json")))
+        #expect(model.meetingHotkeyClash(model.settings.hotkey) == "That is the dictation hotkey")
+        #expect(model.meetingHotkeyClash(model.settings.addWordHotkey) == "That is the add-word hotkey")
+        let hotkey = Hotkey(mods: ["ctrl", "alt"], key: "m")
+        #expect(model.meetingHotkeyClash(hotkey) == nil)
+
+        model.set("meetingHotkey", hotkey: hotkey)
+        #expect(model.settings.meetingHotkey == hotkey)
+        model.remove("meetingHotkey")
+        #expect(model.lastError == nil && model.settings.meetingHotkey == nil)
+        #expect(try json(file).keys.sorted() == ["sounds"])
+    }
+
     @Test func serverPortIsShownNowhere() {
         #expect(!SettingsModel.Section.allCases.flatMap(\.keys).contains("serverPort"))
     }

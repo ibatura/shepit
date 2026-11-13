@@ -98,6 +98,7 @@ final class AppHost: ControllerHost {
         hotkeys.onDictationUp = { [unowned self] in self.controller.hotkeyUp() }
         hotkeys.onCancel = { [unowned self] in self.controller.cancel() }
         hotkeys.onAddWord = { [unowned self] in Task { await self.addToDictionary() } }
+        hotkeys.onMeeting = { [unowned self] in self.toggleMeeting() }
         recorder.onLost = { [unowned self] message, samples in
             if samples == nil { self.controller.recorderFailed(message) } else { self.controller.finishRecording(message) }
         }
@@ -123,7 +124,8 @@ final class AppHost: ControllerHost {
         let after = settings
         applied = after
         settingsModel.refresh()
-        if initial || before?.hotkey != after.hotkey || before?.addWordHotkey != after.addWordHotkey || before?.cancelKey != after.cancelKey {
+        if initial || before?.hotkey != after.hotkey || before?.addWordHotkey != after.addWordHotkey || before?.cancelKey != after.cancelKey
+            || before?.meetingHotkey != after.meetingHotkey {
             hotkeys.apply(after)
         }
         if initial || before?.engines != after.engines || before?.idleUnloadMinutes != after.idleUnloadMinutes {
