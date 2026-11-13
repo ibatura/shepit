@@ -24,6 +24,8 @@ final class AppHost: ControllerHost {
     var menu: MenuController?
     /// The current or last meeting (AppHost+Meetings.swift).
     var meeting: MeetingSession?
+    /// The name the current or last meeting was started with.
+    var meetingTitle: String?
     var meetingTimer: TimerBox?
     var meetingMute: MuteWatch?
     /// `meeting-names.json` as it was before this session added its name; nil when it added none.
@@ -204,7 +206,9 @@ final class AppHost: ControllerHost {
         view.accessibilityGranted = Permissions.accessibilityGranted
         view.microphoneDenied = Permissions.microphoneDenied
         view.meeting = meeting?.state ?? .idle
+        view.meetingTitle = meetingTitle
         view.meetingMissing = meetingMissing
+        view.history = History.recent(Paths.historyFile, count: 10)
         return view
     }
 
@@ -273,15 +277,12 @@ final class AppHost: ControllerHost {
         switch action {
         case .setMode(let mode): update("mode", mode)
         case .setLanguage(let language): update("language", language)
-        case .setMicrophone(let name): update("microphone", name)
         case .setEngine(let choice):
             var engines = settings.engines
             engines[.dictation] = choice
             update("engines", Dictionary(uniqueKeysWithValues: engines.map { ($0.key.rawValue, ["engine": $0.value.engine.rawValue, "model": $0.value.model]) }))
         case .addToDictionary: Task { await addToDictionary() }
-        case .editDictionary: edit(Paths.dictionaryFile, empty: #"{"terms": [], "replace": {}, "dropPhrases": []}"#)
-        case .openSettings: showSettings()
-        case .openStatistics: settingsWindow.show(.statistics)
+        case .openWindow, .openSettings: showSettings() // one window so far; the main window comes next
         case .reloadConfig: reloadConfig(announce: true)
         case .reloadModels:
             let engines = settings.engines

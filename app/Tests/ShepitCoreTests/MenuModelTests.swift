@@ -42,14 +42,16 @@ struct MenuModelTests {
     @Test func menuHasStatusSubmenusAndActionsInOrder() {
         let items = MenuModel.build(view())
         #expect(items.map(\.title) == [
-            "Ready — whisper.cpp large-v3-turbo", "-", "Mode", "Engine", "Language", "Microphone", "-",
+            "Ready — whisper.cpp large-v3-turbo", "-", "Open Shepit", "-",
             "Start meeting transcript", "Copy last meeting transcript", "Rename speakers…", "Rename speakers in another note…",
             "Open meetings folder", "-",
-            "Add to dictionary…", "Edit dictionary…", "Settings…", "Statistics", "Reload config", "Reload models",
-            "Recent", "Open history", "Clear history…", "-", "Quit",
+            "Copy last dictation", "Recent", "Add word…", "-",
+            "Mode", "Language", "Dictation engine", "-", "Settings…", "Quit Shepit",
         ])
         #expect(!items[0].enabled)
         #expect(find(items, "Settings…")?.keyEquivalent == ",")
+        #expect(find(items, "Open Shepit")?.keyEquivalent == "o")
+        #expect(find(items, "Open Shepit")?.action == .openWindow)
     }
 
     @Test func modeSubmenuChecksCurrentModeAndSetsMode() {
@@ -67,23 +69,23 @@ struct MenuModelTests {
     }
 
     @Test func engineSubmenuListsDownloadedEnginesOnly() {
-        let one = find(MenuModel.build(view()), "Engine")?.submenu ?? []
+        let one = find(MenuModel.build(view()), "Dictation engine")?.submenu ?? []
         #expect(one.map(\.title) == ["whisper.cpp large-v3-turbo"])
         #expect(one[0].checked)
-        let two = find(MenuModel.build(view { $0.downloaded = [turbo, kit] }), "Engine")?.submenu ?? []
+        let two = find(MenuModel.build(view { $0.downloaded = [turbo, kit] }), "Dictation engine")?.submenu ?? []
         #expect(two.count == 2)
         #expect(two[1].action == .setEngine(kit))
     }
 
     @Test func configuredButMissingEngineIsShownDisabled() {
-        let engine = find(MenuModel.build(view { $0.downloaded = [] }), "Engine")?.submenu ?? []
+        let engine = find(MenuModel.build(view { $0.downloaded = [] }), "Dictation engine")?.submenu ?? []
         #expect(engine.map(\.title) == ["whisper.cpp large-v3-turbo (not downloaded)"])
         #expect(engine.first?.enabled == false)
     }
 
     @Test func settingsSubmenusAreDisabledWhileRecordingOrTranscribing() {
         let items = MenuModel.build(view { $0.state = .recording })
-        for title in ["Mode", "Engine", "Language", "Microphone", "Reload models"] {
+        for title in ["Mode", "Dictation engine", "Language"] {
             #expect(find(items, title)?.enabled == false)
         }
     }
@@ -103,12 +105,24 @@ struct MenuModelTests {
 
     @Test func actionItemsCarryTheirActions() {
         let items = MenuModel.build(view())
-        #expect(find(items, "Edit dictionary…")?.action == .editDictionary)
-        #expect(find(items, "Reload models")?.action == .reloadModels)
-        #expect(find(items, "Quit")?.action == .quit)
-        #expect(find(items, "Add to dictionary…")?.action == .addToDictionary)
-        #expect(find(items, "Clear history…")?.action == .clearHistory)
-        #expect(find(items, "Statistics")?.action == .openStatistics)
+        #expect(find(items, "Quit Shepit")?.action == .quit)
+        #expect(find(items, "Add word…")?.action == .addToDictionary)
+        #expect(find(items, "Settings…")?.action == .openSettings)
+    }
+
+    @Test func copyLastDictationCopiesTheNewestEntryWhateverRecentShows() {
+        #expect(find(MenuModel.build(view()), "Copy last dictation")?.enabled == false)
+        let items = MenuModel.build(view {
+            $0.recent = nil
+            $0.history = [History.Entry(time: "2026-10-06 14:32:05", text: "new"), History.Entry(time: "2026-10-06 14:28:00", text: "old")]
+        })
+        #expect(find(items, "Copy last dictation")?.enabled == true)
+        #expect(find(items, "Copy last dictation")?.action == .copyText("new"))
+    }
+
+    @Test func theMenuKeepsItsItemsDuringAMeeting() {
+        let items = MenuModel.build(view { $0.meeting = .recording(elapsed: 5, waiting: 0) })
+        for title in ["Add word…", "Mode", "Language", "Dictation engine"] { #expect(find(items, title)?.enabled == true) }
     }
 
     @Test func recentSubmenuListsEntriesAndCopiesTheFullText() {
@@ -134,22 +148,6 @@ struct MenuModelTests {
         #expect(find(MenuModel.build(view { $0.recent = nil }), "Recent") == nil)
     }
 
-    @Test func microphoneSubmenuChecksTheConfiguredDevice() {
-        let mic = find(MenuModel.build(view { $0.settings.microphone = "MOMENTUM 4" }), "Microphone")?.submenu ?? []
-        #expect(mic.map(\.title) == ["System default", "MacBook Pro Microphone", "MOMENTUM 4"])
-        #expect(mic.map(\.checked) == [false, false, true])
-        #expect(mic[1].action == .setMicrophone("MacBook Pro Microphone"))
-        #expect(mic[0].action == .setMicrophone(""))
-    }
-
-    @Test func microphoneDefaultCheckedWhenUnsetAndMissingDeviceShownDisabled() {
-        #expect(find(MenuModel.build(view()), "Microphone")?.submenu?.first?.checked == true)
-        let mic = find(MenuModel.build(view { $0.settings.microphone = "AirPods" }), "Microphone")?.submenu ?? []
-        #expect(mic.last?.title == "AirPods (not connected)")
-        #expect(mic.last?.enabled == false)
-        #expect(mic.first?.checked == false)
-    }
-
     // Meetings (spec §5.6)
 
     @Test func meetingMarkInTheTitleWhileASessionRuns() {
@@ -160,14 +158,16 @@ struct MenuModelTests {
     }
 
     @Test func meetingStatusLines() {
-        #expect(MenuModel.meetingLine(.recording(elapsed: 754, waiting: 2)) == "Meeting: recording 12:34 · 2 phrases waiting")
-        #expect(MenuModel.meetingLine(.recording(elapsed: 3_725, waiting: 1)) == "Meeting: recording 1:02:05 · 1 phrase waiting")
-        #expect(MenuModel.meetingLine(.recording(elapsed: 9, waiting: 0)) == "Meeting: recording 0:09")
+        #expect(MenuModel.meetingLine(.recording(elapsed: 754, waiting: 2), title: "Weekly sync") == "⏺ Recording · Weekly sync · 12:34 · 2 phrases waiting")
+        #expect(MenuModel.meetingLine(.recording(elapsed: 3_725, waiting: 1)) == "⏺ Recording · 1:02:05 · 1 phrase waiting")
+        #expect(MenuModel.meetingLine(.recording(elapsed: 9, waiting: 0), title: "Weekly sync") == "⏺ Recording · Weekly sync · 0:09")
         #expect(MenuModel.meetingLine(.finishing(left: 3)) == "Meeting: finishing (3 left)")
         #expect(MenuModel.meetingLine(.detectingSpeakers) == "Meeting: detecting speakers…")
         #expect(MenuModel.meetingLine(.idle) == nil)
         let items = MenuModel.build(view { $0.meeting = .finishing(left: 1) })
         #expect(items[1].title == "Meeting: finishing (1 left)" && !items[1].enabled)
+        let named = MenuModel.build(view { $0.meeting = .recording(elapsed: 9, waiting: 0); $0.meetingTitle = "Weekly sync" })
+        #expect(named[1].title == "⏺ Recording · Weekly sync · 0:09")
     }
 
     @Test func meetingStartAndStopItems() {
@@ -192,9 +192,5 @@ struct MenuModelTests {
             #expect(find(items, "Rename speakers…")?.enabled == false)
             #expect(find(items, "Rename speakers in another note…")?.enabled == false)
         }
-    }
-
-    @Test func microphoneCantChangeDuringAMeeting() {
-        #expect(find(MenuModel.build(view { $0.meeting = .recording(elapsed: 1, waiting: 0) }), "Microphone")?.enabled == false)
     }
 }

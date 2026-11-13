@@ -4,11 +4,9 @@ public enum MenuAction: Equatable, Sendable {
     case setMode(String)
     case setEngine(EngineChoice)
     case setLanguage(String)
-    case setMicrophone(String)
     case addToDictionary
-    case editDictionary
+    case openWindow
     case openSettings
-    case openStatistics
     case reloadConfig
     case reloadModels
     case openHistory
@@ -63,6 +61,10 @@ public struct MenuView: Sendable {
     public var accessibilityGranted = true
     public var microphoneDenied = false
     public var meeting: MeetingState = .idle
+    /// The running transcript's name; nil when it has none.
+    public var meetingTitle: String?
+    /// The newest history entries, newest first, whatever `historyMenuItems` says.
+    public var history: [History.Entry] = []
     /// nil when a meeting can start; else what to download first.
     public var meetingMissing: String?
 
@@ -87,12 +89,12 @@ public enum MenuModel {
         }
     }
 
-    /// The meeting's line under the status line (spec §5.6); nil when no meeting runs.
-    public static func meetingLine(_ state: MeetingState) -> String? {
+    /// The meeting's line under the status line (window shell design §7); nil when no meeting runs.
+    public static func meetingLine(_ state: MeetingState, title: String? = nil) -> String? {
         switch state {
         case .recording(let elapsed, let waiting):
-            let time = clock(elapsed)
-            return waiting > 0 ? "Meeting: recording \(time) · \(waiting) phrase\(waiting == 1 ? "" : "s") waiting" : "Meeting: recording \(time)"
+            let parts = ["⏺ Recording", title, clock(elapsed), waiting > 0 ? "\(waiting) phrase\(waiting == 1 ? "" : "s") waiting" : nil]
+            return parts.compactMap { $0 }.joined(separator: " · ")
         case .finishing(let left): return "Meeting: finishing (\(left) left)"
         case .detectingSpeakers: return "Meeting: detecting speakers…"
         case .idle, .done, .interrupted: return nil
@@ -162,7 +164,7 @@ public enum MenuModel {
     public static func build(_ view: MenuView) -> [MenuItem] {
         let busy = view.state != .idle
         var items = [MenuItem(title: statusLine(view), enabled: false)]
-        if let line = meetingLine(view.meeting) { items.append(MenuItem(title: line, enabled: false)) }
+        if let line = meetingLine(view.meeting, title: view.meetingTitle) { items.append(MenuItem(title: line, enabled: false)) }
         for error in view.configErrors {
             items.append(MenuItem(title: shorten("⚠ \(error)"), enabled: false))
         }
@@ -175,28 +177,9 @@ public enum MenuModel {
         if view.microphoneDenied {
             items.append(MenuItem(title: "⚠ Microphone access denied — click to open Settings", action: .grantMicrophone))
         }
-        items += [
-            .separator,
-            MenuItem(title: "Mode", enabled: !busy, submenu: ["toggle", "hold"].map {
-                MenuItem(title: modeTitles[$0]!, checked: $0 == view.settings.mode, action: .setMode($0))
-            }),
-            MenuItem(title: "Engine", enabled: !busy, submenu: engineChoices(view)),
-            MenuItem(title: "Language", enabled: !busy, submenu: ["uk", "en", "auto"].map {
-                MenuItem(title: languageTitles[$0]!, checked: $0 == view.settings.language, action: .setLanguage($0))
-            }),
-            MenuItem(title: "Microphone", enabled: !busy && !meetingActive(view.meeting), submenu: microphoneChoices(view)),
-            .separator,
-        ]
-        items += meetingItems(view)
-        items += [
-            .separator,
-            MenuItem(title: "Add to dictionary…", action: .addToDictionary),
-            MenuItem(title: "Edit dictionary…", action: .editDictionary),
-            MenuItem(title: "Settings…", keyEquivalent: ",", action: .openSettings),
-            MenuItem(title: "Statistics", action: .openStatistics),
-            MenuItem(title: "Reload config", action: .reloadConfig),
-            MenuItem(title: "Reload models", enabled: !busy, action: .reloadModels),
-        ]
+        items += [.separator, MenuItem(title: "Open Shepit", keyEquivalent: "o", action: .openWindow), .separator]
+        items += meetingItems(view) // all but Start and Stop move to the window with its Meetings section
+        items += [.separator, MenuItem(title: "Copy last dictation", enabled: !view.history.isEmpty, action: view.history.first.map { .copyText($0.text) })]
         if let recent = view.recent {
             let entries = recent.map {
                 MenuItem(title: History.label($0, today: view.today, maxChars: recentLabelChars), tooltip: $0.text, action: .copyText($0.text))
@@ -204,10 +187,18 @@ public enum MenuModel {
             items.append(MenuItem(title: "Recent", submenu: entries.isEmpty ? [MenuItem(title: "No dictations yet", enabled: false)] : entries))
         }
         items += [
-            MenuItem(title: "Open history", action: .openHistory),
-            MenuItem(title: "Clear history…", action: .clearHistory),
+            MenuItem(title: "Add word…", action: .addToDictionary),
             .separator,
-            MenuItem(title: "Quit", keyEquivalent: "q", action: .quit),
+            MenuItem(title: "Mode", enabled: !busy, submenu: ["toggle", "hold"].map {
+                MenuItem(title: modeTitles[$0]!, checked: $0 == view.settings.mode, action: .setMode($0))
+            }),
+            MenuItem(title: "Language", enabled: !busy, submenu: ["uk", "en", "auto"].map {
+                MenuItem(title: languageTitles[$0]!, checked: $0 == view.settings.language, action: .setLanguage($0))
+            }),
+            MenuItem(title: "Dictation engine", enabled: !busy, submenu: engineChoices(view)),
+            .separator,
+            MenuItem(title: "Settings…", keyEquivalent: ",", action: .openSettings),
+            MenuItem(title: "Quit Shepit", keyEquivalent: "q", action: .quit),
         ]
         return items
     }
@@ -218,16 +209,6 @@ public enum MenuModel {
         var items = view.downloaded.map { MenuItem(title: engineTitle($0), checked: $0 == current, action: .setEngine($0)) }
         if let current, !view.downloaded.contains(current) {
             items.append(MenuItem(title: "\(engineTitle(current)) (not downloaded)", enabled: false))
-        }
-        return items
-    }
-
-    private static func microphoneChoices(_ view: MenuView) -> [MenuItem] {
-        let current = view.settings.microphone
-        var items = [MenuItem(title: "System default", checked: current.isEmpty, action: .setMicrophone(""))]
-        items += view.microphones.map { MenuItem(title: $0, checked: $0 == current, action: .setMicrophone($0)) }
-        if !current.isEmpty, !view.microphones.contains(current) {
-            items.append(MenuItem(title: "\(current) (not connected)", enabled: false))
         }
         return items
     }
