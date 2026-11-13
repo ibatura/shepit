@@ -117,7 +117,7 @@ Contents are today's, with these changes:
 | `meetingHotkey` | none | as `hotkey`, or `null` | Starts a meeting transcript, or stops the running one |
 
 - **Theme** applies at once to everything Shepit draws with system colours. The dictation overlay keeps its own colours (`overlayStyle`).
-- **Accent colour** is shown as a row of colour dots (mockup 8). It colours the selected sidebar item, main buttons, switches, progress bars of the call panels and the charts. How it is applied is tried in the plan before the section is built: macOS has a per-app accent setting, which also colours the sidebar selection but may need a restart of Shepit; SwiftUI's tint applies at once but may leave the sidebar selection in the system colour. If the colour can only be complete after a restart, the row says "Restart Shepit to apply everywhere" after a change.
+- **Accent colour** is shown as a row of colour dots (mockup 8). It colours the selected sidebar item, main buttons, switches, progress bars of the call panels and the charts. It is applied through the per-app accent setting of macOS (`AppleAccentColor` in Shepit's own preferences), which macOS reads when an app starts: tried on 2026-11-13, it colours everything including the sidebar selection, and does not change in a running app. So after a change the row says "Restart Shepit to apply the colour". SwiftUI's tint is not used: it would colour only some controls until the restart.
 - **Meeting hotkey:** the recorder of the other hotkeys, plus a way to remove the shortcut. Pressing it does what the menu's Start or Stop does at that moment; while a transcript is finishing it only shows "Transcript is finishing". A clash with the dictation or add-word hotkey is shown inline and refused. The key is absent from `settings.json` until set; removing the shortcut removes the key.
 
 `examples/settings.json` and the README table get the three keys.
@@ -176,5 +176,4 @@ Manual (added to `docs/manual-test-checklist.md` as W1–W10):
 
 ## 11. Open questions for the plan
 
-- How the accent colour is applied (§6.1): a short probe opens the plan's Appearance task.
 - Whether a dictation started while the window is the front app can be pasted anywhere sensible (W3). Today's Settings window has the same case.

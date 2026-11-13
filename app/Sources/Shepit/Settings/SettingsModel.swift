@@ -17,6 +17,7 @@ final class SettingsModel {
         case meetings = "Meetings"
         case calls = "Calls"
         case historyPrivacy = "History and privacy"
+        case appearance = "Appearance"
 
         var id: String { rawValue }
 
@@ -30,6 +31,7 @@ final class SettingsModel {
             case .engines: "cpu"
             case .overlay: "rectangle.bottomhalf.inset.filled"
             case .historyPrivacy: "lock.shield"
+            case .appearance: "paintbrush"
             }
         }
 
@@ -44,6 +46,7 @@ final class SettingsModel {
             case .engines: ["engines", "idleUnloadMinutes"]
             case .overlay: ["overlay", "livePreview", "overlayStyle"]
             case .historyPrivacy: ["saveHistory", "historyDays", "historyMenuItems", "failedAudioHours", "collectStats", "typingSpeedWpm"]
+            case .appearance: ["theme", "accentColor"]
             }
         }
     }

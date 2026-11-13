@@ -325,6 +325,12 @@ struct SettingsTests {
         #expect(errors.isEmpty && settings != nil && settings?.meetingHotkey == nil)
     }
 
+    @Test func everyAccentColourButSystemHasItsMacOSNumber() {
+        #expect(Settings.accentColorCode("system") == nil)
+        let codes = Settings.accentColors.dropFirst().map { Settings.accentColorCode($0) }
+        #expect(codes == [4, 5, 6, 0, 1, 2, 3, -1])
+    }
+
     @Test func appearanceAndMeetingHotkeyValuesAreRejected() {
         #expect(validateSettings(["theme": "sepia", "accentColor": "#FF0000", "meetingHotkey": "m"]).1 == [
             #"settings.json: "accentColor" must be one of: system, blue, purple, pink, red, orange, yellow, green, graphite"#,

@@ -43,6 +43,7 @@ final class AppHost: ControllerHost {
     private lazy var windowActions = SettingsActions(
         microphones: { AudioRecorder.inputDevices().map(\.name) },
         perform: { [unowned self] in self.perform($0) },
+        accentAtLaunch: accentAtLaunch,
         hotkeyProblem: { [unowned self] in self.hotkeyProblem },
         openSettingsFile: { [unowned self] in self.edit(Paths.settingsFile, empty: "{}") },
         openDataFolder: { NSWorkspace.shared.open(Paths.dataDir) },
@@ -63,6 +64,8 @@ final class AppHost: ControllerHost {
         // A shortcut being recorded when the window closes would leave the global hotkeys off.
         onClose: { [unowned self] in self.hotkeys.apply(self.settings) })
     private let downloads = ModelDownloads()
+    private static let accentKey = "AppleAccentColor" // macOS's per-app accent colour, read when the app starts
+    private let accentAtLaunch = UserDefaults.standard.object(forKey: AppHost.accentKey) as? Int
     private var dictationLoad = LoadState.unloaded
     private var configErrors: [String] = []
     private var microphoneNotice: String?
@@ -135,6 +138,14 @@ final class AppHost: ControllerHost {
                 await self.models.setChoices(engines)
                 await self.models.setIdleUnload(minutes: minutes)
             }
+        }
+        if initial || before?.theme != after.theme {
+            // nil follows macOS. The dictation overlay has its own colours.
+            NSApp.appearance = ["light": NSAppearance.Name.aqua, "dark": .darkAqua][after.theme].flatMap(NSAppearance.init(named:))
+        }
+        if initial || before?.accentColor != after.accentColor {
+            // A preference of Shepit's own, not of the system; it takes effect at the next start.
+            UserDefaults.standard.set(Settings.accentColorCode(after.accentColor), forKey: Self.accentKey)
         }
         if announce, settingsOK, dictionaryOK { panel.message("Config reloaded") }
         refreshStatus()

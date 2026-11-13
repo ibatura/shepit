@@ -211,7 +211,7 @@ struct SettingsModelTests {
 
     @Test func settingsSectionsInTheWindowsOrderAndNoKeyInTwoOfThem() {
         #expect(SettingsModel.Section.allCases.map(\.rawValue) == [
-            "General", "Hotkeys", "Engines and models", "Dictation", "Overlay", "Meetings", "Calls", "History and privacy",
+            "General", "Hotkeys", "Engines and models", "Dictation", "Overlay", "Meetings", "Calls", "History and privacy", "Appearance",
         ])
         let keys = SettingsModel.Section.allCases.flatMap(\.keys)
         #expect(Set(keys).count == keys.count)

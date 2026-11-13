@@ -8,6 +8,8 @@ struct SettingsActions {
     var microphones: () -> [String]
     /// Runs an action the menu also has (reload, start and stop a meeting, copy).
     var perform: (MenuAction) -> Void
+    /// The accent colour macOS gave Shepit at this start (`Settings.accentColorCode`; nil: the system's).
+    var accentAtLaunch: Int?
     var hotkeyProblem: () -> String?
     var openSettingsFile: () -> Void
     var openDataFolder: () -> Void
@@ -61,6 +63,7 @@ struct SettingsView: View {
                 case .meetings: MeetingsSection(model: model, actions: actions)
                 case .calls: CallsSection(model: model)
                 case .historyPrivacy: HistoryPrivacySection(model: model, actions: actions)
+                case .appearance: AppearanceSection(model: model, actions: actions)
                 }
             }
             .formStyle(.grouped)

@@ -161,7 +161,7 @@ Yes, the release candidate is ready.
 
 ## Settings
 
-Everything is in the window's **Settings** section (**Settings…**, ⌘,): General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy. Every change is saved at once. **History and privacy** has Open history and Clear history… (clearing also deletes kept audio of failed attempts, and asks first). **Hotkeys** can also record a shortcut that starts or stops a meeting transcript (`meetingHotkey`); a shortcut another Shepit hotkey already uses is refused.
+Everything is in the window's **Settings** section (**Settings…**, ⌘,): General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy, Appearance. Every change is saved at once. **History and privacy** has Open history and Clear history… (clearing also deletes kept audio of failed attempts, and asks first). **Hotkeys** can also record a shortcut that starts or stops a meeting transcript (`meetingHotkey`); a shortcut another Shepit hotkey already uses is refused. **Appearance** has the theme and the accent colour.
 
 The window reads and writes `~/.config/dictation/settings.json`, which you can also edit by hand (**Settings → General → Open settings file**). Hand edits apply within 2 seconds. Only the fields you set are stored; anything missing uses the default. If the file has an error (wrong value or broken JSON), Shepit keeps working with the last good settings, and the menu and the window name the field and what's allowed — the window is read-only until the file is fixed.
 
@@ -220,7 +220,7 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `callAutoStopSeconds` | `10` | 3–120 | Seconds from the call's end until the transcript stops, unless you press Keep recording |
 | `callApps` | `["Teams", "Zoom", "Meet"]` | any of these | Apps that get the panel |
 | `theme` | `"system"` | `"system"`, `"light"`, `"dark"` | Light or dark for the window, the call panels and the dialogs; `system` follows macOS |
-| `accentColor` | `"system"` | `"system"`, `"blue"`, `"purple"`, `"pink"`, `"red"`, `"orange"`, `"yellow"`, `"green"`, `"graphite"` | Accent colour; `system` follows macOS |
+| `accentColor` | `"system"` | `"system"`, `"blue"`, `"purple"`, `"pink"`, `"red"`, `"orange"`, `"yellow"`, `"green"`, `"graphite"` | Accent colour; `system` follows macOS. Applies after Shepit is restarted |
 
 **Meeting file names.** Placeholders: `{date}` (2026-10-26), `{time}` (14-05), `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`, `{weekday}` (Mon), `{title}` (the meeting name, up to 80 characters), `{app}` (Teams, Meet). Empty parts and the separators around them are dropped; a name that's taken gets ` (2)`. Not allowed outside placeholders: `\ : * ? " < > | # ^ [ ]`. Examples for a meeting "Weekly sync" on Monday 26 Oct 2026 at 14:05:
 

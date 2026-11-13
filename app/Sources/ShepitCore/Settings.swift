@@ -158,6 +158,11 @@ public struct Settings: Equatable, Sendable {
     public var meetingHotkey: Hotkey?
 
     public static let accentColors = ["system", "blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"]
+    /// macOS's number for an accent colour (the per-app `AppleAccentColor` preference); nil for "system".
+    public static func accentColorCode(_ name: String) -> Int? {
+        ["graphite": -1, "red": 0, "orange": 1, "yellow": 2, "green": 3, "blue": 4, "purple": 5, "pink": 6][name]
+    }
+
     public static let callAppNames = CallApp.allCases.map(\.rawValue)
 
     public init(
