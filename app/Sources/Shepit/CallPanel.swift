@@ -12,7 +12,7 @@ final class CallPanel {
     private var screen: NSScreen?
 
     func show(_ value: CallOffer.Panel, onMain: @escaping () -> Void, onOther: @escaping () -> Void) {
-        model.show(value.text, onMain: onMain, onOther: onOther)
+        model.show(value, onMain: onMain, onOther: onOther)
         let panel = ensurePanel()
         // It stays on the screen it appeared on.
         if !panel.isVisible { screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main }
@@ -64,8 +64,15 @@ private final class CallPanelModel: ObservableObject {
     var onMain: () -> Void = {}
     var onOther: () -> Void = {}
 
-    func show(_ new: CallOffer.Panel.Text, onMain: @escaping () -> Void, onOther: @escaping () -> Void) {
-        let sameState = text?.main == new.main && text?.seconds != nil
+    private var shown: CallOffer.Panel?
+
+    func show(_ panel: CallOffer.Panel, onMain: @escaping () -> Void, onOther: @escaping () -> Void) {
+        let new = panel.text
+        let sameState = switch (shown, panel) {
+        case (.offer, .offer), (.autoStart, .autoStart), (.ended, .ended), (.ready, .ready): text?.seconds != nil
+        default: false
+        }
+        shown = panel
         total = max(sameState ? total : 0, new.seconds ?? 0)
         if !sameState { fraction = 1 }
         text = new

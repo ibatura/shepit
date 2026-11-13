@@ -25,7 +25,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
   - `ShepitCore`: pure logic with tests (settings, dictionary, meeting session and notes, meeting names, language choice).
   - `ShepitEngines`: whisper.cpp, WhisperKit, Parakeet, Apple Speech.
   - `Shepit`: the app (menu, hotkeys, overlay, audio, call tap, Accessibility scan of meeting apps in `MeetingApps.swift`).
-- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (452 tests on 2026-11-12).
+- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (453 tests on 2026-11-13).
 - `scripts/`: build, sign, install, uninstall, model downloads (pinned SHA-256 in `scripts/models/`).
 
 ## Docs

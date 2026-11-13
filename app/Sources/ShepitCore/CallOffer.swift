@@ -95,15 +95,19 @@ public struct CallOffer: Sendable {
         var ours: Bool
         /// Started by hand while a call was not confirmed yet: ours once it is.
         var awaitsCall = false
-        var keep = false
-        var stopping = false
-        var endingSince: Date?
+        var end = End.open
+        var endingSince: Date? { if case .counting(let since) = end { since } else { nil } }
     }
+
+    /// How a session's end stands: nothing yet, the stop countdown, "Keep recording" pressed, or stopping.
+    private enum End: Equatable { case open, counting(since: Date), kept, stopping }
 
     private var holders: [Int32: CallSource] = [:]
     private var call: Call?
     private var session: Session?
     private var ready: (until: Date, detail: String)?
+    /// A start asked of the host and not confirmed yet.
+    private var starting: (outcome: Outcome, app: CallApp)?
     public private(set) var panel: Panel?
 
     public init() {}
@@ -139,35 +143,39 @@ public struct CallOffer: Sendable {
         case .named(let name):
             call?.name = name
         case .pressedMain:
-            if session?.endingSince != nil {
-                session?.endingSince = nil
-                session?.keep = true
-            } else if case .offered = call?.phase, let app = call?.app {
-                effects += [.start(title: call?.name, app: app), .record(.started, app: app)]
-                call?.phase = .quiet
-            } else if ready != nil {
+            // The buttons act on the panel that was on screen.
+            switch panel {
+            case .ended:
+                session?.end = .kept
+            case .offer(_, let app, _), .autoStart(_, let app, _):
+                effects.append(start(app, .started))
+            case .ready:
                 ready = nil
                 effects.append(.namePeople)
+            case nil:
+                break
             }
         case .pressedOther:
-            if session?.endingSince != nil {
+            switch panel {
+            case .ended:
                 effects.append(.stop)
-                session?.endingSince = nil
-                session?.stopping = true
-            } else if case .offered = call?.phase, let app = call?.app {
+                session?.end = .stopping
+            case .offer(_, let app, _), .autoStart(_, let app, _):
                 effects.append(.record(.dismissed, app: app))
                 call?.phase = .quiet
-            } else {
+            case .ready, nil:
                 ready = nil
             }
         case .sessionStarted(let byPanel):
+            // Counted as started only now: a start that failed (model missing, folder error) never gets here.
+            if byPanel, let starting { effects.append(.record(starting.outcome, app: starting.app)) }
+            starting = nil
             let confirmed = call?.app != nil && call?.phase != .pending
             session = Session(ours: byPanel || confirmed, awaitsCall: call != nil && !confirmed)
             if case .offered = call?.phase { call?.phase = .quiet }
             ready = nil
         case .sessionStopping:
-            session?.stopping = true
-            session?.endingSince = nil
+            session?.end = .stopping
         case .sessionFinished(let entries, let detail):
             if session?.ours == true, entries == 0 {
                 effects.append(.removeEmptyNote)
@@ -187,9 +195,15 @@ public struct CallOffer: Sendable {
         call = Call(pid: pid, app: source.app, since: now)
     }
 
+    private mutating func start(_ app: CallApp, _ outcome: Outcome) -> Effect {
+        starting = (outcome, app)
+        call?.phase = .quiet
+        return .start(title: call?.name, app: app)
+    }
+
     /// The call is confirmed: offer it, unless offers are off or a transcript already runs.
     private mutating func offer(_ now: Date, _ settings: Settings) -> [Effect] {
-        session?.endingSince = nil // a new call while the stop countdown runs: the transcript goes on
+        if session?.endingSince != nil { session?.end = .open } // a new call while the stop countdown runs: the transcript goes on
         if session?.awaitsCall == true { session?.ours = true }
         guard settings.callOffer, session == nil else {
             call?.phase = .quiet
@@ -204,7 +218,7 @@ public struct CallOffer: Sendable {
         var effects: [Effect] = []
         if let current = call, let released = current.releasedAt, now.timeIntervalSince(released) >= Self.hold {
             if case .offered = current.phase, let app = current.app { effects.append(.record(.hidden, app: app)) }
-            if let running = session, running.ours, !running.stopping, !running.keep { session?.endingSince = now }
+            if let running = session, running.ours, running.end != .kept, running.end != .stopping { session?.end = .counting(since: now) }
             call = nil
             session?.awaitsCall = false
             // Another holder becomes the call: an app before a browser, then the lowest pid.
@@ -215,7 +229,7 @@ public struct CallOffer: Sendable {
         // While a new holder may still turn out to be a call, the stop countdown waits.
         if let current = call, current.releasedAt == nil, session?.endingSince != nil,
            current.phase == .pending || current.phase == .checkingMeet(next: nil) {
-            session?.endingSince = now
+            session?.end = .counting(since: now)
         }
         if let current = call {
             switch current.phase {
@@ -234,8 +248,7 @@ public struct CallOffer: Sendable {
                 let elapsed = now.timeIntervalSince(since)
                 if settings.callAutoStart {
                     if elapsed >= Double(settings.callAutoStartSeconds) {
-                        effects += [.start(title: current.name, app: app), .record(.startedAutomatically, app: app)]
-                        call?.phase = .quiet
+                        effects.append(start(app, .startedAutomatically))
                     }
                 } else if settings.callOfferSeconds > 0, elapsed >= Double(settings.callOfferSeconds) {
                     effects.append(.record(.hidden, app: app))
@@ -247,8 +260,7 @@ public struct CallOffer: Sendable {
         }
         if let since = session?.endingSince, now.timeIntervalSince(since) >= Double(settings.callAutoStopSeconds) {
             effects.append(.stop)
-            session?.endingSince = nil
-            session?.stopping = true
+            session?.end = .stopping
         }
         if let shown = ready, now >= shown.until { ready = nil }
         return effects

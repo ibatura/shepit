@@ -59,8 +59,18 @@ struct CallOfferTests {
         #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 15))
         m.send(.named("Weekly sync"), at: 4)
         #expect(m.panel == .offer(title: "Weekly sync", app: .teams, hidesIn: 14))
-        #expect(m.send(.pressedMain, at: 5) == [.start(title: "Weekly sync", app: .teams), .record(.started, app: .teams)])
+        #expect(m.send(.pressedMain, at: 5) == [.start(title: "Weekly sync", app: .teams)])
+        #expect(m.send(.sessionStarted(byPanel: true), at: 5) == [.record(.started, app: .teams)])
         #expect(m.panel == nil)
+    }
+
+    @Test func aStartThatFailedIsNotCounted() {
+        var m = Machine()
+        m.teamsCall()
+        #expect(m.send(.pressedMain, at: 5) == [.start(title: nil, app: .teams)])
+        // The host could not start; a transcript started by hand later is not the panel's.
+        #expect(m.send(.sessionStarted(byPanel: false), at: 20) == [])
+        #expect(m.send(.sessionStarted(byPanel: true), at: 30) == [])
     }
 
     @Test func aBrowserNeedsAMeetTab() {
@@ -125,7 +135,8 @@ struct CallOfferTests {
         #expect(m.panel == .autoStart(title: "Teams call", app: .teams, startsIn: 5))
         m.send(.tick, at: 6)
         #expect(m.panel == .autoStart(title: "Teams call", app: .teams, startsIn: 2))
-        #expect(m.send(.tick, at: 8) == [.start(title: nil, app: .teams), .record(.startedAutomatically, app: .teams)])
+        #expect(m.send(.tick, at: 8) == [.start(title: nil, app: .teams)])
+        #expect(m.send(.sessionStarted(byPanel: true), at: 8) == [.record(.startedAutomatically, app: .teams)])
         #expect(m.panel == nil)
     }
 

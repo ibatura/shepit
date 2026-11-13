@@ -50,77 +50,65 @@ public final class StatsDatabase {
 
     /// Call offers in `range` (all of them when nil), oldest first.
     public func offers(in range: DateInterval?) throws -> [OfferRow] {
-        let start = range?.start.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
-        let end = range?.end.timeIntervalSince1970 ?? .greatestFiniteMagnitude
-        let statement = try prepare("SELECT time, app, outcome FROM offers WHERE time >= ? AND time < ? ORDER BY time", [start, end])
-        defer { sqlite3_finalize(statement) }
-        var rows: [OfferRow] = []
-        var result = sqlite3_step(statement)
-        while result == SQLITE_ROW {
+        try rows("SELECT time, app, outcome FROM offers", in: range) { statement in
             func text(_ i: Int32) -> String { sqlite3_column_text(statement, i).map { String(cString: $0) } ?? "" }
             // A row with an app or outcome this version doesn't know is left out.
-            if let app = CallApp(rawValue: text(1)), let outcome = CallOffer.Outcome(rawValue: text(2)) {
-                rows.append(OfferRow(time: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), app: app, outcome: outcome))
-            }
+            guard let app = CallApp(rawValue: text(1)), let outcome = CallOffer.Outcome(rawValue: text(2)) else { return nil }
+            return OfferRow(time: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), app: app, outcome: outcome)
+        }
+    }
+
+    /// The rows `select` gives with `time` in `range` (all of them when nil), oldest first; `read` returns nil to skip one.
+    private func rows<Row>(_ select: String, in range: DateInterval?, read: (OpaquePointer?) -> Row?) throws -> [Row] {
+        let start = range?.start.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
+        let end = range?.end.timeIntervalSince1970 ?? .greatestFiniteMagnitude
+        let statement = try prepare(select + " WHERE time >= ? AND time < ? ORDER BY time", [start, end])
+        defer { sqlite3_finalize(statement) }
+        var rows: [Row] = []
+        var result = sqlite3_step(statement)
+        while result == SQLITE_ROW {
+            if let row = read(statement) { rows.append(row) }
             result = sqlite3_step(statement)
         }
-        guard result == SQLITE_DONE else { throw error(try open()) }
+        guard result == SQLITE_DONE else { throw error(try open()) } // don't pass a truncated read off as complete
         return rows
     }
 
     /// Meetings that started in `range` (all of them when nil), oldest first.
     public func meetings(in range: DateInterval?) throws -> [MeetingRecord] {
-        let start = range?.start.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
-        let end = range?.end.timeIntervalSince1970 ?? .greatestFiniteMagnitude
-        let statement = try prepare("""
+        try rows("""
             SELECT time, duration_seconds, words_mine, words_call, speakers, engine, model, diarization_seconds, failed_chunks
-            FROM meetings WHERE time >= ? AND time < ? ORDER BY time
-            """, [start, end])
-        defer { sqlite3_finalize(statement) }
-        var rows: [MeetingRecord] = []
-        var result = sqlite3_step(statement)
-        while result == SQLITE_ROW {
+            FROM meetings
+            """, in: range) { statement in
             func text(_ i: Int32) -> String { sqlite3_column_text(statement, i).map { String(cString: $0) } ?? "" }
             func optional<T>(_ i: Int32, _ read: (Int32) -> T) -> T? { sqlite3_column_type(statement, i) == SQLITE_NULL ? nil : read(i) }
-            rows.append(MeetingRecord(
+            return MeetingRecord(
                 start: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), duration: sqlite3_column_double(statement, 1),
                 wordsMine: Int(sqlite3_column_int64(statement, 2)), wordsCall: Int(sqlite3_column_int64(statement, 3)),
                 speakers: optional(4) { Int(sqlite3_column_int64(statement, $0)) },
                 engine: EngineChoice(engine: EngineID(rawValue: text(5)) ?? .whispercpp, model: text(6)),
                 diarizationSeconds: optional(7) { sqlite3_column_double(statement, $0) },
-                failedChunks: Int(sqlite3_column_int64(statement, 8))))
-            result = sqlite3_step(statement)
+                failedChunks: Int(sqlite3_column_int64(statement, 8)))
         }
-        guard result == SQLITE_DONE else { throw error(try open()) }
-        return rows
     }
 
     /// Attempts in `range` (all of them when nil), oldest first.
     public func dictations(in range: DateInterval?) throws -> [DictationRow] {
-        let start = range?.start.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
-        let end = range?.end.timeIntervalSince1970 ?? .greatestFiniteMagnitude
-        let statement = try prepare("""
+        try rows("""
             SELECT time, tz_offset, outcome, audio_seconds, wait_seconds, words, characters, engine, model, language_requested,
               language_detected, app_bundle_id, app_name, replaced_terms, preview_requests
-            FROM dictations WHERE time >= ? AND time < ? ORDER BY time
-            """, [start, end])
-        defer { sqlite3_finalize(statement) }
-        var rows: [DictationRow] = []
-        var result = sqlite3_step(statement)
-        while result == SQLITE_ROW {
+            FROM dictations
+            """, in: range) { statement in
             func text(_ i: Int32) -> String? { sqlite3_column_text(statement, i).map { String(cString: $0) } }
             let terms = text(13).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String] } ?? []
-            rows.append(DictationRow(
+            return DictationRow(
                 time: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), tzOffset: Int(sqlite3_column_int64(statement, 1)),
                 outcome: DictationOutcome(rawValue: text(2) ?? "") ?? .failed, audioSeconds: sqlite3_column_double(statement, 3),
                 waitSeconds: sqlite3_column_double(statement, 4), words: Int(sqlite3_column_int64(statement, 5)),
                 characters: Int(sqlite3_column_int64(statement, 6)), engine: text(7) ?? "", model: text(8) ?? "",
                 languageRequested: text(9) ?? "", languageDetected: text(10), appBundleID: text(11), appName: text(12),
-                replacedTerms: terms, previewRequests: Int(sqlite3_column_int64(statement, 14))))
-            result = sqlite3_step(statement)
+                replacedTerms: terms, previewRequests: Int(sqlite3_column_int64(statement, 14)))
         }
-        guard result == SQLITE_DONE else { throw error(try open()) } // don't pass a truncated read off as complete
-        return rows
     }
 
     /// Clear statistics…: deletes the database file.
