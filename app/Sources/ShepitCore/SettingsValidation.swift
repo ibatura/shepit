@@ -13,10 +13,10 @@ public func validateSettings(
     var errors: [String] = []
     let engineValuesForPrecedence = raw["engines"] as? [String: Any] ?? [:]
     let settingChecks: [(String, (Any) -> String?)] = [
-        ("mode", enumCheck(["toggle", "hold"])),
+        ("mode", enumCheck(Settings.modes.map(\.value))),
         ("cancelKey", kindCheck("string")),
         ("model", enumCheck(["large-v3", "large-v3-turbo"])),
-        ("language", enumCheck(["uk", "en", "auto"])),
+        ("language", enumCheck(Settings.languages.map(\.value))),
         ("stylePrompt", kindCheck("string")),
         ("refocusOriginalApp", kindCheck("boolean")),
 
@@ -43,7 +43,7 @@ public func validateSettings(
         ("meetingAskTitle", kindCheck("boolean")),
         ("meetingBlocksDictation", kindCheck("boolean")),
         ("meetingMyName", kindCheck("string")),
-        ("meetingLanguage", enumCheck(["uk", "en", "auto"])),
+        ("meetingLanguage", enumCheck(Settings.languages.map(\.value))),
         ("callOffer", kindCheck("boolean")),
         ("callOfferSeconds", { value in
             guard let seconds = integerValue(value), seconds == 0 || (5...120).contains(seconds) else {
@@ -61,7 +61,7 @@ public func validateSettings(
             }
             return nil
         }),
-        ("theme", enumCheck(["system", "light", "dark"])),
+        ("theme", enumCheck(Settings.themes.map(\.value))),
         ("accentColor", enumCheck(Settings.accentColors))
     ]
 

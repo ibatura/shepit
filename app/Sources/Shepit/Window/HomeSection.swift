@@ -20,15 +20,8 @@ struct HomeSection: View {
                     }
                 }
                 Group {
-                    Picker("Mode", selection: model.binding("mode", \.mode)) {
-                        Text("Toggle").tag("toggle")
-                        Text("Hold to talk").tag("hold")
-                    }
-                    Picker("Language", selection: model.binding("language", \.language)) {
-                        Text("Ukrainian").tag("uk")
-                        Text("English").tag("en")
-                        Text("Auto-detect").tag("auto")
-                    }
+                    ChoicePicker(title: "Mode", choices: ShepitCore.Settings.modes, selection: model.binding("mode", \.mode))
+                    ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("language", \.language))
                 }
                 .disabled(home.dictating || model.isReadOnly)
                 Picker("Microphone", selection: model.binding("microphone", \.microphone)) {

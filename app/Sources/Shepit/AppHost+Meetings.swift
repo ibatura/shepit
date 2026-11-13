@@ -12,7 +12,7 @@ extension AppHost {
 
     /// nil when a meeting can start; else what the menu says is missing.
     var meetingMissing: String? {
-        let engine = settings.engines[.meetings] ?? Settings.defaults.engines[.meetings]!
+        let engine = settings.engine(for: .meetings)
         return ModelCatalog.isDownloaded(engine) && MeetingModel.vad.isDownloaded() ? nil : "download the model in Settings"
     }
 
@@ -102,7 +102,7 @@ extension AppHost {
         let folder = settings.meetingsFolderURL(home: Paths.home)
         let relative = MeetingFileName.relativePath(settings.meetingFileName, start: start, title: title, app: app)
         let note = MeetingFileName.unique(relative, in: folder) { FileManager.default.fileExists(atPath: $0.path) }
-        let engine = settings.engines[.meetings] ?? Settings.defaults.engines[.meetings]!
+        let engine = settings.engine(for: .meetings)
         let config = MeetingConfig(noteFile: note, frontMatter: MeetingNote.frontMatter(start: start, title: title, app: app),
                                    myName: settings.myName(),
                                    sessionDir: Self.meetingSessionsRoot.appending(path: "meeting-\(UUID().uuidString)", directoryHint: .isDirectory),

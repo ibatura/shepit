@@ -51,7 +51,7 @@ private struct TaskEngineRow: View {
     @State private var languageNote: String?
 
     var body: some View {
-        let current = model.settings.engines[task] ?? ShepitCore.Settings.defaults.engines[task]!
+        let current = model.settings.engine(for: task)
         Hinted(hint: languageNote ?? (ModelCatalog.isDownloaded(current) ? hint : "⚠ Not downloaded — \(hint.lowercased())")) {
             LabeledContent(title) {
                 HStack {

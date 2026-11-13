@@ -27,13 +27,9 @@ struct MeetingsSection: View {
                 TextField("Your name", text: model.binding("meetingMyName", \.meetingMyName), prompt: Text(model.settings.myName()))
             }
             Hinted(hint: "Language of the meeting. Auto-detect handles calls that switch between Ukrainian and English") {
-                Picker("Language", selection: model.binding("meetingLanguage", \.meetingLanguage)) {
-                    Text("Ukrainian").tag("uk")
-                    Text("English").tag("en")
-                    Text("Auto-detect").tag("auto")
-                }
+                ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("meetingLanguage", \.meetingLanguage))
             }
-            let engine = model.settings.engines[.meetings] ?? ShepitCore.Settings.defaults.engines[.meetings]!
+            let engine = model.settings.engine(for: .meetings)
             LabeledContent("Recognition") {
                 Text(MenuModel.engineTitle(engine) + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"))
             }

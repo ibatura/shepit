@@ -81,8 +81,6 @@ public struct MenuView: Sendable {
 public enum MenuModel {
     static let maxLine = 90
     static let recentLabelChars = 60
-    private static let modeTitles = ["toggle": "Toggle", "hold": "Hold to talk"]
-    private static let languageTitles = ["uk": "Ukrainian", "en": "English", "auto": "Auto-detect"]
 
     public static func title(_ view: MenuView) -> String {
         view.meeting.isActive ? "⏺" + dictationTitle(view) : dictationTitle(view)
@@ -140,7 +138,7 @@ public enum MenuModel {
         case .transcribing: return "Transcribing…"
         case .idle: break
         }
-        let engine = engineTitle(view.settings.engines[.dictation] ?? Settings.defaults.engines[.dictation]!)
+        let engine = engineTitle(view.settings.engine(for: .dictation))
         switch view.load {
         case .loading: return "Loading \(engine)…"
         case .failed(let detail): return shorten("Error: \(detail)")
@@ -186,11 +184,11 @@ public enum MenuModel {
         items += [
             MenuItem(title: "Add word…", action: .addToDictionary),
             .separator,
-            MenuItem(title: "Mode", enabled: !busy, submenu: ["toggle", "hold"].map {
-                MenuItem(title: modeTitles[$0]!, checked: $0 == view.settings.mode, action: .setMode($0))
+            MenuItem(title: "Mode", enabled: !busy, submenu: Settings.modes.map {
+                MenuItem(title: $0.title, checked: $0.value == view.settings.mode, action: .setMode($0.value))
             }),
-            MenuItem(title: "Language", enabled: !busy, submenu: ["uk", "en", "auto"].map {
-                MenuItem(title: languageTitles[$0]!, checked: $0 == view.settings.language, action: .setLanguage($0))
+            MenuItem(title: "Language", enabled: !busy, submenu: Settings.languages.map {
+                MenuItem(title: $0.title, checked: $0.value == view.settings.language, action: .setLanguage($0.value))
             }),
             MenuItem(title: "Dictation engine", enabled: !busy, submenu: engineChoices(view)),
             .separator,

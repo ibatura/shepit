@@ -76,6 +76,12 @@ public enum Microphones {
         return Pick(device: nil, notice: #"Microphone "\#(configured)" not found — using the system default"#)
     }
 
+    /// The pickers' list: the connected devices, and the configured one while it is not connected
+    /// ("" is the system default, which the pickers show on their own).
+    public static func choices(connected: [String], configured: String) -> [String] {
+        configured.isEmpty || connected.contains(configured) ? connected : connected + [configured]
+    }
+
     private static let virtualWords = ["loopback", "zoom", "teams", "blackhole", "soundflower", "aggregate"]
 
     /// Meeting-app loopback devices, hidden from the microphone list.

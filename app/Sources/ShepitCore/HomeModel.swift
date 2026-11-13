@@ -62,9 +62,8 @@ public struct Home: Equatable, Sendable {
 
 public enum HomeModel {
     public static func build(_ view: MenuView) -> Home {
-        let microphone = view.settings.microphone
-        return Home(status: MenuModel.statusLine(view), dictating: view.state != .idle,
-             microphones: microphone.isEmpty || view.microphones.contains(microphone) ? view.microphones : view.microphones + [microphone],
+        Home(status: MenuModel.statusLine(view), dictating: view.state != .idle,
+             microphones: Microphones.choices(connected: view.microphones, configured: view.settings.microphone),
              microphoneEnabled: view.state == .idle && !view.meeting.isActive, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
              dictations: view.history.map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
@@ -98,7 +97,7 @@ public enum HomeModel {
             (.meetings, "Meetings", "Meeting transcripts", !view.meeting.isActive),
         ]
         return rows.map { task, title, hint, enabled in
-            let current = view.settings.engines[task] ?? Settings.defaults.engines[task]!
+            let current = view.settings.engine(for: task)
             var choices = view.downloaded.map { Home.EngineRow.Choice(choice: $0, title: pairTitle($0)) }
             if !view.downloaded.contains(current) {
                 choices.append(Home.EngineRow.Choice(choice: current, title: "\(pairTitle(current)) (not downloaded)"))

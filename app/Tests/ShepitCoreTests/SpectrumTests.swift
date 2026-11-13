@@ -68,6 +68,12 @@ struct SpectrumTests {
         #expect(Microphones.pick("MOMENTUM 4", available: ["MOMENTUM 4", "MacBook Pro Microphone"]) == .init(device: "MOMENTUM 4", notice: nil))
     }
 
+    @Test func theConfiguredDeviceStaysListedWhileDisconnected() {
+        #expect(Microphones.choices(connected: ["Built-in"], configured: "Built-in") == ["Built-in"])
+        #expect(Microphones.choices(connected: ["Built-in"], configured: "AirPods") == ["Built-in", "AirPods"])
+        #expect(Microphones.choices(connected: ["Built-in"], configured: "") == ["Built-in"])
+    }
+
     @Test func pickConfiguredDeviceMissingUsesDefaultWithANotice() {
         #expect(Microphones.pick("AirPods", available: ["MacBook Pro Microphone"])
             == .init(device: nil, notice: #"Microphone "AirPods" not found — using the system default"#))

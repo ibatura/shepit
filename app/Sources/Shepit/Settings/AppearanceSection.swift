@@ -7,11 +7,7 @@ struct AppearanceSection: View {
 
     var body: some View {
         Section {
-            Picker("Theme", selection: model.binding("theme", \.theme)) {
-                Text("Same as macOS").tag("system")
-                Text("Light").tag("light")
-                Text("Dark").tag("dark")
-            }
+            ChoicePicker(title: "Theme", choices: ShepitCore.Settings.themes, selection: model.binding("theme", \.theme))
             Hinted(hint: "The first dot follows macOS. If a colour doesn't show, restart Shepit") {
                 LabeledContent("Accent colour") {
                     HStack(spacing: 8) {

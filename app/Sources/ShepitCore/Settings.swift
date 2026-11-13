@@ -165,6 +165,14 @@ public struct Settings: Equatable, Sendable {
 
     public static let callAppNames = CallApp.allCases.map(\.rawValue)
 
+    /// A value of a setting with a fixed list, and its title in the pickers and the menu.
+    public typealias Choice = (value: String, title: String)
+    /// `mode`, in the pickers' order.
+    public static let modes: [Choice] = [("toggle", "Toggle"), ("hold", "Hold to talk")]
+    /// `language` and `meetingLanguage`.
+    public static let languages: [Choice] = [("uk", "Ukrainian"), ("en", "English"), ("auto", "Auto-detect")]
+    public static let themes: [Choice] = [("system", "Same as macOS"), ("light", "Light"), ("dark", "Dark")]
+
     public init(
         mode: String,
         hotkey: Hotkey,
@@ -249,6 +257,11 @@ public struct Settings: Equatable, Sendable {
         self.theme = theme
         self.accentColor = accentColor
         self.meetingHotkey = meetingHotkey
+    }
+
+    /// The engine set for a task; the default one when the file names none.
+    public func engine(for task: EngineTask) -> EngineChoice {
+        engines[task] ?? Settings.defaults.engines[task]!
     }
 
     /// `meetingsFolder` with a leading `~/` expanded.

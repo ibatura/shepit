@@ -30,14 +30,6 @@ struct SettingsActions {
     var downloads: ModelDownloads
 }
 
-extension SettingsActions {
-    /// The connected devices; the configured one stays in the list even while it's disconnected.
-    func microphones(with current: String) -> [String] {
-        let connected = microphones()
-        return current.isEmpty || connected.contains(current) ? connected : connected + [current]
-    }
-}
-
 /// The window's Settings section (window shell design §6): its own list of sections; every control saves at once.
 struct SettingsView: View {
     let model: SettingsModel
@@ -91,6 +83,19 @@ struct ProblemBanner: View {
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.orange.opacity(0.15))
+        }
+    }
+}
+
+/// A picker over a setting with a fixed list (`Settings.modes`, `.languages`, `.themes`).
+struct ChoicePicker: View {
+    let title: String
+    let choices: [ShepitCore.Settings.Choice]
+    let selection: Binding<String>
+
+    var body: some View {
+        Picker(title, selection: selection) {
+            ForEach(choices, id: \.value) { Text($0.title).tag($0.value) }
         }
     }
 }

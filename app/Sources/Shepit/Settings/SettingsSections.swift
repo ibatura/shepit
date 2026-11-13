@@ -19,11 +19,7 @@ struct GeneralSection: View {
                 Toggle("Sounds", isOn: model.binding("sounds", \.sounds))
             }
             Hinted(hint: "Keep Ukrainian for Ukrainian with English terms. Auto-detect may translate your speech into one language") {
-                Picker("Language", selection: model.binding("language", \.language)) {
-                    Text("Ukrainian").tag("uk")
-                    Text("English").tag("en")
-                    Text("Auto-detect").tag("auto")
-                }
+                ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("language", \.language))
             }
         }
         Section("Files") {
@@ -42,11 +38,8 @@ struct HotkeysSection: View {
     var body: some View {
         Section {
             Hinted(hint: "Toggle: press to start, press to stop. Hold: speak while holding the key") {
-                Picker("Mode", selection: Binding(get: { model.settings.mode }, set: { model.set("mode", $0) })) {
-                    Text("Toggle").tag("toggle")
-                    Text("Hold to talk").tag("hold")
-                }
-                .pickerStyle(.segmented)
+                ChoicePicker(title: "Mode", choices: ShepitCore.Settings.modes, selection: model.binding("mode", \.mode))
+                    .pickerStyle(.segmented)
             }
             Hinted(hint: conflict ?? "The dictation hotkey") {
                 ShortcutField(title: "Dictation hotkey", hotkey: model.settings.hotkey, allowsModifiers: true, actions: actions,
@@ -160,7 +153,7 @@ struct DictationSection: View {
             Hinted(hint: "System default follows the macOS input. If the chosen device isn't connected, the default is used and the panel says so") {
                 Picker("Microphone", selection: Binding(get: { model.settings.microphone }, set: { model.set("microphone", $0) })) {
                     Text("System default").tag("")
-                    ForEach(actions.microphones(with: model.settings.microphone), id: \.self) { Text($0).tag($0) }
+                    ForEach(Microphones.choices(connected: actions.microphones(), configured: model.settings.microphone), id: \.self) { Text($0).tag($0) }
                 }
             }
             Hinted(hint: "Example text the engine imitates. Keep English terms in Latin script here — this is what makes it write pull request instead of «пул реквест»") {
