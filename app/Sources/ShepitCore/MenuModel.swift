@@ -56,8 +56,6 @@ public struct MenuView: Sendable {
     public var downloaded: [EngineChoice] = []
     public var configErrors: [String] = []
     public var hotkeyProblem: String?
-    /// nil hides Recent (`historyMenuItems` = 0).
-    public var recent: [History.Entry]? = []
     public var today = ""
     public var microphones: [String] = []
     public var accessibilityGranted = true
@@ -69,7 +67,7 @@ public struct MenuView: Sendable {
     public var meetingApp: String?
     /// A call that runs now and is not recorded.
     public var call: CallOffer.Current?
-    /// The newest history entries, newest first, whatever `historyMenuItems` says.
+    /// The newest history entries, newest first: enough for Home and for Recent (`historyMenuItems`).
     public var history: [History.Entry] = []
     /// nil when a meeting can start; else what to download first.
     public var meetingMissing: String?
@@ -175,8 +173,8 @@ public enum MenuModel {
         items += [.separator, MenuItem(title: "Open Shepit", keyEquivalent: "o", action: .openWindow), .separator]
         items += meetingItems(view) // all but Start and Stop move to the window with its Meetings section
         items += [.separator, MenuItem(title: "Copy last dictation", enabled: !view.history.isEmpty, action: view.history.first.map { .copyText($0.text) })]
-        if let recent = view.recent {
-            let entries = recent.map {
+        if view.settings.historyMenuItems > 0 {
+            let entries = view.history.prefix(view.settings.historyMenuItems).map {
                 MenuItem(title: History.label($0, today: view.today, maxChars: recentLabelChars), tooltip: $0.text, action: .copyText($0.text))
             }
             items.append(MenuItem(title: "Recent", submenu: entries.isEmpty ? [MenuItem(title: "No dictations yet", enabled: false)] : entries))

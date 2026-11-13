@@ -40,6 +40,9 @@ public struct MeetingConfig: Sendable {
     /// Where `last-meeting` and `active-meeting` live (spec §5.7, §5.10).
     public var stateDir: URL
     public var engine: EngineChoice
+    /// The meeting's name and the app it runs in ("Teams"), when known: shown while it records.
+    public var title: String?
+    public var app: String?
     public var frameSamples = 4096
     public var threshold: Float = 0.5
     public var maxSilence: TimeInterval = 30 * 60
@@ -138,6 +141,8 @@ public final class MeetingSession {
     public private(set) var state = MeetingState.idle { didSet { if state != oldValue { onState?(state) } } }
 
     private let config: MeetingConfig
+    public var title: String? { config.title }
+    public var app: String? { config.app }
     private let mic: MeetingAudioSource
     private let call: MeetingAudioSource
     private let services: MeetingServices

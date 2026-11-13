@@ -61,11 +61,14 @@ public struct Home: Equatable, Sendable {
 }
 
 public enum HomeModel {
+    /// How many of the last dictations Home lists.
+    public static let dictationCount = 10
+
     public static func build(_ view: MenuView) -> Home {
         Home(status: MenuModel.statusLine(view), dictating: view.state != .idle,
              microphones: Microphones.choices(connected: view.microphones, configured: view.settings.microphone),
              microphoneEnabled: view.state == .idle && !view.meeting.isActive, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
-             dictations: view.history.map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
+             dictations: view.history.prefix(dictationCount).map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
     }
 

@@ -59,7 +59,7 @@ struct HomeSection: View {
                     }
                 }
                 HStack {
-                    Text("The last 10 are shown here").foregroundStyle(.secondary)
+                    Text("The last \(HomeModel.dictationCount) are shown here").foregroundStyle(.secondary)
                     Spacer()
                     Button("All dictations") { navigation.section = .dictations }
                 }

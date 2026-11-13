@@ -24,9 +24,6 @@ final class AppHost: ControllerHost {
     var menu: MenuController?
     /// The current or last meeting (AppHost+Meetings.swift).
     var meeting: MeetingSession?
-    /// The name and app the current or last meeting was started with.
-    var meetingTitle: String?
-    var meetingApp: String?
     var meetingTimer: TimerBox?
     var meetingMute: MuteWatch?
     /// `meeting-names.json` as it was before this session added its name; nil when it added none.
@@ -213,17 +210,16 @@ final class AppHost: ControllerHost {
         view.downloaded = ModelCatalog.downloadedChoices()
         view.configErrors = configErrors
         view.hotkeyProblem = hotkeyProblem
-        view.recent = settings.historyMenuItems > 0 ? History.recent(Paths.historyFile, count: settings.historyMenuItems) : nil
         view.today = String(History.stamp(Date()).prefix(10))
         view.microphones = AudioRecorder.inputDevices().map(\.name)
         view.accessibilityGranted = Permissions.accessibilityGranted
         view.microphoneDenied = Permissions.microphoneDenied
         view.meeting = meeting?.state ?? .idle
-        view.meetingTitle = meetingTitle
-        view.meetingApp = meetingApp
+        view.meetingTitle = meeting?.title
+        view.meetingApp = meeting?.app
         view.call = callOffer.current
         view.meetingMissing = meetingMissing
-        view.history = History.recent(Paths.historyFile, count: 10)
+        view.history = History.recent(Paths.historyFile, count: max(HomeModel.dictationCount, settings.historyMenuItems))
         return view
     }
 

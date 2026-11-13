@@ -113,7 +113,7 @@ struct MenuModelTests {
     @Test func copyLastDictationCopiesTheNewestEntryWhateverRecentShows() {
         #expect(find(MenuModel.build(view()), "Copy last dictation")?.enabled == false)
         let items = MenuModel.build(view {
-            $0.recent = nil
+            $0.settings.historyMenuItems = 0
             $0.history = [History.Entry(time: "2026-10-06 14:32:05", text: "new"), History.Entry(time: "2026-10-06 14:28:00", text: "old")]
         })
         #expect(find(items, "Copy last dictation")?.enabled == true)
@@ -128,7 +128,7 @@ struct MenuModelTests {
     @Test func recentSubmenuListsEntriesAndCopiesTheFullText() {
         let v = view {
             $0.today = "2026-10-06"
-            $0.recent = [
+            $0.history = [
                 History.Entry(time: "2026-10-06 14:32:05", text: "Треба задеплоїти цей pull request"),
                 History.Entry(time: "2026-10-06 14:28:00", text: "Commit"),
             ]
@@ -145,7 +145,13 @@ struct MenuModelTests {
     }
 
     @Test func recentSubmenuIsHiddenWhenTheSettingIsZero() {
-        #expect(find(MenuModel.build(view { $0.recent = nil }), "Recent") == nil)
+        #expect(find(MenuModel.build(view { $0.settings.historyMenuItems = 0 }), "Recent") == nil)
+    }
+
+    @Test func recentSubmenuListsAsManyAsTheSettingSays() {
+        let history = (0..<12).map { History.Entry(time: "2026-10-06 14:\(10 + $0):00", text: "\($0)") }
+        let recent = find(MenuModel.build(view { $0.settings.historyMenuItems = 3; $0.history = history }), "Recent")?.submenu ?? []
+        #expect(recent.map(\.tooltip) == ["0", "1", "2"])
     }
 
     // Meetings (spec §5.6)

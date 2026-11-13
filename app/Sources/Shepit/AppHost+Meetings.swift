@@ -87,8 +87,6 @@ extension AppHost {
         let settings = settings
         let start = Date()
         meetingNamesBefore = nil
-        meetingTitle = title
-        meetingApp = app
         if let title {
             let namesFile = Paths.dataDir.appending(path: MeetingNames.fileName)
             let names = MeetingNames.load(namesFile)
@@ -103,10 +101,12 @@ extension AppHost {
         let relative = MeetingFileName.relativePath(settings.meetingFileName, start: start, title: title, app: app)
         let note = MeetingFileName.unique(relative, in: folder) { FileManager.default.fileExists(atPath: $0.path) }
         let engine = settings.engine(for: .meetings)
-        let config = MeetingConfig(noteFile: note, frontMatter: MeetingNote.frontMatter(start: start, title: title, app: app),
+        var config = MeetingConfig(noteFile: note, frontMatter: MeetingNote.frontMatter(start: start, title: title, app: app),
                                    myName: settings.myName(),
                                    sessionDir: Self.meetingSessionsRoot.appending(path: "meeting-\(UUID().uuidString)", directoryHint: .isDirectory),
                                    stateDir: Paths.dataDir, engine: engine)
+        config.title = title
+        config.app = app
         let session = MeetingSession(config: config, mic: MicSource(recorder: recorder, device: settings.microphone),
                                      call: CallTapSource(), services: meetingServices(language: settings.meetingLanguage))
         session.onState = { [weak self] state in

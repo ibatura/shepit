@@ -117,6 +117,11 @@ struct HomeModelTests {
         #expect(rows == [Home.Dictation(text: "new", when: "14:32"), Home.Dictation(text: "old", when: "05.10 09:01")])
     }
 
+    @Test func homeListsTheLastTenWhateverWasRead() {
+        let history = (0..<12).map { History.Entry(time: "2026-10-06 14:\(10 + $0):00", text: "\($0)") }
+        #expect(home { $0.history = history }.dictations.map(\.text) == (0..<10).map { "\($0)" })
+    }
+
     @Test func theEmptyListSaysWhy() {
         #expect(home().dictations.isEmpty)
         #expect(home().noDictations == "No dictations yet")
