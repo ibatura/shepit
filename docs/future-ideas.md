@@ -21,7 +21,7 @@ Each gets its own spec and plan.
 
 Found by the reviews of the branch and not changed; none blocks the merge except the first, which needs a check on a call.
 
-- **Mute in Zoom and Meet (check before relying on it).** A call's end is the app releasing the microphone for 3 s. If Zoom or Meet releases it while the author is muted, the transcript stops mid-call. Teams keeps it (a 32-minute call, 2026-11-13). Check: start a transcript, mute for 30 s, see whether "Call ended" appears.
+- **Mute in Zoom and Meet (check before relying on it).** A call's end is the app releasing the microphone for 3 s. If Zoom or Meet releases it while the author is muted, the transcript stops mid-call. Teams keeps it (a 32-minute call, 2026-11-13). Check: start a transcript, mute for 30 s, see whether "Call ended" appears. Teams checked this way by the author on 2026-11-13 (a 63-second call, no stop while muted, the note has no pre-join name); Zoom and Meet are still to check.
 - Arc, Edge and Brave: their helper bundle IDs were never probed (`Shepit call-watch` during a Meet call shows them); the match is a case-sensitive prefix.
 - A browser holding the microphone with no Meet tab is looked at every 10 s for as long as it holds it.
 - The Teams pre-join title is ignored in English only ("Meeting join").
