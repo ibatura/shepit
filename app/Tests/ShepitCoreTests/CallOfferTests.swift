@@ -34,6 +34,19 @@ struct CallOfferTests {
         #expect(CallSource(bundleID: "") == nil)
     }
 
+    @Test func theCurrentCallIsKnownFromTheOfferUntilTheRelease() {
+        var m = Machine()
+        m.send(.took(.app(.teams), pid: 1), at: 0)
+        #expect(m.offer.current == nil) // not a call before the hold
+        m.send(.tick, at: 3)
+        #expect(m.offer.current == CallOffer.Current(name: nil, app: .teams))
+        m.send(.named("Weekly sync"), at: 4)
+        m.send(.pressedOther, at: 5) // "Not this call": Start in the window still works
+        #expect(m.offer.current == CallOffer.Current(name: "Weekly sync", app: .teams))
+        m.send(.released(pid: 1), at: 6)
+        #expect(m.offer.current == nil)
+    }
+
     @Test func underThreeSecondsOfMicrophoneIsNoCall() {
         var m = Machine()
         m.send(.took(.app(.zoom), pid: 1), at: 0)

@@ -83,6 +83,7 @@ extension AppHost {
         let start = Date()
         meetingNamesBefore = nil
         meetingTitle = title
+        meetingApp = app
         if let title {
             let namesFile = Paths.dataDir.appending(path: MeetingNames.fileName)
             let names = MeetingNames.load(namesFile)

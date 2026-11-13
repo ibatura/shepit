@@ -41,15 +41,18 @@ public enum History {
     }
 
     public static func label(_ entry: Entry, today: String, maxChars: Int) -> String {
-        let time = Array(entry.time)
-        let date = String(time[0..<10])
-        let hm = String(time[11..<16])
-        let when = date == today ? hm : "\(String(time[8..<10])).\(String(time[5..<7])) \(hm)"
         var text = entry.text
         if text.count > maxChars {
             text = String(text.prefix(maxChars - 1)).replacingOccurrences(of: #"\s+$"#, with: "", options: .regularExpression) + "…"
         }
-        return "\(when) · \(text)"
+        return "\(when(entry, today: today)) · \(text)"
+    }
+
+    /// "14:32" for an entry of `today` (yyyy-MM-dd), "05.10 14:32" for an earlier one.
+    public static func when(_ entry: Entry, today: String) -> String {
+        let time = Array(entry.time)
+        let hm = String(time[11..<16])
+        return String(time[0..<10]) == today ? hm : "\(String(time[8..<10])).\(String(time[5..<7])) \(hm)"
     }
 
     /// Drops entries older than `cutoff` and malformed lines; rewrites via temp + rename.

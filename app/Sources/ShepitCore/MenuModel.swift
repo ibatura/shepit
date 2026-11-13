@@ -15,6 +15,8 @@ public enum MenuAction: Equatable, Sendable {
     case grantAccessibility
     case grantMicrophone
     case startMeeting
+    /// Start for a call the app has noticed: with its name, no dialog.
+    case startCall(title: String?, app: CallApp)
     case stopMeeting
     case copyLastMeeting
     case openMeetingsFolder
@@ -63,6 +65,10 @@ public struct MenuView: Sendable {
     public var meeting: MeetingState = .idle
     /// The running transcript's name; nil when it has none.
     public var meetingTitle: String?
+    /// The app the running transcript was started for ("Teams"); nil when unknown.
+    public var meetingApp: String?
+    /// A call that runs now and is not recorded.
+    public var call: CallOffer.Current?
     /// The newest history entries, newest first, whatever `historyMenuItems` says.
     public var history: [History.Entry] = []
     /// nil when a meeting can start; else what to download first.

@@ -112,6 +112,25 @@ public struct CallOffer: Sendable {
 
     public init() {}
 
+    public struct Current: Equatable, Sendable {
+        public var name: String?
+        public var app: CallApp
+
+        public init(name: String?, app: CallApp) {
+            self.name = name
+            self.app = app
+        }
+    }
+
+    /// The call running now, once it counts as one (also after a dismiss): the window offers Start for it.
+    public var current: Current? {
+        guard let call, let app = call.app, call.releasedAt == nil else { return nil }
+        switch call.phase {
+        case .offered, .quiet: return Current(name: call.name, app: app)
+        case .pending, .checkingMeet: return nil
+        }
+    }
+
     /// Whether time alone can change anything: without it no timer needs to run.
     public var needsTick: Bool {
         (call.map { $0.phase != .quiet || $0.releasedAt != nil } ?? false) || session?.endingSince != nil || ready != nil
