@@ -43,7 +43,6 @@ final class AppHost: ControllerHost {
     private lazy var windowActions = SettingsActions(
         microphones: { AudioRecorder.inputDevices().map(\.name) },
         perform: { [unowned self] in self.perform($0) },
-        accentAtLaunch: accentAtLaunch,
         hotkeyProblem: { [unowned self] in self.hotkeyProblem },
         openSettingsFile: { [unowned self] in self.edit(Paths.settingsFile, empty: "{}") },
         openDataFolder: { NSWorkspace.shared.open(Paths.dataDir) },
@@ -64,8 +63,6 @@ final class AppHost: ControllerHost {
         // A shortcut being recorded when the window closes would leave the global hotkeys off.
         onClose: { [unowned self] in self.hotkeys.apply(self.settings) })
     private let downloads = ModelDownloads()
-    private static let accentKey = "AppleAccentColor" // macOS's per-app accent colour, read when the app starts
-    private let accentAtLaunch = UserDefaults.standard.object(forKey: AppHost.accentKey) as? Int
     private var dictationLoad = LoadState.unloaded
     private var configErrors: [String] = []
     private var microphoneNotice: String?
@@ -143,10 +140,7 @@ final class AppHost: ControllerHost {
             // nil follows macOS. The dictation overlay has its own colours.
             NSApp.appearance = ["light": NSAppearance.Name.aqua, "dark": .darkAqua][after.theme].flatMap(NSAppearance.init(named:))
         }
-        if initial || before?.accentColor != after.accentColor {
-            // A preference of Shepit's own, not of the system; it takes effect at the next start.
-            UserDefaults.standard.set(Settings.accentColorCode(after.accentColor), forKey: Self.accentKey)
-        }
+        if initial || before?.accentColor != after.accentColor { applyAccentColor(after.accentColor) }
         if announce, settingsOK, dictionaryOK { panel.message("Config reloaded") }
         refreshStatus()
     }
@@ -263,6 +257,19 @@ final class AppHost: ControllerHost {
         guard mainWindow.isOpen else { return }
         let home = HomeModel.build(menuView())
         if home != mainWindow.live.home { mainWindow.live.home = home }
+    }
+
+    /// The accent colour is macOS's per-app preference `AppleAccentColor`, in Shepit's own preferences.
+    private func applyAccentColor(_ name: String) {
+        let key = "AppleAccentColor"
+        let code = Settings.accentColorCode(name)
+        guard UserDefaults.standard.object(forKey: key) as? Int != code else { return }
+        UserDefaults.standard.set(code, forKey: key)
+        // macOS reads the preference when an app starts, and again on this notification (the one System Settings
+        // sends; other apps re-read their own colour and find it unchanged).
+        // shortcut: the notification is undocumented; if it stops working the colour applies at the next start.
+        DistributedNotificationCenter.default().postNotificationName(
+            Notification.Name("AppleAquaColorVariantChanged"), object: nil, userInfo: nil, deliverImmediately: true)
     }
 
     /// Asks the engine itself (Apple's languages depend on the system), without loading a model.

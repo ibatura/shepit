@@ -4,7 +4,6 @@ import ShepitCore
 /// Settings → Appearance (window shell design §6.1).
 struct AppearanceSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
 
     var body: some View {
         Section {
@@ -13,9 +12,7 @@ struct AppearanceSection: View {
                 Text("Light").tag("light")
                 Text("Dark").tag("dark")
             }
-            // macOS reads an app's accent colour when the app starts.
-            Hinted(hint: Settings.accentColorCode(model.settings.accentColor) == actions.accentAtLaunch
-                ? "The first dot follows macOS" : "Restart Shepit to apply the colour") {
+            Hinted(hint: "The first dot follows macOS. If a colour doesn't show, restart Shepit") {
                 LabeledContent("Accent colour") {
                     HStack(spacing: 8) {
                         ForEach(Settings.accentColors, id: \.self) { name in
