@@ -2,11 +2,16 @@ import Foundation
 
 /// What the window's Home section shows (window shell design §5), as data.
 public struct Home: Equatable, Sendable {
+    public struct Button: Equatable, Sendable {
+        public var title: String
+        /// nil: the button is off.
+        public var action: MenuAction?
+    }
+
     public struct Warning: Equatable, Sendable {
         public var text: String
         /// nil: nothing to press.
-        public var button: String?
-        public var action: MenuAction?
+        public var button: Button?
     }
 
     public struct EngineRow: Equatable, Sendable, Identifiable {
@@ -30,9 +35,7 @@ public struct Home: Equatable, Sendable {
         public var recording = false
         public var title: String
         public var hint: String?
-        public var button: String?
-        /// nil with a button: the button is off.
-        public var action: MenuAction?
+        public var button: Button?
     }
 
     /// The sidebar's card while a transcript runs: "Recording 12:34" over "Weekly sync · Teams".
@@ -84,10 +87,10 @@ public enum HomeModel {
     private static func warnings(_ view: MenuView) -> [Home.Warning] {
         var warnings = view.hotkeyProblem.map { [Home.Warning(text: $0)] } ?? []
         if !view.accessibilityGranted {
-            warnings.append(Home.Warning(text: "Accessibility not granted (needed to paste)", button: "Allow…", action: .grantAccessibility))
+            warnings.append(Home.Warning(text: "Accessibility not granted (needed to paste)", button: Home.Button(title: "Allow…", action: .grantAccessibility)))
         }
         if view.microphoneDenied {
-            warnings.append(Home.Warning(text: "Microphone access denied", button: "Open System Settings", action: .grantMicrophone))
+            warnings.append(Home.Warning(text: "Microphone access denied", button: Home.Button(title: "Open System Settings", action: .grantMicrophone)))
         }
         return warnings
     }
@@ -125,20 +128,20 @@ public enum HomeModel {
         case .recording(let elapsed, let waiting):
             let parts = [view.meetingApp, MenuModel.clock(elapsed), waiting > 0 ? "\(waiting) phrase\(waiting == 1 ? "" : "s") waiting" : nil]
             return Home.MeetingRow(recording: true, title: view.meetingTitle ?? "Meeting transcript",
-                                   hint: parts.compactMap { $0 }.joined(separator: " · "), button: "Stop", action: .stopMeeting)
+                                   hint: parts.compactMap { $0 }.joined(separator: " · "), button: Home.Button(title: "Stop", action: .stopMeeting))
         case .finishing(let left): return Home.MeetingRow(title: "Finishing the transcript (\(left) left)")
         case .detectingSpeakers: return Home.MeetingRow(title: "Detecting speakers…")
         case .idle, .done, .interrupted: break
         }
         if let missing = view.meetingMissing {
-            return Home.MeetingRow(title: "No call right now", hint: "To start a transcript, \(missing)", button: "Start transcript")
+            return Home.MeetingRow(title: "No call right now", hint: "To start a transcript, \(missing)", button: Home.Button(title: "Start transcript"))
         }
         if let call = view.call {
             return Home.MeetingRow(title: call.name ?? "\(call.app.rawValue) call", hint: call.name == nil ? nil : call.app.rawValue,
-                                   button: "Start transcript", action: .startCall(title: call.name, app: call.app))
+                                   button: Home.Button(title: "Start transcript", action: .startCall(title: call.name, app: call.app)))
         }
         return Home.MeetingRow(title: "No call right now",
                                hint: view.settings.callOffer ? "Shepit offers a transcript when a call starts" : "Call offers are off",
-                               button: "Start transcript", action: .startMeeting)
+                               button: Home.Button(title: "Start transcript", action: .startMeeting))
     }
 }

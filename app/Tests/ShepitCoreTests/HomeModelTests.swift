@@ -39,8 +39,8 @@ struct HomeModelTests {
         let warnings = home { $0.hotkeyProblem = "Hotkey taken"; $0.accessibilityGranted = false; $0.microphoneDenied = true }.warnings
         #expect(warnings == [
             Home.Warning(text: "Hotkey taken"),
-            Home.Warning(text: "Accessibility not granted (needed to paste)", button: "Allow…", action: .grantAccessibility),
-            Home.Warning(text: "Microphone access denied", button: "Open System Settings", action: .grantMicrophone),
+            Home.Warning(text: "Accessibility not granted (needed to paste)", button: .init(title: "Allow…", action: .grantAccessibility)),
+            Home.Warning(text: "Microphone access denied", button: .init(title: "Open System Settings", action: .grantMicrophone)),
         ])
     }
 
@@ -69,17 +69,16 @@ struct HomeModelTests {
 
     @Test func meetingRowWithNoCall() {
         #expect(home().meeting == Home.MeetingRow(title: "No call right now", hint: "Shepit offers a transcript when a call starts",
-                                                   button: "Start transcript", action: .startMeeting))
+                                                   button: .init(title: "Start transcript", action: .startMeeting)))
         #expect(home { $0.settings.callOffer = false }.meeting.hint == "Call offers are off")
-        #expect(home { $0.meeting = .done(speakers: 2) }.meeting.action == .startMeeting)
+        #expect(home { $0.meeting = .done(speakers: 2) }.meeting.button?.action == .startMeeting)
     }
 
     @Test func meetingRowWithADetectedCall() {
         let named = home { $0.call = CallOffer.Current(name: "Weekly sync", app: .teams) }.meeting
-        #expect(named == Home.MeetingRow(title: "Weekly sync", hint: "Teams", button: "Start transcript",
-                                         action: .startCall(title: "Weekly sync", app: .teams)))
+        #expect(named == Home.MeetingRow(title: "Weekly sync", hint: "Teams", button: .init(title: "Start transcript", action: .startCall(title: "Weekly sync", app: .teams))))
         let unnamed = home { $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
-        #expect(unnamed.title == "Zoom call" && unnamed.hint == nil && unnamed.action == .startCall(title: nil, app: .zoom))
+        #expect(unnamed.title == "Zoom call" && unnamed.hint == nil && unnamed.button?.action == .startCall(title: nil, app: .zoom))
     }
 
     @Test func meetingRowWhileATranscriptRuns() {
@@ -88,7 +87,7 @@ struct HomeModelTests {
             $0.call = CallOffer.Current(name: "Weekly sync", app: .teams)
         }.meeting
         #expect(recording == Home.MeetingRow(recording: true, title: "Weekly sync", hint: "Teams · 12:34 · 2 phrases waiting",
-                                             button: "Stop", action: .stopMeeting))
+                                             button: .init(title: "Stop", action: .stopMeeting)))
         let bare = home { $0.meeting = .recording(elapsed: 9, waiting: 0) }.meeting
         #expect(bare.title == "Meeting transcript" && bare.hint == "0:09")
         #expect(home { $0.meeting = .finishing(left: 3) }.meeting == Home.MeetingRow(title: "Finishing the transcript (3 left)"))
@@ -107,7 +106,7 @@ struct HomeModelTests {
     @Test func meetingRowWithoutTheModelHasItsButtonOff() {
         let row = home { $0.meetingMissing = "download the model in Settings"; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
         #expect(row == Home.MeetingRow(title: "No call right now", hint: "To start a transcript, download the model in Settings",
-                                       button: "Start transcript"))
+                                       button: .init(title: "Start transcript")))
     }
 
     @Test func lastDictationsWithTheDateWhenNotToday() {

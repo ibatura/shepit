@@ -16,7 +16,7 @@ struct HomeSection: View {
                     HStack {
                         Label(warning.text, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                         Spacer()
-                        if let button = warning.button, let action = warning.action { Button(button) { actions.perform(action) } }
+                        if let button = warning.button { self.button(button) }
                     }
                 }
                 Group {
@@ -78,11 +78,15 @@ struct HomeSection: View {
             }
             Spacer()
             if let button = row.button {
-                Button(button) { if let action = row.action { actions.perform(action) } }
+                self.button(button)
                     .buttonStyle(.borderedProminent)
                     .tint(row.recording ? .red : nil)
-                    .disabled(row.action == nil)
             }
         }
+    }
+
+    private func button(_ button: Home.Button) -> some View {
+        Button(button.title) { if let action = button.action { actions.perform(action) } }
+            .disabled(button.action == nil)
     }
 }
