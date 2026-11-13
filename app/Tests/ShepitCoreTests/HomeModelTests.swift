@@ -81,6 +81,15 @@ struct HomeModelTests {
         #expect(home { $0.meeting = .detectingSpeakers }.meeting == Home.MeetingRow(title: "Detecting speakers…"))
     }
 
+    @Test func theSidebarCardShowsOnlyWhileATranscriptRuns() {
+        #expect(home().card == nil)
+        #expect(home { $0.meeting = .done(speakers: 2); $0.meetingTitle = "Weekly sync" }.card == nil)
+        let named = home { $0.meeting = .recording(elapsed: 754, waiting: 2); $0.meetingTitle = "Weekly sync"; $0.meetingApp = "Teams" }.card
+        #expect(named == Home.Card(headline: "Recording 12:34", detail: "Weekly sync · Teams"))
+        #expect(home { $0.meeting = .finishing(left: 1) }.card == Home.Card(headline: "Finishing", detail: ""))
+        #expect(home { $0.meeting = .detectingSpeakers }.card?.headline == "Detecting speakers")
+    }
+
     @Test func meetingRowWithoutTheModelHasItsButtonOff() {
         let row = home { $0.meetingMissing = "download the model in Settings"; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
         #expect(row == Home.MeetingRow(title: "No call right now", hint: "To start a transcript, download the model in Settings",

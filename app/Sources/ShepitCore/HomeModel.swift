@@ -35,6 +35,11 @@ public struct Home: Equatable, Sendable {
         public var action: MenuAction?
     }
 
+    /// The sidebar's card while a transcript runs: "Recording 12:34" over "Weekly sync · Teams".
+    public struct Card: Equatable, Sendable {
+        public var headline, detail: String
+    }
+
     public struct Dictation: Equatable, Sendable {
         public var text, when: String
     }
@@ -43,6 +48,7 @@ public struct Home: Equatable, Sendable {
     public var warnings: [Warning]
     public var engines: [EngineRow]
     public var meeting: MeetingRow
+    public var card: Card?
     public var dictations: [Dictation]
     /// Shown in place of the list when it is empty.
     public var noDictations: String
@@ -50,7 +56,7 @@ public struct Home: Equatable, Sendable {
 
 public enum HomeModel {
     public static func build(_ view: MenuView) -> Home {
-        Home(status: MenuModel.statusLine(view), warnings: warnings(view), engines: engines(view), meeting: meeting(view),
+        Home(status: MenuModel.statusLine(view), warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
              dictations: view.history.map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
     }
@@ -90,6 +96,17 @@ public enum HomeModel {
             }
             return Home.EngineRow(task: task, title: title, hint: hint, choices: choices, current: current, enabled: enabled)
         }
+    }
+
+    private static func card(_ view: MenuView) -> Home.Card? {
+        let headline: String
+        switch view.meeting {
+        case .recording(let elapsed, _): headline = "Recording \(MenuModel.clock(elapsed))"
+        case .finishing: headline = "Finishing"
+        case .detectingSpeakers: headline = "Detecting speakers"
+        case .idle, .done, .interrupted: return nil
+        }
+        return Home.Card(headline: headline, detail: [view.meetingTitle, view.meetingApp].compactMap { $0 }.joined(separator: " · "))
     }
 
     private static func meeting(_ view: MenuView) -> Home.MeetingRow {

@@ -42,6 +42,7 @@ final class AppHost: ControllerHost {
     private lazy var settingsModel = SettingsModel(store: settingsStore, dictionaryStore: dictionaryStore)
     private lazy var windowActions = SettingsActions(
         microphones: { AudioRecorder.inputDevices().map(\.name) },
+        perform: { [unowned self] in self.perform($0) },
         hotkeyProblem: { [unowned self] in self.hotkeyProblem },
         openSettingsFile: { [unowned self] in self.edit(Paths.settingsFile, empty: "{}") },
         openDataFolder: { NSWorkspace.shared.open(Paths.dataDir) },
@@ -134,7 +135,7 @@ final class AppHost: ControllerHost {
             }
         }
         if announce, settingsOK, dictionaryOK { panel.message("Config reloaded") }
-        menu?.refreshTitle()
+        refreshStatus()
     }
 
     private func update(_ key: String, _ value: Any) {
@@ -166,7 +167,7 @@ final class AppHost: ControllerHost {
             let load = await self.models.loadState(.dictation)
             if load != self.dictationLoad {
                 self.dictationLoad = load
-                self.menu?.refreshTitle()
+                self.refreshStatus()
             }
         }
     }
@@ -235,6 +236,20 @@ final class AppHost: ControllerHost {
     /// Opens the window (menu, ⌘, or launching the app again); nil: on the section it had last.
     func showWindow(_ section: WindowSection? = nil) {
         mainWindow.show(section)
+        refreshWindow()
+    }
+
+    /// The menu-bar title, and the window when it is open.
+    func refreshStatus() {
+        menu?.refreshTitle()
+        refreshWindow()
+    }
+
+    /// Nothing is gathered for a closed window.
+    func refreshWindow() {
+        guard mainWindow.isOpen else { return }
+        let home = HomeModel.build(menuView())
+        if home != mainWindow.live.home { mainWindow.live.home = home }
     }
 
     /// Asks the engine itself (Apple's languages depend on the system), without loading a model.
@@ -434,7 +449,7 @@ final class AppHost: ControllerHost {
         try? FailedAudio.keep(samples, in: Paths.failedDir, hours: settings.failedAudioHours, now: Date())
     }
 
-    func setState(_ state: ControllerState) { menu?.refreshTitle() }
+    func setState(_ state: ControllerState) { refreshStatus() }
 
     /// Notices reach the user through the panel (`overlay` events); with the panel off,
     /// messages still show as a short transient panel.

@@ -140,7 +140,7 @@ struct DictationSection: View {
             Hinted(hint: "System default follows the macOS input. If the chosen device isn't connected, the default is used and the panel says so") {
                 Picker("Microphone", selection: Binding(get: { model.settings.microphone }, set: { model.set("microphone", $0) })) {
                     Text("System default").tag("")
-                    ForEach(microphones, id: \.self) { Text($0).tag($0) }
+                    ForEach(actions.microphones(with: model.settings.microphone), id: \.self) { Text($0).tag($0) }
                 }
             }
             Hinted(hint: "Example text the engine imitates. Keep English terms in Latin script here — this is what makes it write pull request instead of «пул реквест»") {
@@ -161,13 +161,6 @@ struct DictationSection: View {
                 }
             }
         }
-    }
-
-    /// The configured device stays in the list even while it's disconnected.
-    private var microphones: [String] {
-        let connected = actions.microphones()
-        let current = model.settings.microphone
-        return current.isEmpty || connected.contains(current) ? connected : connected + [current]
     }
 }
 

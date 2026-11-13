@@ -1,5 +1,6 @@
 import AppKit
 import Observation
+import ShepitCore
 import SwiftUI
 
 /// The sidebar's items (window shell design §4.1).
@@ -47,10 +48,18 @@ final class WindowNavigation {
     }
 }
 
+/// What the window shows of the app's live state. `AppHost` refreshes it only while the window is open.
+@MainActor
+@Observable
+final class WindowModel {
+    var home = HomeModel.build(MenuView())
+}
+
 /// The one window (window shell design §4). Shepit is a regular app with a Dock icon only while it is open.
 @MainActor
 final class MainWindow: NSObject, NSWindowDelegate {
     let navigation = WindowNavigation()
+    let live = WindowModel()
     private let model: SettingsModel
     private let actions: SettingsActions
     private let onClose: () -> Void
@@ -75,7 +84,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        let controller = NSHostingController(rootView: MainView(model: model, actions: actions, navigation: navigation))
+        let controller = NSHostingController(rootView: MainView(model: model, actions: actions, live: live, navigation: navigation))
         controller.sizingOptions = [] // the window keeps its own size; SwiftUI's ideal size would shrink it
         let window = NSWindow(contentViewController: controller)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]

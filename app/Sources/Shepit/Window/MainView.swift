@@ -5,6 +5,7 @@ import ShepitCore
 struct MainView: View {
     let model: SettingsModel
     let actions: SettingsActions
+    let live: WindowModel
     @Bindable var navigation: WindowNavigation
 
     var body: some View {
@@ -13,6 +14,9 @@ struct MainView: View {
                 ForEach(WindowSection.allCases.dropLast()) { row($0) }
                 Divider()
                 row(.settings)
+            }
+            .safeAreaInset(edge: .top) {
+                if let card = live.home.card { RecordingCard(card: card) { navigation.section = .home } }
             }
             .navigationSplitViewColumnWidth(190)
         } detail: {
@@ -32,7 +36,7 @@ struct MainView: View {
     @ViewBuilder private var section: some View {
         switch navigation.section {
         case .home:
-            Placeholder(section: .home, text: "Home comes next.")
+            HomeSection(model: model, actions: actions, home: live.home, navigation: navigation)
         case .meetings:
             Placeholder(section: .meetings, text: "Meetings come in a later version. Until then they are in the menu.")
         case .dictations:
@@ -49,6 +53,31 @@ struct MainView: View {
         case .settings:
             SettingsView(model: model, actions: actions, section: $navigation.settingsSection)
         }
+    }
+}
+
+/// The running transcript, at the top of the sidebar; a click opens Home (the Meetings section later).
+private struct RecordingCard: View {
+    let card: Home.Card
+    let open: () -> Void
+
+    var body: some View {
+        Button(action: open) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Circle().fill(.red).frame(width: 8, height: 8)
+                    Text(card.headline).fontWeight(.semibold).monospacedDigit()
+                }
+                if !card.detail.isEmpty { Text(card.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .background(.background, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 }
 

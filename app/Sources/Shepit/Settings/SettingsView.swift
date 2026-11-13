@@ -6,6 +6,8 @@ import ShepitCore
 @MainActor
 struct SettingsActions {
     var microphones: () -> [String]
+    /// Runs an action the menu also has (reload, start and stop a meeting, copy).
+    var perform: (MenuAction) -> Void
     var hotkeyProblem: () -> String?
     var openSettingsFile: () -> Void
     var openDataFolder: () -> Void
@@ -26,6 +28,14 @@ struct SettingsActions {
     /// Why this engine can't do the configured language, or nil when it can.
     var languageNote: (EngineChoice, String) async -> String?
     var downloads: ModelDownloads
+}
+
+extension SettingsActions {
+    /// The connected devices; the configured one stays in the list even while it's disconnected.
+    func microphones(with current: String) -> [String] {
+        let connected = microphones()
+        return current.isEmpty || connected.contains(current) ? connected : connected + [current]
+    }
 }
 
 /// The window's Settings section (window shell design §6): its own list of sections; every control saves at once.

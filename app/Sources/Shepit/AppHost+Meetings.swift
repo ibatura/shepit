@@ -105,7 +105,7 @@ extension AppHost {
         let session = MeetingSession(config: config, mic: MicSource(recorder: recorder, device: settings.microphone),
                                      call: CallTapSource(), services: meetingServices(language: settings.meetingLanguage))
         session.onState = { [weak self] state in
-            self?.menu?.refreshTitle()
+            self?.refreshStatus()
             switch state {
             case .finishing, .detectingSpeakers: self?.callEvent(.sessionStopping)
             default: break
@@ -145,7 +145,7 @@ extension AppHost {
         let recorder = recorder
         meetingMute = MuteWatch(muteButton) { [weak session] muted in session?.micMuted(muted, at: recorder.streamPosition) }
         panel.message("⏺ Meeting transcript started", detail: startNotices.items.joined(separator: " "))
-        menu?.refreshTitle()
+        refreshStatus()
         callEvent(.sessionStarted(byPanel: fromCall))
     }
 
