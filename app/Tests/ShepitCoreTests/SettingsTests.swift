@@ -311,14 +311,14 @@ struct SettingsTests {
     @Test func appearanceAndMeetingHotkeyDefaults() {
         let settings = validateSettings([:]).0
         #expect(settings?.theme == "system")
-        #expect(settings?.accentColor == "system")
+        #expect(settings?.accentColor == .system)
         #expect(settings?.meetingHotkey == nil)
     }
 
     @Test func appearanceAndMeetingHotkeyValuesAreAccepted() {
         for theme in ["system", "light", "dark"] { #expect(validateSettings(["theme": theme]).0?.theme == theme) }
-        for color in Settings.accentColors { #expect(validateSettings(["accentColor": color]).0?.accentColor == color) }
-        #expect(Settings.accentColors == ["system", "blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"])
+        for color in AccentColor.allCases { #expect(validateSettings(["accentColor": color.rawValue]).0?.accentColor == color) }
+        #expect(AccentColor.allCases.map(\.rawValue) == ["system", "blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"])
         let hotkey: [String: Any] = ["mods": ["ctrl", "alt"], "key": "m"]
         #expect(validateSettings(["meetingHotkey": hotkey]).0?.meetingHotkey == Hotkey(mods: ["ctrl", "alt"], key: "m"))
         let (settings, errors) = validateSettings(["meetingHotkey": NSNull()])
@@ -326,8 +326,8 @@ struct SettingsTests {
     }
 
     @Test func everyAccentColourButSystemHasItsMacOSNumber() {
-        #expect(Settings.accentColorCode("system") == nil)
-        let codes = Settings.accentColors.dropFirst().map { Settings.accentColorCode($0) }
+        #expect(AccentColor.system.code == nil)
+        let codes = AccentColor.allCases.dropFirst().map(\.code)
         #expect(codes == [4, 5, 6, 0, 1, 2, 3, -1])
     }
 

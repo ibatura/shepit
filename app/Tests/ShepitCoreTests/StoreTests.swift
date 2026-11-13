@@ -104,14 +104,14 @@ struct StoreTests {
         #expect(written["mode"] as? String == "hold")
     }
 
-    @Test func updatingWithNullRemovesTheKeyAndKeepsTheOthers() throws {
+    @Test func removeTakesTheKeyOutAndKeepsTheOthers() throws {
         let (directory, file) = try makeSettingsFile(#"{"mode":"hold","meetingHotkey":{"mods":["ctrl"],"key":"m"},"unknown":1}"#)
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = SettingsStore(file: file)
         #expect(store.load())
         #expect(store.settings.meetingHotkey == Hotkey(mods: ["ctrl"], key: "m"))
 
-        try store.update("meetingHotkey", NSNull())
+        try store.remove("meetingHotkey")
 
         #expect(store.settings.meetingHotkey == nil)
         let written = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])

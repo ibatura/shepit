@@ -28,9 +28,9 @@ extension AppHost {
     }
 
     /// The accent colour is macOS's per-app preference `AppleAccentColor`, in Shepit's own preferences.
-    func applyAccentColor(_ name: String) {
+    func applyAccentColor(_ color: AccentColor) {
         let key = "AppleAccentColor"
-        let code = Settings.accentColorCode(name)
+        let code = color.code
         guard UserDefaults.standard.object(forKey: key) as? Int != code else { return }
         UserDefaults.standard.set(code, forKey: key)
         // macOS reads the preference when an app starts, and again on this notification (the one System Settings

@@ -85,14 +85,7 @@ final class SettingsModel {
 
     func set(_ key: String, _ value: Any) {
         guard !isReadOnly else { return }
-        do {
-            try store.update(key, value)
-            lastError = nil
-        } catch {
-            lastError = error.localizedDescription
-        }
-        refresh()
-        onChange()
+        write { try store.update(key, value) }
     }
 
     /// A control's binding: reads the current value, writes `key` on change.
@@ -106,16 +99,8 @@ final class SettingsModel {
 
     /// Takes the key out of settings.json, so its default applies (for `meetingHotkey`: no shortcut).
     func remove(_ key: String) {
-        set(key, NSNull())
-    }
-
-    /// Why these keys can't be the hotkey `key`: another hotkey has them. nil when they can.
-    func hotkeyClash(_ hotkey: Hotkey, for key: String) -> String? {
-        let others: [(String, Hotkey?, String)] = [
-            ("hotkey", settings.hotkey, "dictation"), ("addWordHotkey", settings.addWordHotkey, "add-word"),
-            ("meetingHotkey", settings.meetingHotkey, "meeting transcript"),
-        ]
-        return others.first { $0.0 != key && $0.1?.sameKeys(as: hotkey) == true }.map { "That is the \($0.2) hotkey" }
+        guard !isReadOnly else { return }
+        write { try store.remove(key) }
     }
 
     /// One task's engine; writes the whole `engines` object (the store then drops the legacy model keys).
@@ -172,8 +157,13 @@ final class SettingsModel {
 
     private func setDictionary(_ key: String, _ value: Any) {
         guard !dictionaryIsReadOnly else { return }
+        write { try dictionaryStore.update(key, value) }
+    }
+
+    /// One write to a file; a refused or failed one is shown at the top of the window. The app then applies it.
+    private func write(_ change: () throws -> Void) {
         do {
-            try dictionaryStore.update(key, value)
+            try change()
             lastError = nil
         } catch {
             lastError = error.localizedDescription

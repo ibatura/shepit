@@ -43,7 +43,7 @@ struct HotkeysSection: View {
             }
             Hinted(hint: conflict ?? "The dictation hotkey") {
                 ShortcutField(title: "Dictation hotkey", hotkey: model.settings.hotkey, allowsModifiers: true, actions: actions,
-                              refuse: { model.hotkeyClash($0, for: "hotkey") }) {
+                              refuse: { model.settings.hotkeyClash($0, for: "hotkey") }) {
                     model.set("hotkey", hotkey: $0)
                 }
             }
@@ -54,13 +54,13 @@ struct HotkeysSection: View {
             }
             Hinted(hint: conflict ?? "Adds the selected word to the dictionary") {
                 ShortcutField(title: "Add-word hotkey", hotkey: model.settings.addWordHotkey, allowsModifiers: true, actions: actions,
-                              refuse: { model.hotkeyClash($0, for: "addWordHotkey") }) {
+                              refuse: { model.settings.hotkeyClash($0, for: "addWordHotkey") }) {
                     model.set("addWordHotkey", hotkey: $0)
                 }
             }
             Hinted(hint: "Starts a meeting transcript, or stops the running one. No shortcut until you record one") {
                 ShortcutField(title: "Meeting transcript hotkey", hotkey: model.settings.meetingHotkey, allowsModifiers: true, actions: actions,
-                              refuse: { model.hotkeyClash($0, for: "meetingHotkey") }, onRemove: { model.remove("meetingHotkey") }) {
+                              refuse: { model.settings.hotkeyClash($0, for: "meetingHotkey") }, onRemove: { model.remove("meetingHotkey") }) {
                     model.set("meetingHotkey", hotkey: $0)
                 }
             }

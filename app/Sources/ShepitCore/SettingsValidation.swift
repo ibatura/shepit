@@ -62,7 +62,7 @@ public func validateSettings(
             return nil
         }),
         ("theme", enumCheck(Settings.themes.map(\.value))),
-        ("accentColor", enumCheck(Settings.accentColors))
+        ("accentColor", enumCheck(AccentColor.allCases.map(\.rawValue)))
     ]
 
     for (key, check) in settingChecks {
@@ -337,7 +337,7 @@ private func assign(_ value: Any, to key: String, settings: inout Settings) {
     case "callAutoStopSeconds": settings.callAutoStopSeconds = integerValue(value)!
     case "callApps": settings.callApps = value as! [String]
     case "theme": settings.theme = value as! String
-    case "accentColor": settings.accentColor = value as! String
+    case "accentColor": settings.accentColor = AccentColor(rawValue: value as! String)!
     default: break
     }
 }

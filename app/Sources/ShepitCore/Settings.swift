@@ -38,6 +38,26 @@ public struct Hotkey: Equatable, Sendable {
     }
 }
 
+/// The accent colours Shepit offers; `system` follows macOS.
+public enum AccentColor: String, CaseIterable, Sendable {
+    case system, blue, purple, pink, red, orange, yellow, green, graphite
+
+    /// macOS's number for the colour (the per-app `AppleAccentColor` preference); nil follows macOS.
+    public var code: Int? {
+        switch self {
+        case .system: nil
+        case .graphite: -1
+        case .red: 0
+        case .orange: 1
+        case .yellow: 2
+        case .green: 3
+        case .blue: 4
+        case .purple: 5
+        case .pink: 6
+        }
+    }
+}
+
 public struct OverlayStyle: Equatable, Sendable {
     public var position: String
     public var width: Int
@@ -152,16 +172,9 @@ public struct Settings: Equatable, Sendable {
     public var callApps: [String]
     /// Light or dark for the window, the call panels and the dialogs: "system", "light", "dark".
     public var theme: String
-    /// One of `Settings.accentColors`; "system" follows macOS.
-    public var accentColor: String
+    public var accentColor: AccentColor
     /// Starts or stops a meeting transcript; nil = no shortcut.
     public var meetingHotkey: Hotkey?
-
-    public static let accentColors = ["system", "blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"]
-    /// macOS's number for an accent colour (the per-app `AppleAccentColor` preference); nil for "system".
-    public static func accentColorCode(_ name: String) -> Int? {
-        ["graphite": -1, "red": 0, "orange": 1, "yellow": 2, "green": 3, "blue": 4, "purple": 5, "pink": 6][name]
-    }
 
     public static let callAppNames = CallApp.allCases.map(\.rawValue)
 
@@ -213,7 +226,7 @@ public struct Settings: Equatable, Sendable {
         callAutoStopSeconds: Int = 10,
         callApps: [String] = Settings.callAppNames,
         theme: String = "system",
-        accentColor: String = "system",
+        accentColor: AccentColor = .system,
         meetingHotkey: Hotkey? = nil
     ) {
         self.mode = mode
@@ -257,6 +270,14 @@ public struct Settings: Equatable, Sendable {
         self.theme = theme
         self.accentColor = accentColor
         self.meetingHotkey = meetingHotkey
+    }
+
+    /// Why the hotkey `key` can't have these keys ("That is the dictation hotkey"); nil when no other hotkey has them.
+    public func hotkeyClash(_ keys: Hotkey, for key: String) -> String? {
+        let hotkeys: [(key: String, hotkey: Hotkey?, name: String)] = [
+            ("hotkey", hotkey, "dictation"), ("addWordHotkey", addWordHotkey, "add-word"), ("meetingHotkey", meetingHotkey, "meeting transcript"),
+        ]
+        return hotkeys.first { $0.key != key && $0.hotkey?.sameKeys(as: keys) == true }.map { "That is the \($0.name) hotkey" }
     }
 
     /// The engine set for a task; the default one when the file names none.

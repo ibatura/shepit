@@ -11,13 +11,13 @@ struct AppearanceSection: View {
             Hinted(hint: "The first dot follows macOS. If a colour doesn't show, restart Shepit") {
                 LabeledContent("Accent colour") {
                     HStack(spacing: 8) {
-                        ForEach(Settings.accentColors, id: \.self) { name in
-                            Button { model.set("accentColor", name) } label: {
-                                Circle().fill(Self.fill(name)).frame(width: 18, height: 18)
-                                    .overlay(Circle().strokeBorder(.primary, lineWidth: name == model.settings.accentColor ? 2 : 0).padding(-3))
+                        ForEach(AccentColor.allCases, id: \.self) { color in
+                            Button { model.set("accentColor", color.rawValue) } label: {
+                                Circle().fill(Self.fill(color)).frame(width: 18, height: 18)
+                                    .overlay(Circle().strokeBorder(.primary, lineWidth: color == model.settings.accentColor ? 2 : 0).padding(-3))
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel(name == "system" ? "Same as macOS" : name.capitalized)
+                            .accessibilityLabel(color == .system ? "Same as macOS" : color.rawValue.capitalized)
                         }
                     }
                 }
@@ -25,10 +25,19 @@ struct AppearanceSection: View {
         }
     }
 
-    private static func fill(_ name: String) -> AnyShapeStyle {
-        let colors: [String: Color] = ["blue": .blue, "purple": .purple, "pink": .pink, "red": .red, "orange": .orange,
-                                       "yellow": .yellow, "green": .green, "graphite": .gray]
-        return colors[name].map(AnyShapeStyle.init)
+    private static func fill(_ color: AccentColor) -> AnyShapeStyle {
+        let plain: Color? = switch color {
+        case .system: nil
+        case .blue: .blue
+        case .purple: .purple
+        case .pink: .pink
+        case .red: .red
+        case .orange: .orange
+        case .yellow: .yellow
+        case .green: .green
+        case .graphite: .gray
+        }
+        return plain.map(AnyShapeStyle.init)
             ?? AnyShapeStyle(AngularGradient(colors: [.red, .orange, .yellow, .green, .blue, .purple, .red], center: .center))
     }
 }

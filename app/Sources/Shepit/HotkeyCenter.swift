@@ -60,7 +60,7 @@ final class HotkeyCenter {
         }
         if let meeting = settings.meetingHotkey {
             // The same keys as another hotkey would shadow it, so the meeting hotkey is the one left out.
-            if meeting.sameKeys(as: settings.hotkey) || meeting.sameKeys(as: settings.addWordHotkey) {
+            if settings.hotkeyClash(meeting, for: "meetingHotkey") != nil {
                 errors.append("meetingHotkey \(KeyNames.label(meeting)) is already the dictation or add-word hotkey — change it in Settings → Hotkeys")
             } else if !register(.meeting, meeting) {
                 errors.append("cannot bind meetingHotkey \(KeyNames.label(meeting)) — change it in Settings → Hotkeys")

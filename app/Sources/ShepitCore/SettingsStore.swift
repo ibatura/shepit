@@ -60,14 +60,25 @@ public final class SettingsStore {
     }
 
     public func update(_ key: String, _ value: Any) throws {
+        try write { raw in
+            raw[key] = value
+            if key == "engines" {
+                raw.removeValue(forKey: "model")
+                raw.removeValue(forKey: "previewModel")
+            }
+        }
+    }
+
+    /// Takes `key` out of the file, so its default applies; the other keys stay as they are.
+    public func remove(_ key: String) throws {
+        try write { $0.removeValue(forKey: key) }
+    }
+
+    private func write(_ change: (inout [String: Any]) -> Void) throws {
         if FileManager.default.fileExists(atPath: file.path) { load() } // merge into the file as it is now, not as at the last poll
         guard settingsAreValid else { throw SettingsStoreError.brokenSettings }
         var raw = rawSettings
-        if value is NSNull { raw.removeValue(forKey: key) } else { raw[key] = value } // null removes the key
-        if key == "engines" {
-            raw.removeValue(forKey: "model")
-            raw.removeValue(forKey: "previewModel")
-        }
+        change(&raw)
 
         let (validated, validationErrors) = validateSettings(raw)
         guard let validated else { throw SettingsStoreError.validation(validationErrors) }

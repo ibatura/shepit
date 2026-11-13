@@ -239,16 +239,16 @@ struct SettingsModelTests {
         let store = SettingsStore(file: file)
         store.load()
         let model = SettingsModel(store: store, dictionaryStore: DictionaryStore(file: file.deletingLastPathComponent().appending(path: "dictionary.json")))
-        #expect(model.hotkeyClash(model.settings.hotkey, for: "meetingHotkey") == "That is the dictation hotkey")
+        #expect(model.settings.hotkeyClash(model.settings.hotkey, for: "meetingHotkey") == "That is the dictation hotkey")
         // The same keys, whatever order the file lists the modifiers in.
-        #expect(model.hotkeyClash(Hotkey(mods: ["alt", "ctrl"], key: "d"), for: "meetingHotkey") == "That is the add-word hotkey")
-        #expect(model.hotkeyClash(model.settings.hotkey, for: "hotkey") == nil) // recording the same keys again
+        #expect(model.settings.hotkeyClash(Hotkey(mods: ["alt", "ctrl"], key: "d"), for: "meetingHotkey") == "That is the add-word hotkey")
+        #expect(model.settings.hotkeyClash(model.settings.hotkey, for: "hotkey") == nil) // recording the same keys again
         let hotkey = Hotkey(mods: ["ctrl", "alt"], key: "m")
-        #expect(model.hotkeyClash(hotkey, for: "meetingHotkey") == nil)
+        #expect(model.settings.hotkeyClash(hotkey, for: "meetingHotkey") == nil)
 
         model.set("meetingHotkey", hotkey: hotkey)
         #expect(model.settings.meetingHotkey == hotkey)
-        #expect(model.hotkeyClash(hotkey, for: "hotkey") == "That is the meeting transcript hotkey")
+        #expect(model.settings.hotkeyClash(hotkey, for: "hotkey") == "That is the meeting transcript hotkey")
         model.remove("meetingHotkey")
         #expect(model.lastError == nil && model.settings.meetingHotkey == nil)
         #expect(try json(file).keys.sorted() == ["sounds"])
