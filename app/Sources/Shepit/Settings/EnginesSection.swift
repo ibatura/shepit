@@ -97,7 +97,7 @@ private struct ModelRow: View {
 
     var body: some View {
         let _ = downloads.revision // re-read the disk after a download or delete
-        LabeledContent(MenuModel.engineTitle(choice)) {
+        LabeledContent(choice.title) {
             HStack(spacing: 10) {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(state)
@@ -124,7 +124,7 @@ private struct ModelRow: View {
                 }
             }
         }
-        .confirmationDialog("Delete \(MenuModel.engineTitle(choice))?", isPresented: $confirmDelete) {
+        .confirmationDialog("Delete \(choice.title)?", isPresented: $confirmDelete) {
             Button("Delete", role: .destructive) { downloads.delete(.engine(choice), inUse: inUse()) }
         } message: {
             Text("It can be downloaded again later.")

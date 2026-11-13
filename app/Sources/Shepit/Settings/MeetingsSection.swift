@@ -31,7 +31,7 @@ struct MeetingsSection: View {
             }
             let engine = model.settings.engine(for: .meetings)
             LabeledContent("Recognition") {
-                Text(MenuModel.engineTitle(engine) + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"))
+                Text(engine.title + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"))
             }
             Text("Choose the engine in Engines and models.").font(.caption).foregroundStyle(.secondary)
         }

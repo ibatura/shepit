@@ -4,8 +4,8 @@ import Testing
 private let turbo = EngineChoice(engine: .whispercpp, model: "large-v3-turbo")
 private let kit = EngineChoice(engine: .whisperkit, model: "large-v3")
 
-private func home(_ change: (inout MenuView) -> Void = { _ in }) -> Home {
-    var view = MenuView()
+private func home(_ change: (inout AppSnapshot) -> Void = { _ in }) -> Home {
+    var view = AppSnapshot()
     view.downloaded = [turbo]
     view.today = "2026-10-06"
     change(&view)
@@ -52,7 +52,7 @@ struct HomeModelTests {
         #expect(rows[0].choices.map(\.title) == ["whisper.cpp · large-v3-turbo", "WhisperKit · large-v3"])
         #expect(rows[0].current == turbo && rows[2].current == kit)
         #expect(rows.map(\.enabled) == [true, true, true])
-        #expect(HomeModel.pairTitle(EngineChoice(engine: .apple, model: "")) == "Apple Speech")
+        #expect(EngineChoice(engine: .apple, model: "").pairTitle == "Apple Speech")
     }
 
     @Test func aConfiguredPairThatIsNotDownloadedIsStillListed() {

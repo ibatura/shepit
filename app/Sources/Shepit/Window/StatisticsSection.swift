@@ -128,7 +128,7 @@ struct StatisticsSection: View {
                 .font(.caption).foregroundStyle(.secondary)
                 ForEach(Stats.speedByEngine(rows), id: \.self) { speed in
                     GridRow {
-                        Text(MenuModel.engineTitle(EngineChoice(engine: EngineID(rawValue: speed.engine) ?? .whispercpp, model: speed.model)))
+                        Text(EngineChoice(engine: EngineID(rawValue: speed.engine) ?? .whispercpp, model: speed.model).title)
                         Text(String(format: "%.1f s", speed.medianWait)).monospacedDigit()
                         Text(String(format: "%.2f s", speed.medianWaitPer10s)).monospacedDigit()
                     }

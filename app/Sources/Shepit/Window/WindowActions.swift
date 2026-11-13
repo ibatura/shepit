@@ -6,7 +6,7 @@ import ShepitCore
 struct WindowActions {
     var microphones: () -> [String]
     /// Runs an action the menu also has (reload, open history, start and stop a meeting, copy).
-    var perform: (MenuAction) -> Void
+    var perform: (AppAction) -> Void
     var hotkeyProblem: () -> String?
     var openSettingsFile: () -> Void
     var openDataFolder: () -> Void

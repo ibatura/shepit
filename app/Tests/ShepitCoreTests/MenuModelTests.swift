@@ -4,8 +4,8 @@ import Testing
 private let turbo = EngineChoice(engine: .whispercpp, model: "large-v3-turbo")
 private let kit = EngineChoice(engine: .whisperkit, model: "large-v3")
 
-private func view(_ change: (inout MenuView) -> Void = { _ in }) -> MenuView {
-    var v = MenuView()
+private func view(_ change: (inout AppSnapshot) -> Void = { _ in }) -> AppSnapshot {
+    var v = AppSnapshot()
     v.downloaded = [turbo]
     v.microphones = ["MacBook Pro Microphone", "MOMENTUM 4"]
     change(&v)
@@ -27,16 +27,16 @@ struct MenuModelTests {
     }
 
     @Test func statusLineForEachSituation() {
-        #expect(MenuModel.statusLine(view()) == "Ready — whisper.cpp large-v3-turbo")
-        #expect(MenuModel.statusLine(view { $0.load = .loading }) == "Loading whisper.cpp large-v3-turbo…")
-        #expect(MenuModel.statusLine(view { $0.load = .failed("Missing file: x") }) == "Error: Missing file: x")
-        #expect(MenuModel.statusLine(view { $0.load = .unloaded }) == "Model unloaded — loads on next use")
-        #expect(MenuModel.statusLine(view { $0.state = .recording }) == "Recording… (Esc to cancel)")
-        #expect(MenuModel.statusLine(view { $0.state = .transcribing }) == "Transcribing…")
+        #expect(view().statusLine == "Ready — whisper.cpp large-v3-turbo")
+        #expect(view { $0.load = .loading }.statusLine == "Loading whisper.cpp large-v3-turbo…")
+        #expect(view { $0.load = .failed("Missing file: x") }.statusLine == "Error: Missing file: x")
+        #expect(view { $0.load = .unloaded }.statusLine == "Model unloaded — loads on next use")
+        #expect(view { $0.state = .recording }.statusLine == "Recording… (Esc to cancel)")
+        #expect(view { $0.state = .transcribing }.statusLine == "Transcribing…")
     }
 
     @Test func longErrorDetailsAreShortened() {
-        #expect(MenuModel.statusLine(view { $0.load = .failed(String(repeating: "x", count: 200)) }).count <= 90)
+        #expect(view { $0.load = .failed(String(repeating: "x", count: 200)) }.statusLine.count <= 90)
     }
 
     @Test func menuHasStatusSubmenusAndActionsInOrder() {

@@ -52,7 +52,7 @@ final class WindowNavigation {
 @MainActor
 @Observable
 final class WindowModel {
-    var home = HomeModel.build(MenuView())
+    var home = HomeModel.build(AppSnapshot())
 }
 
 /// The one window (window shell design §4). Shepit is a regular app with a Dock icon only while it is open.

@@ -186,8 +186,8 @@ final class AppHost: ControllerHost {
     // MARK: snapshot
 
     /// What the menu, its title and the window show. Device and disk lookups come from `lookups`.
-    func snapshot() -> MenuView {
-        var view = MenuView()
+    func snapshot() -> AppSnapshot {
+        var view = AppSnapshot()
         view.state = controller.state
         view.load = dictationLoad
         view.settings = settings
@@ -241,7 +241,7 @@ final class AppHost: ControllerHost {
     private static func languageNote(_ choice: EngineChoice, _ language: String) async -> String? {
         guard let language = Language(rawValue: language), let engine = try? EngineFactory.make(choice) else { return nil }
         guard await engine.capabilities.check(language) != nil else { return nil }
-        let name = MenuModel.engineTitle(choice)
+        let name = choice.title
         return language == .auto
             ? "⚠ \(name) can't detect the language — choose Ukrainian or English in General"
             : "⚠ \(name) can't be set to \(language == .uk ? "Ukrainian" : "English") — it detects the language itself"
@@ -280,7 +280,7 @@ final class AppHost: ControllerHost {
         }
     }
 
-    func perform(_ action: MenuAction) {
+    func perform(_ action: AppAction) {
         switch action {
         case .setMode(let mode): update("mode", mode)
         case .setLanguage(let language): update("language", language)

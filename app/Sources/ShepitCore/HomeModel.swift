@@ -5,7 +5,7 @@ public struct Home: Equatable, Sendable {
     public struct Button: Equatable, Sendable {
         public var title: String
         /// nil: the button is off.
-        public var action: MenuAction?
+        public var action: AppAction?
     }
 
     public struct Warning: Equatable, Sendable {
@@ -67,24 +67,15 @@ public enum HomeModel {
     /// How many of the last dictations Home lists.
     public static let dictationCount = 10
 
-    public static func build(_ view: MenuView) -> Home {
-        Home(status: MenuModel.statusLine(view), dictating: view.state != .idle,
+    public static func build(_ view: AppSnapshot) -> Home {
+        Home(status: view.statusLine, dictating: view.state != .idle,
              microphones: Microphones.choices(connected: view.microphones, configured: view.settings.microphone),
              microphoneEnabled: view.state == .idle && !view.meeting.isActive, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
              dictations: view.history.prefix(dictationCount).map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
     }
 
-    /// "whisper.cpp · large-v3"; engines with one model show the name alone.
-    public static func pairTitle(_ choice: EngineChoice) -> String {
-        switch choice.engine {
-        case .whispercpp: "whisper.cpp · \(choice.model)"
-        case .whisperkit: "WhisperKit · \(choice.model)"
-        case .parakeet, .apple: MenuModel.engineTitle(choice)
-        }
-    }
-
-    private static func warnings(_ view: MenuView) -> [Home.Warning] {
+    private static func warnings(_ view: AppSnapshot) -> [Home.Warning] {
         var warnings = view.hotkeyProblem.map { [Home.Warning(text: $0)] } ?? []
         if !view.accessibilityGranted {
             warnings.append(Home.Warning(text: "Accessibility not granted (needed to paste)", button: Home.Button(title: "Allow…", action: .grantAccessibility)))
@@ -95,7 +86,7 @@ public enum HomeModel {
         return warnings
     }
 
-    private static func engines(_ view: MenuView) -> [Home.EngineRow] {
+    private static func engines(_ view: AppSnapshot) -> [Home.EngineRow] {
         let dictating = view.state != .idle
         let rows: [(EngineTask, String, String, Bool)] = [
             (.dictation, "Dictation", "The text that gets pasted", !dictating),
@@ -104,18 +95,18 @@ public enum HomeModel {
         ]
         return rows.map { task, title, hint, enabled in
             let current = view.settings.engine(for: task)
-            var choices = view.downloaded.map { Home.EngineRow.Choice(choice: $0, title: pairTitle($0)) }
+            var choices = view.downloaded.map { Home.EngineRow.Choice(choice: $0, title: $0.pairTitle) }
             if !view.downloaded.contains(current) {
-                choices.append(Home.EngineRow.Choice(choice: current, title: "\(pairTitle(current)) (not downloaded)"))
+                choices.append(Home.EngineRow.Choice(choice: current, title: "\(current.pairTitle) (not downloaded)"))
             }
             return Home.EngineRow(task: task, title: title, hint: hint, choices: choices, current: current, enabled: enabled)
         }
     }
 
-    private static func card(_ view: MenuView) -> Home.Card? {
+    private static func card(_ view: AppSnapshot) -> Home.Card? {
         let headline: String
         switch view.meeting {
-        case .recording(let elapsed, _): headline = "Recording \(MenuModel.clock(elapsed))"
+        case .recording(let elapsed, _): headline = "Recording \(StatusText.clock(elapsed))"
         case .finishing: headline = "Finishing"
         case .detectingSpeakers: headline = "Detecting speakers"
         case .idle, .done, .interrupted: return nil
@@ -123,10 +114,10 @@ public enum HomeModel {
         return Home.Card(headline: headline, detail: [view.meetingTitle, view.meetingApp].compactMap { $0 }.joined(separator: " · "))
     }
 
-    private static func meeting(_ view: MenuView) -> Home.MeetingRow {
+    private static func meeting(_ view: AppSnapshot) -> Home.MeetingRow {
         switch view.meeting {
         case .recording(let elapsed, let waiting):
-            let parts = [view.meetingApp, MenuModel.clock(elapsed), waiting > 0 ? "\(waiting) phrase\(waiting == 1 ? "" : "s") waiting" : nil]
+            let parts = [view.meetingApp, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
             return Home.MeetingRow(recording: true, title: view.meetingTitle ?? "Meeting transcript",
                                    hint: parts.compactMap { $0 }.joined(separator: " · "), button: Home.Button(title: "Stop", action: .stopMeeting))
         case .finishing(let left): return Home.MeetingRow(title: "Finishing the transcript (\(left) left)")

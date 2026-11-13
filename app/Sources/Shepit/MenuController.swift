@@ -6,13 +6,13 @@ import ShepitCore
 final class MenuController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
-    private let currentView: () -> MenuView
-    private let titleView: () -> MenuView
-    private let perform: (MenuAction) -> Void
-    private var actions: [MenuAction] = [] // indexed by NSMenuItem.tag
+    private let currentView: () -> AppSnapshot
+    private let titleView: () -> AppSnapshot
+    private let perform: (AppAction) -> Void
+    private var actions: [AppAction] = [] // indexed by NSMenuItem.tag
 
     /// `view` is called when the menu opens and looks devices and files up again; `title` is refreshed often and reuses them.
-    init(view: @escaping () -> MenuView, title: @escaping () -> MenuView, perform: @escaping (MenuAction) -> Void) {
+    init(view: @escaping () -> AppSnapshot, title: @escaping () -> AppSnapshot, perform: @escaping (AppAction) -> Void) {
         currentView = view
         titleView = title
         self.perform = perform
@@ -26,7 +26,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     func refreshTitle() {
         let view = titleView()
         statusItem.button?.title = MenuModel.title(view)
-        statusItem.button?.toolTip = "Shepit: \(MenuModel.statusLine(view))"
+        statusItem.button?.toolTip = "Shepit: \(view.statusLine)"
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
