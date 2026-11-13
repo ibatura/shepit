@@ -58,7 +58,7 @@ Date: ____
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
-| C1 | Start a call in Teams, in Zoom, in Google Meet (Chrome) | In each, one panel within 5 s with the call's name (Zoom: "Zoom call") || ✅ 2026-11-12: Teams, Zoom, Meet; the Teams offer on the pre-join screen is named "Meeting join" (the pre-join window title)
+| C1 | Start a call in Teams, in Zoom, in Google Meet (Chrome) | In each, one panel within 5 s with the call's name (Zoom: "Zoom call") || ✅ 2026-11-12: Teams, Zoom, Meet; the Teams pre-join title "Meeting join" is ignored since 2026-11-13 (the offer says "Teams call")
 | C2 | Press Start transcript | Starts at once, no name dialog; the note has the panel's name || ✅ 2026-11-12: all three apps
 | C3 | Leave the panel alone (`callOfferSeconds` 15) | Hides after 15 s; no second panel in this call; Start from the menu works || ✅ 2026-11-12 Teams
 | C4 | `callOfferSeconds` 0, start a call | The panel stays until a button is pressed || ✅ 2026-11-12

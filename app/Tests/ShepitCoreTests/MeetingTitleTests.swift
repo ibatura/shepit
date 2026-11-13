@@ -13,6 +13,8 @@ struct MeetingTitleTests {
         #expect(MeetingTitle.detect(windows) == ("Refinement: Phase 3 Requirements Gaps and Open Questions", "Teams"))
         #expect(MeetingTitle.detect([w("Microsoft Teams", "Weekly sync | Microsoft Teams", inCall: true)]) == ("Weekly sync", "Teams"))
         #expect(MeetingTitle.detect([w("Microsoft Teams", "Calendar", inCall: true)]) == (nil, "Teams"))
+        // The pre-join screen of a meeting with no name (2026-11-12).
+        #expect(MeetingTitle.detect([w("Microsoft Teams", "Meeting join", inCall: true)]) == (nil, "Teams"))
     }
 
     @Test func teamsMeetingWindowGivesTheName() {

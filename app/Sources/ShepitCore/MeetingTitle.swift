@@ -17,7 +17,8 @@ public enum MeetingTitle {
 
     /// Teams views that are not a meeting.
     static let teamsViews: Set<String> = ["Chat", "Calendar", "Activity", "Teams", "Calls", "Files", "Apps", "Copilot",
-                                          "Microsoft Teams", "Search", "Settings", "Notifications", "Communities", "OneDrive"]
+                                          "Microsoft Teams", "Search", "Settings", "Notifications", "Communities", "OneDrive",
+                                          "Meeting join"] // the pre-join screen (2026-11-12)
     public static let zoom = "zoom.us"
     /// Zoom window titles that are not a meeting topic.
     static let zoomGeneric: Set<String> = ["Zoom", "Zoom Meeting", "Zoom Workplace", "Zoom Webinar", "Meeting", "zoom.us"]
