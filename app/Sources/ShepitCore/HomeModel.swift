@@ -45,6 +45,12 @@ public struct Home: Equatable, Sendable {
     }
 
     public var status: String
+    /// A dictation runs: Mode, Language and Reload model wait for it, as in the menu.
+    public var dictating: Bool
+    /// The connected microphones, and the configured one when it is not connected.
+    public var microphones: [String]
+    /// Off while a dictation or a transcript uses the microphone.
+    public var microphoneEnabled: Bool
     public var warnings: [Warning]
     public var engines: [EngineRow]
     public var meeting: MeetingRow
@@ -56,7 +62,10 @@ public struct Home: Equatable, Sendable {
 
 public enum HomeModel {
     public static func build(_ view: MenuView) -> Home {
-        Home(status: MenuModel.statusLine(view), warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
+        let microphone = view.settings.microphone
+        return Home(status: MenuModel.statusLine(view), dictating: view.state != .idle,
+             microphones: microphone.isEmpty || view.microphones.contains(microphone) ? view.microphones : view.microphones + [microphone],
+             microphoneEnabled: view.state == .idle && !MenuModel.meetingActive(view.meeting), warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
              dictations: view.history.map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
     }

@@ -31,6 +31,11 @@ public struct Hotkey: Equatable, Sendable {
         self.mods = mods
         self.key = key
     }
+
+    /// The same key with the same modifiers, in whatever order the file lists them.
+    public func sameKeys(as other: Hotkey) -> Bool {
+        key == other.key && Set(mods) == Set(other.mods)
+    }
 }
 
 public struct OverlayStyle: Equatable, Sendable {

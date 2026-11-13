@@ -20,6 +20,20 @@ struct HomeModelTests {
         #expect(home { $0.load = .failed("x") }.status == "Error: x")
     }
 
+    @Test func controlsWaitForTheJobThatUsesThem() {
+        #expect(!home().dictating && home().microphoneEnabled)
+        let dictating = home { $0.state = .recording }
+        #expect(dictating.dictating && !dictating.microphoneEnabled)
+        let meeting = home { $0.meeting = .recording(elapsed: 1, waiting: 0) }
+        #expect(!meeting.dictating && !meeting.microphoneEnabled)
+    }
+
+    @Test func theConfiguredMicrophoneIsListedEvenWhenNotConnected() {
+        #expect(home { $0.microphones = ["Built-in"]; $0.settings.microphone = "Built-in" }.microphones == ["Built-in"])
+        #expect(home { $0.microphones = ["Built-in"]; $0.settings.microphone = "AirPods" }.microphones == ["Built-in", "AirPods"])
+        #expect(home { $0.microphones = ["Built-in"] }.microphones == ["Built-in"])
+    }
+
     @Test func aWarningForEachProblem() {
         #expect(home().warnings.isEmpty)
         let warnings = home { $0.hotkeyProblem = "Hotkey taken"; $0.accessibilityGranted = false; $0.microphoneDenied = true }.warnings

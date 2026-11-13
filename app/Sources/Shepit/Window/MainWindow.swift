@@ -80,6 +80,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
         self.window = window
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
+        if window.isMiniaturized { window.deminiaturize(nil) }
         window.makeKeyAndOrderFront(nil)
     }
 

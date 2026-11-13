@@ -121,7 +121,7 @@ struct HotkeyCenterTests {
         let registrar = FakeRegistrar()
         let center = HotkeyCenter(registrar: registrar)
         var settings = Settings.defaults
-        for taken in [settings.hotkey, settings.addWordHotkey] {
+        for taken in [settings.hotkey, settings.addWordHotkey, Hotkey(mods: ["alt", "ctrl"], key: "d")] {
             settings.meetingHotkey = taken
             #expect(center.apply(settings) == .failed([
                 "meetingHotkey \(KeyNames.label(taken)) is already the dictation or add-word hotkey — change it in Settings → Hotkeys",

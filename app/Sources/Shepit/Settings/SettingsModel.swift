@@ -106,11 +106,13 @@ final class SettingsModel {
         set(key, NSNull())
     }
 
-    /// Why these keys can't be the meeting hotkey, or nil when they can.
-    func meetingHotkeyClash(_ hotkey: Hotkey) -> String? {
-        if hotkey == settings.hotkey { return "That is the dictation hotkey" }
-        if hotkey == settings.addWordHotkey { return "That is the add-word hotkey" }
-        return nil
+    /// Why these keys can't be the hotkey `key`: another hotkey has them. nil when they can.
+    func hotkeyClash(_ hotkey: Hotkey, for key: String) -> String? {
+        let others: [(String, Hotkey?, String)] = [
+            ("hotkey", settings.hotkey, "dictation"), ("addWordHotkey", settings.addWordHotkey, "add-word"),
+            ("meetingHotkey", settings.meetingHotkey, "meeting transcript"),
+        ]
+        return others.first { $0.0 != key && $0.1?.sameKeys(as: hotkey) == true }.map { "That is the \($0.2) hotkey" }
     }
 
     /// One task's engine; writes the whole `engines` object (the store then drops the legacy model keys).

@@ -29,17 +29,18 @@ struct HomeSection: View {
                         Text("English").tag("en")
                         Text("Auto-detect").tag("auto")
                     }
-                    Picker("Microphone", selection: model.binding("microphone", \.microphone)) {
-                        Text("System default").tag("")
-                        ForEach(actions.microphones(with: model.settings.microphone), id: \.self) { Text($0).tag($0) }
-                    }
                 }
-                .disabled(model.isReadOnly)
+                .disabled(home.dictating || model.isReadOnly)
+                Picker("Microphone", selection: model.binding("microphone", \.microphone)) {
+                    Text("System default").tag("")
+                    ForEach(home.microphones, id: \.self) { Text($0).tag($0) }
+                }
+                .disabled(!home.microphoneEnabled || model.isReadOnly)
                 HStack {
                     Text("Changes apply at once").foregroundStyle(.secondary)
                     Spacer()
                     Button("Reload settings") { actions.perform(.reloadConfig) }
-                    Button("Reload model") { actions.perform(.reloadModels) }.disabled(home.engines.first?.enabled == false)
+                    Button("Reload model") { actions.perform(.reloadModels) }.disabled(home.dictating)
                 }
             }
             Section("Engines: which model does which job") {
