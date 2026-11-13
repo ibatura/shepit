@@ -7,7 +7,7 @@ What comes next, and what was set aside and why. Reviewed with the author on 202
 Build order agreed on 2026-11-11:
 
 1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
-2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Left: the merge into `main`, and the list under "Call offer: left open" below.
+2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Merged into `main` on 2026-11-13. Left: the list under "Call offer: left open" below.
 3. **Window shell** with Home and Settings.
 4. **Meetings**: the database, names, merging people, giving a line to another person.
 5. **Dictations and Dictionary.**
