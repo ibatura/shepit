@@ -2,11 +2,12 @@ import Charts
 import SwiftUI
 import ShepitCore
 
-/// Settings → Statistics (`05-statistics.md` §2). All numbers come from the pure `Stats` functions.
+/// The window's Statistics section (`05-statistics.md` §2). All numbers come from the pure `Stats` functions.
 struct StatisticsSection: View {
     let model: SettingsModel
     let actions: SettingsActions
-    @Binding var section: SettingsModel.Section?
+    /// Opens the setting behind "time saved".
+    let openTypingSpeed: () -> Void
     @State private var period = StatsPeriod.week
     @State private var hovered: Date?
 
@@ -42,7 +43,7 @@ struct StatisticsSection: View {
             }
             HStack(spacing: 4) {
                 Text("Time saved = words ÷ your typing speed − (speaking + waiting), never below zero per dictation.")
-                Button("Typing speed: \(wpm) wpm") { section = .historyPrivacy }.buttonStyle(.link)
+                Button("Typing speed: \(wpm) wpm") { openTypingSpeed() }.buttonStyle(.link)
             }
             .font(.caption)
             .foregroundStyle(.secondary)

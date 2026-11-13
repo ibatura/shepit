@@ -6,13 +6,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        NSApp.mainMenu = Self.editMenu()
+        NSApp.mainMenu = mainMenu()
         host.start()
     }
 
-    /// A menu-bar app has no menu bar of its own, so without this ⌘C/⌘V/⌘X/⌘A/⌘Z do nothing in Settings
-    /// and the dialogs: key equivalents are found through the main menu, even when it is never shown.
-    static func editMenu() -> NSMenu {
+    /// Shown while the window is open (window shell design §4). It is also needed while Shepit is a menu-bar
+    /// app: key equivalents (⌘C/⌘V/⌘X/⌘A/⌘Z in the dialogs) are found through the main menu, even when it is not shown.
+    private func mainMenu() -> NSMenu {
+        let app = NSMenu(title: "Shepit")
+        app.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        app.addItem(.separator())
+        app.addItem(withTitle: "Quit Shepit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let window = NSMenu(title: "Window")
+        window.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        window.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         let edit = NSMenu(title: "Edit")
         edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
         let redo = edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
@@ -22,12 +29,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-        let editItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
-        editItem.submenu = edit
         let main = NSMenu()
-        main.addItem(NSMenuItem(title: "Shepit", action: nil, keyEquivalent: "")) // the app menu slot
-        main.addItem(editItem)
+        for menu in [app, edit, window] {
+            let item = NSMenuItem(title: menu.title, action: nil, keyEquivalent: "")
+            item.submenu = menu
+            main.addItem(item)
+        }
         return main
+    }
+
+    @objc private func openSettings() {
+        host.showWindow(.settings)
     }
 
     /// Quit asks first during a meeting; engines are unloaded before exit (whisper.cpp's Metal teardown
@@ -48,9 +60,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return [kAELogOut, kAEReallyLogOut, kAEShowShutdownDialog, kAEShutDown, kAERestart, kAEShowRestartDialog].map { OSType($0) }.contains(reason)
     }
 
-    /// Launching the app again opens Settings (`04-settings.md` §3).
+    /// Launching the app again opens the window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        host.showSettings()
+        host.showWindow()
         return false
     }
 }

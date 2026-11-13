@@ -37,7 +37,7 @@ struct MeetingsSection: View {
             LabeledContent("Recognition") {
                 Text(MenuModel.engineTitle(engine) + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"))
             }
-            Text("Choose the engine in Engines & Models.").font(.caption).foregroundStyle(.secondary)
+            Text("Choose the engine in Engines and models.").font(.caption).foregroundStyle(.secondary)
         }
         Section {
             ForEach(MeetingModel.allCases, id: \.self) { meetingModel in

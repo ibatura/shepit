@@ -1,7 +1,7 @@
 import SwiftUI
 import ShepitCore
 
-/// Settings → Engines & Models (`04-settings.md` §3, `02-engines.md` §3–5): an engine and model per
+/// Settings → Engines and models (`04-settings.md` §3, `02-engines.md` §3–5): an engine and model per
 /// task, idle unload, and what is on disk. Downloads come with the model downloader.
 struct EnginesSection: View {
     let model: SettingsModel

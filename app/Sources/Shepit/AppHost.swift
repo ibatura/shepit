@@ -40,7 +40,7 @@ final class AppHost: ControllerHost {
     /// Start from the menu is under way (its scan, its name dialog): an automatic start stays out.
     var startingByHand = false
     private lazy var settingsModel = SettingsModel(store: settingsStore, dictionaryStore: dictionaryStore)
-    private lazy var settingsWindow = SettingsWindow(model: settingsModel, actions: SettingsActions(
+    private lazy var windowActions = SettingsActions(
         microphones: { AudioRecorder.inputDevices().map(\.name) },
         hotkeyProblem: { [unowned self] in self.hotkeyProblem },
         openSettingsFile: { [unowned self] in self.edit(Paths.settingsFile, empty: "{}") },
@@ -56,7 +56,11 @@ final class AppHost: ControllerHost {
         statistics: { [unowned self] in (try? self.stats.dictations(in: $0)) ?? [] },
         meetingStatistics: { [unowned self] in (try? self.stats.meetings(in: $0)) ?? [] },
         languageNote: { choice, language in await Self.languageNote(choice, language) },
-        downloads: downloads))
+        downloads: downloads)
+    private lazy var mainWindow = MainWindow(
+        model: settingsModel, actions: windowActions,
+        // A shortcut being recorded when the window closes would leave the global hotkeys off.
+        onClose: { [unowned self] in self.hotkeys.apply(self.settings) })
     private let downloads = ModelDownloads()
     private var dictationLoad = LoadState.unloaded
     private var configErrors: [String] = []
@@ -228,9 +232,9 @@ final class AppHost: ControllerHost {
         _ = TimerBox(after: 3) { [unowned self] in self.panel.done("Сьогодні я відкрив pull request у GitHub.") }
     }
 
-    /// Opens Settings (menu, or launching the app again).
-    func showSettings() {
-        settingsWindow.show()
+    /// Opens the window (menu, ⌘, or launching the app again); nil: on the section it had last.
+    func showWindow(_ section: WindowSection? = nil) {
+        mainWindow.show(section)
     }
 
     /// Asks the engine itself (Apple's languages depend on the system), without loading a model.
@@ -285,7 +289,8 @@ final class AppHost: ControllerHost {
             engines[.dictation] = choice
             update("engines", Dictionary(uniqueKeysWithValues: engines.map { ($0.key.rawValue, ["engine": $0.value.engine.rawValue, "model": $0.value.model]) }))
         case .addToDictionary: Task { await addToDictionary() }
-        case .openWindow, .openSettings: showSettings() // one window so far; the main window comes next
+        case .openWindow: showWindow()
+        case .openSettings: showWindow(.settings)
         case .reloadConfig: reloadConfig(announce: true)
         case .reloadModels:
             let engines = settings.engines

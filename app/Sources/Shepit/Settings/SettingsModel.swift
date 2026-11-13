@@ -11,14 +11,12 @@ final class SettingsModel {
     enum Section: String, CaseIterable, Identifiable {
         case general = "General"
         case hotkeys = "Hotkeys"
+        case engines = "Engines and models"
         case dictation = "Dictation"
+        case overlay = "Overlay"
         case meetings = "Meetings"
         case calls = "Calls"
-        case engines = "Engines & Models"
-        case overlay = "Overlay"
-        case dictionary = "Dictionary"
-        case historyPrivacy = "History & Privacy"
-        case statistics = "Statistics"
+        case historyPrivacy = "History and privacy"
 
         var id: String { rawValue }
 
@@ -31,9 +29,7 @@ final class SettingsModel {
             case .calls: "phone"
             case .engines: "cpu"
             case .overlay: "rectangle.bottomhalf.inset.filled"
-            case .dictionary: "character.book.closed"
             case .historyPrivacy: "lock.shield"
-            case .statistics: "chart.bar"
             }
         }
 
@@ -47,9 +43,7 @@ final class SettingsModel {
             case .calls: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"]
             case .engines: ["engines", "idleUnloadMinutes"]
             case .overlay: ["overlay", "livePreview", "overlayStyle"]
-            case .dictionary: [] // dictionary.json: terms, replace, dropPhrases
             case .historyPrivacy: ["saveHistory", "historyDays", "historyMenuItems", "failedAudioHours", "collectStats", "typingSpeedWpm"]
-            case .statistics: [] // reads stats.sqlite
             }
         }
     }

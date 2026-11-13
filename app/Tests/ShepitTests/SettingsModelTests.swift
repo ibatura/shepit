@@ -209,6 +209,31 @@ struct SettingsModelTests {
         #expect(model.lastError == nil && model.settings.callApps == ["Teams", "Zoom"])
     }
 
+    @Test func settingsSectionsInTheWindowsOrderAndNoKeyInTwoOfThem() {
+        #expect(SettingsModel.Section.allCases.map(\.rawValue) == [
+            "General", "Hotkeys", "Engines and models", "Dictation", "Overlay", "Meetings", "Calls", "History and privacy",
+        ])
+        let keys = SettingsModel.Section.allCases.flatMap(\.keys)
+        #expect(Set(keys).count == keys.count)
+    }
+
+    @Test func theWindowRemembersItsSections() throws {
+        let name = "shepit-test-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        #expect(WindowNavigation(defaults: defaults).section == .home)
+        #expect(WindowNavigation(defaults: defaults).settingsSection == .general)
+
+        WindowNavigation(defaults: defaults).openSettings(.calls)
+        let again = WindowNavigation(defaults: defaults)
+        #expect(again.section == .settings && again.settingsSection == .calls)
+
+        defaults.set("Gone", forKey: "windowSection") // a section a later version dropped
+        defaults.set("Statistics", forKey: "settingsSection")
+        let unknown = WindowNavigation(defaults: defaults)
+        #expect(unknown.section == .home && unknown.settingsSection == .general)
+    }
+
     @Test func serverPortIsShownNowhere() {
         #expect(!SettingsModel.Section.allCases.flatMap(\.keys).contains("serverPort"))
     }
