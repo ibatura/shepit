@@ -34,14 +34,14 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 - `docs/superpowers/specs/`: designs. `docs/superpowers/plans/`: implementation plans of phases 1–3.
 - `docs/manual-test-checklist.md`: manual checks on a real Mac and real calls.
 
-## Where things stand (2026-11-12)
+## Where things stand (2026-11-13)
 
 - Phases 1–3 are done: dictation, settings, statistics, meeting transcripts.
 - Meeting names: Teams window title, Meet tab title or page bar, remembered names for repeats (`meeting-names.json`). Zoom shows no topic. Mute state is read from all three apps. Checked on real calls in each app.
 - Open manual checks: M1, M4, M7, M9, M22 (M22 needs repeating meetings over weeks).
 - Next, in this order unless the author says otherwise:
-  1. Offer to record when a call starts: built on branch `call-offer`, not merged. A floating panel with the call's name and a Start button (`CallWatch` polls which app holds the microphone, `CallOffer` in `ShepitCore` decides, `CallPanel` shows it, `AppHost+Calls.swift` wires them); it starts on its own only with `callAutoStart` on. `Shepit call-watch` and `Shepit panel-test` are its debug commands. Manual checks C1–C10 passed (2026-11-13). Open: the author's end-of-branch reviews, then the merge.
-  2. The main window, built in parts: shell with Home and Settings; Meetings (database, names, merge, reassign a line); Dictations and Dictionary; Statistics; voice prints; import names. The menu keeps quick actions only. The current UI was rejected; don't polish it piece by piece. A plan for each part first.
+  1. Merge branch `call-offer` into `main` (ask first). The offer to record when a call starts is built and checked there: a floating panel with the call's name and a Start button (`CallWatch` polls which app holds the microphone, `CallOffer` in `ShepitCore` decides, `CallPanel` shows it, `AppHost+Calls.swift` wires them); it starts on its own only with `callAutoStart` on. `Shepit call-watch` and `Shepit panel-test` are its debug commands. Manual checks C1–C10 and the author's three end-of-branch reviews are done (2026-11-13). What the reviews left open is in `docs/future-ideas.md` under "Call offer: left open"; the mute check in Zoom and Meet comes first.
+  2. The main window, built in parts, starting with the shell (Home and Settings): a spec and a plan first, then the build. Parts: shell with Home and Settings; Meetings (database, names, merge, reassign a line); Dictations and Dictionary; Statistics; voice prints; import names. The menu keeps quick actions only. The current UI was rejected; don't polish it piece by piece. A plan for each part first.
   The look and the screens are fixed in `docs/superpowers/specs/2026-11-11-visual-style/` (spec and `mockups.html`).
   Decisions and the build order are in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy with full history is on GitLab (`local-dictation-tool`); it is no longer updated.

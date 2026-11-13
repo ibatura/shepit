@@ -7,7 +7,7 @@ What comes next, and what was set aside and why. Reviewed with the author on 202
 Build order agreed on 2026-11-11:
 
 1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
-2. **Offer to record when a call starts**: built on branch `call-offer` (2026-11-12); manual checks C1–C10 passed (2026-11-13); the end-of-branch reviews are open.
+2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Left: the merge into `main`, and the list under "Call offer: left open" below.
 3. **Window shell** with Home and Settings.
 4. **Meetings**: the database, names, merging people, giving a line to another person.
 5. **Dictations and Dictionary.**
@@ -16,6 +16,20 @@ Build order agreed on 2026-11-11:
 8. **Import names** from a transcript; the Meet `.txt` format last.
 
 Each gets its own spec and plan.
+
+### Call offer: left open (2026-11-13)
+
+Found by the reviews of the branch and not changed; none blocks the merge except the first, which needs a check on a call.
+
+- **Mute in Zoom and Meet (check before relying on it).** A call's end is the app releasing the microphone for 3 s. If Zoom or Meet releases it while the author is muted, the transcript stops mid-call. Teams keeps it (a 32-minute call, 2026-11-13). Check: start a transcript, mute for 30 s, see whether "Call ended" appears.
+- Arc, Edge and Brave: their helper bundle IDs were never probed (`Shepit call-watch` during a Meet call shows them); the match is a case-sensitive prefix.
+- A browser holding the microphone with no Meet tab is looked at every 10 s for as long as it holds it.
+- The Teams pre-join title is ignored in English only ("Meeting join").
+- Removing an empty call transcript leaves a folder that was created for it (`meetingFileName` with folders).
+- "Transcript ready" and "Call ended" panels also show with `callOffer` off.
+- Whether the panel's buttons take a click while a dialog is open was not tried (its countdown runs).
+- Speech in the first seconds after Start on a pre-join screen: one test note had only the line said after Cancel; not looked into.
+- Structure, for the Meetings part: the call app is a `CallApp` in some places and a string in others (`MeetingTitle.detect`, `Settings.callApps`), with two browser lists; the menu's Start and the panel each have their own name lookup.
 
 ### The main window (decided 2026-11-11)
 
