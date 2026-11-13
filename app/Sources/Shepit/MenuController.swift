@@ -11,7 +11,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let perform: (MenuAction) -> Void
     private var actions: [MenuAction] = [] // indexed by NSMenuItem.tag
 
-    /// `view` builds the full menu when it opens; `title` is the cheap subset for the menu-bar title.
+    /// `view` is called when the menu opens and looks devices and files up again; `title` is refreshed often and reuses them.
     init(view: @escaping () -> MenuView, title: @escaping () -> MenuView, perform: @escaping (MenuAction) -> Void) {
         currentView = view
         titleView = title

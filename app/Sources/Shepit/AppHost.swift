@@ -37,15 +37,12 @@ final class AppHost: ControllerHost {
     /// Start from the menu is under way (its scan, its name dialog): an automatic start stays out.
     var startingByHand = false
     private lazy var settingsModel = SettingsModel(store: settingsStore, dictionaryStore: dictionaryStore)
-    private lazy var windowActions = SettingsActions(
+    private lazy var windowActions = WindowActions(
         microphones: { AudioRecorder.inputDevices().map(\.name) },
         perform: { [unowned self] in self.perform($0) },
         hotkeyProblem: { [unowned self] in self.hotkeyProblem },
         openSettingsFile: { [unowned self] in self.edit(Paths.settingsFile, empty: "{}") },
         openDataFolder: { NSWorkspace.shared.open(Paths.dataDir) },
-        openHistory: { [unowned self] in self.perform(.openHistory) },
-        openMeetingsFolder: { [unowned self] in self.openMeetingsFolder() },
-        clearHistory: { [unowned self] in self.perform(.clearHistory) },
         clearStatistics: { [unowned self] in self.clearStatistics() },
         setLaunchAtLogin: { Self.setLaunchAtLogin($0) },
         suspendHotkeys: { [unowned self] in self.hotkeys.suspend() },
@@ -55,10 +52,10 @@ final class AppHost: ControllerHost {
         meetingStatistics: { [unowned self] in (try? self.stats.meetings(in: $0)) ?? [] },
         languageNote: { choice, language in await Self.languageNote(choice, language) },
         downloads: downloads)
-    private lazy var mainWindow = MainWindow(
-        model: settingsModel, actions: windowActions,
-        // A shortcut being recorded when the window closes would leave the global hotkeys off.
-        onClose: { [unowned self] in self.hotkeys.apply(self.settings) })
+    lazy var mainWindow = MainWindow(model: settingsModel, actions: windowActions,
+                                     home: { [unowned self] in HomeModel.build(self.snapshot()) })
+    /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
+    var lookups = Lookups()
     private let downloads = ModelDownloads()
     private var dictationLoad = LoadState.unloaded
     private var configErrors: [String] = []
@@ -89,7 +86,7 @@ final class AppHost: ControllerHost {
             transcribe: { [unowned self] samples in try await models.transcribe(.preview, self.request(samples)) },
             process: { [unowned self] in DictionaryRules.process($0, self.dictionaryStore.dictionary).text },
             onText: { [unowned self] in self.panel.preview($0) }))
-        menu = MenuController(view: { [unowned self] in self.menuView() }, title: { [unowned self] in self.titleView() },
+        menu = MenuController(view: { [unowned self] in self.gatherLookups(); return self.snapshot() }, title: { [unowned self] in self.snapshot() },
                               perform: { [unowned self] in self.perform($0) })
         hotkeys.onDictationDown = { [unowned self] in self.controller.hotkeyDown() }
         hotkeys.onDictationUp = { [unowned self] in self.controller.hotkeyUp() }
@@ -133,10 +130,7 @@ final class AppHost: ControllerHost {
                 await self.models.setIdleUnload(minutes: minutes)
             }
         }
-        if initial || before?.theme != after.theme {
-            // nil follows macOS. The dictation overlay has its own colours.
-            NSApp.appearance = ["light": NSAppearance.Name.aqua, "dark": .darkAqua][after.theme].flatMap(NSAppearance.init(named:))
-        }
+        if initial || before?.theme != after.theme { applyTheme(after.theme) }
         if initial || before?.accentColor != after.accentColor { applyAccentColor(after.accentColor) }
         if announce, settingsOK, dictionaryOK { panel.message("Config reloaded") }
         refreshStatus()
@@ -189,38 +183,45 @@ final class AppHost: ControllerHost {
         try? stats.insertModelLoad(engine: choice, seconds: seconds, residentMB: residentMemoryMB(), at: Date())
     }
 
-    // MARK: menu
+    // MARK: snapshot
 
-    /// Just what the menu-bar title needs; refreshed often, so no device or disk lookups.
-    private func titleView() -> MenuView {
+    /// What the menu, its title and the window show. Device and disk lookups come from `lookups`.
+    func snapshot() -> MenuView {
         var view = MenuView()
         view.state = controller.state
         view.load = dictationLoad
         view.settings = settings
-        view.hotkeyProblem = hotkeyProblem
-        view.meeting = meeting?.state ?? .idle
-        return view
-    }
-
-    private func menuView() -> MenuView {
-        var view = MenuView()
-        view.state = controller.state
-        view.load = dictationLoad
-        view.settings = settings
-        view.downloaded = ModelCatalog.downloadedChoices()
         view.configErrors = configErrors
         view.hotkeyProblem = hotkeyProblem
         view.today = String(History.stamp(Date()).prefix(10))
-        view.microphones = AudioRecorder.inputDevices().map(\.name)
-        view.accessibilityGranted = Permissions.accessibilityGranted
-        view.microphoneDenied = Permissions.microphoneDenied
         view.meeting = meeting?.state ?? .idle
         view.meetingTitle = meeting?.title
         view.meetingApp = meeting?.app
         view.call = callOffer.current
-        view.meetingMissing = meetingMissing
-        view.history = History.recent(Paths.historyFile, count: max(HomeModel.dictationCount, settings.historyMenuItems))
+        view.downloaded = lookups.downloaded
+        view.microphones = lookups.microphones
+        view.history = lookups.history
+        view.accessibilityGranted = lookups.accessibilityGranted
+        view.microphoneDenied = lookups.microphoneDenied
+        view.meetingMissing = lookups.meetingMissing
         return view
+    }
+
+    /// The parts of the snapshot that need a device or disk lookup.
+    struct Lookups {
+        var downloaded: [EngineChoice] = []
+        var microphones: [String] = []
+        var history: [History.Entry] = []
+        var accessibilityGranted = true
+        var microphoneDenied = false
+        var meetingMissing: String?
+    }
+
+    func gatherLookups() {
+        lookups = Lookups(downloaded: ModelCatalog.downloadedChoices(), microphones: AudioRecorder.inputDevices().map(\.name),
+                          history: History.recent(Paths.historyFile, count: max(HomeModel.dictationCount, settings.historyMenuItems)),
+                          accessibilityGranted: Permissions.accessibilityGranted, microphoneDenied: Permissions.microphoneDenied,
+                          meetingMissing: meetingMissing)
     }
 
     private var hotkeyProblem: String? {
@@ -234,38 +235,6 @@ final class AppHost: ControllerHost {
         panel.recording(Date())
         panel.preview("Сьогодні я відкрив pull request у GitHub і попросив колегу зробити code review")
         _ = TimerBox(after: 3) { [unowned self] in self.panel.done("Сьогодні я відкрив pull request у GitHub.") }
-    }
-
-    /// Opens the window (menu, ⌘, or launching the app again); nil: on the section it had last.
-    func showWindow(_ section: WindowSection? = nil) {
-        mainWindow.show(section)
-        refreshWindow()
-    }
-
-    /// The menu-bar title, and the window when it is open.
-    func refreshStatus() {
-        menu?.refreshTitle()
-        refreshWindow()
-    }
-
-    /// Nothing is gathered for a closed window.
-    func refreshWindow() {
-        guard mainWindow.isOpen else { return }
-        let home = HomeModel.build(menuView())
-        if home != mainWindow.live.home { mainWindow.live.home = home }
-    }
-
-    /// The accent colour is macOS's per-app preference `AppleAccentColor`, in Shepit's own preferences.
-    private func applyAccentColor(_ name: String) {
-        let key = "AppleAccentColor"
-        let code = Settings.accentColorCode(name)
-        guard UserDefaults.standard.object(forKey: key) as? Int != code else { return }
-        UserDefaults.standard.set(code, forKey: key)
-        // macOS reads the preference when an app starts, and again on this notification (the one System Settings
-        // sends; other apps re-read their own colour and find it unchanged).
-        // shortcut: the notification is undocumented; if it stops working the colour applies at the next start.
-        DistributedNotificationCenter.default().postNotificationName(
-            Notification.Name("AppleAquaColorVariantChanged"), object: nil, userInfo: nil, deliverImmediately: true)
     }
 
     /// Asks the engine itself (Apple's languages depend on the system), without loading a model.

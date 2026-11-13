@@ -4,14 +4,14 @@ import ShepitCore
 /// The window's content: the sidebar and the chosen section (window shell design §4).
 struct MainView: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
     let live: WindowModel
     @Bindable var navigation: WindowNavigation
 
     var body: some View {
         NavigationSplitView {
             List(selection: Binding(get: { navigation.section }, set: { navigation.section = $0 ?? navigation.section })) {
-                ForEach(WindowSection.allCases.dropLast()) { row($0) }
+                ForEach(WindowSection.allCases.filter { $0 != .settings }) { row($0) }
                 Divider()
                 row(.settings)
             }
@@ -40,7 +40,7 @@ struct MainView: View {
         case .meetings:
             Placeholder(section: .meetings, text: "Meetings come in a later version. Until then they are in the menu.")
         case .dictations:
-            Placeholder(section: .dictations, text: "The full history comes in a later version.", button: "Open history file", action: actions.openHistory)
+            Placeholder(section: .dictations, text: "The full history comes in a later version.", button: "Open history file") { actions.perform(.openHistory) }
         case .dictionary:
             Form { DictionarySection(model: model) }.formStyle(.grouped).disabled(model.dictionaryIsReadOnly)
         case .people:
@@ -95,6 +95,31 @@ private struct Placeholder: View {
             Text(text)
         } actions: {
             if let button { Button(button, action: action) }
+        }
+    }
+}
+
+/// settings.json errors (controls are read-only until the file is fixed) and refused writes.
+private struct ProblemBanner: View {
+    let model: SettingsModel
+    let openFile: () -> Void
+
+    var body: some View {
+        let lines = model.errors + model.dictionaryErrors + (model.lastError.map { [$0] } ?? [])
+        if !lines.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(lines, id: \.self) { Text("⚠ \($0)") }
+                if model.isReadOnly || model.dictionaryIsReadOnly {
+                    HStack {
+                        Text("Fix the file to change these settings here.")
+                        Button("Open settings file", action: openFile)
+                    }
+                }
+            }
+            .font(.callout)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.15))
         }
     }
 }

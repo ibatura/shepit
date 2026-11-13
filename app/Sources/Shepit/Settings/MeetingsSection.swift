@@ -6,7 +6,7 @@ import ShepitCore
 /// dialog, the microphone label and language, and the voice/speaker detection models.
 struct MeetingsSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
 
     var body: some View {
         Section("Notes") {
@@ -15,7 +15,7 @@ struct MeetingsSection: View {
             Hinted(hint: "At Start, ask for the meeting name, prefilled with the one found in Teams, Zoom or Google Meet. Only when the file name uses {title}") {
                 Toggle("Ask for the meeting name", isOn: model.binding("meetingAskTitle", \.meetingAskTitle))
             }
-            Button("Open meetings folder", action: actions.openMeetingsFolder)
+            Button("Open meetings folder") { actions.perform(.openMeetingsFolder) }
         }
         Section("Dictation") {
             Hinted(hint: "When on, the dictation hotkey does nothing while a meeting is recording. When off, you can dictate during a meeting; that audio is left out of the transcript") {

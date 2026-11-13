@@ -5,7 +5,7 @@ import ShepitCore
 /// The window's Statistics section (`05-statistics.md` §2). All numbers come from the pure `Stats` functions.
 struct StatisticsSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
     /// Opens the setting behind "time saved".
     let openTypingSpeed: () -> Void
     @State private var period = StatsPeriod.week

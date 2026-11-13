@@ -110,7 +110,7 @@ extension AppHost {
         let session = MeetingSession(config: config, mic: MicSource(recorder: recorder, device: settings.microphone),
                                      call: CallTapSource(), services: meetingServices(language: settings.meetingLanguage))
         session.onState = { [weak self] state in
-            self?.refreshStatus()
+            self?.refreshLive() // every second while it records: the clock
             switch state {
             case .finishing, .detectingSpeakers: self?.callEvent(.sessionStopping)
             default: break

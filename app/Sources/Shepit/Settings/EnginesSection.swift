@@ -5,7 +5,7 @@ import ShepitCore
 /// task, idle unload, and what is on disk. Downloads come with the model downloader.
 struct EnginesSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
 
     private let tasks: [(EngineTask, String, String)] = [
         (.dictation, "Dictation", "The text that gets pasted"),
@@ -44,7 +44,7 @@ struct EnginesSection: View {
 
 private struct TaskEngineRow: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
     let task: EngineTask
     let title: String
     let hint: String

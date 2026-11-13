@@ -4,7 +4,7 @@ import ShepitCore
 /// The window's Home section (window shell design §5): status and quick controls, drawn from `Home`.
 struct HomeSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
     let home: Home
     let navigation: WindowNavigation
 

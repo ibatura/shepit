@@ -48,7 +48,7 @@ final class WindowNavigation {
     }
 }
 
-/// What the window shows of the app's live state. `AppHost` refreshes it only while the window is open.
+/// What the window shows of the app's live state, kept current by `MainWindow.refresh`.
 @MainActor
 @Observable
 final class WindowModel {
@@ -59,23 +59,32 @@ final class WindowModel {
 @MainActor
 final class MainWindow: NSObject, NSWindowDelegate {
     let navigation = WindowNavigation()
-    let live = WindowModel()
+    private let live = WindowModel()
     private let model: SettingsModel
-    private let actions: SettingsActions
-    private let onClose: () -> Void
+    private let actions: WindowActions
+    private let home: () -> Home
     private var window: NSWindow?
 
-    init(model: SettingsModel, actions: SettingsActions, onClose: @escaping () -> Void) {
+    /// `home` builds Home from the app's state; it is asked only while the window is open.
+    init(model: SettingsModel, actions: WindowActions, home: @escaping () -> Home) {
         self.model = model
         self.actions = actions
-        self.onClose = onClose
+        self.home = home
     }
 
     var isOpen: Bool { window?.isVisible == true }
 
+    /// After a change of state. Nothing is gathered for a closed window.
+    func refresh() {
+        guard isOpen else { return }
+        let home = home()
+        if home != live.home { live.home = home }
+    }
+
     /// `section` nil: the section it had last.
     func show(_ section: WindowSection? = nil) {
         if let section { navigation.section = section }
+        live.home = home()
         let window = self.window ?? makeWindow()
         self.window = window
         NSApp.setActivationPolicy(.regular)
@@ -99,7 +108,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        onClose()
+        actions.resumeHotkeys() // a shortcut being recorded when the window closes would leave them off
         NSApp.setActivationPolicy(.accessory)
     }
 }

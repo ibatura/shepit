@@ -4,7 +4,7 @@ import ShepitCore
 
 struct GeneralSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
     @State private var loginProblem: String?
 
     var body: some View {
@@ -33,7 +33,7 @@ struct GeneralSection: View {
 
 struct HotkeysSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
 
     var body: some View {
         Section {
@@ -81,7 +81,7 @@ struct ShortcutField: View {
     /// nil: no shortcut set.
     let hotkey: Hotkey?
     let allowsModifiers: Bool
-    let actions: SettingsActions
+    let actions: WindowActions
     /// Why a recorded shortcut can't be used, or nil when it can.
     var refuse: (Hotkey) -> String? = { _ in nil }
     /// Set for a shortcut that may be absent: shows Remove.
@@ -146,7 +146,7 @@ struct ShortcutField: View {
 
 struct DictationSection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
 
     var body: some View {
         Section {
@@ -179,7 +179,7 @@ struct DictationSection: View {
 
 struct HistoryPrivacySection: View {
     let model: SettingsModel
-    let actions: SettingsActions
+    let actions: WindowActions
 
     var body: some View {
         Section("History") {
@@ -202,8 +202,8 @@ struct HistoryPrivacySection: View {
                 }
             }
             HStack {
-                Button("Open history", action: actions.openHistory)
-                Button("Clear history…", action: actions.clearHistory)
+                Button("Open history") { actions.perform(.openHistory) }
+                Button("Clear history…") { actions.perform(.clearHistory) }
             }
         }
         Section("Statistics") {
