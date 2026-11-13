@@ -308,6 +308,34 @@ struct SettingsTests {
         ])
     }
 
+    @Test func appearanceAndMeetingHotkeyDefaults() {
+        let settings = validateSettings([:]).0
+        #expect(settings?.theme == "system")
+        #expect(settings?.accentColor == "system")
+        #expect(settings?.meetingHotkey == nil)
+    }
+
+    @Test func appearanceAndMeetingHotkeyValuesAreAccepted() {
+        for theme in ["system", "light", "dark"] { #expect(validateSettings(["theme": theme]).0?.theme == theme) }
+        for color in Settings.accentColors { #expect(validateSettings(["accentColor": color]).0?.accentColor == color) }
+        #expect(Settings.accentColors == ["system", "blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"])
+        let hotkey: [String: Any] = ["mods": ["ctrl", "alt"], "key": "m"]
+        #expect(validateSettings(["meetingHotkey": hotkey]).0?.meetingHotkey == Hotkey(mods: ["ctrl", "alt"], key: "m"))
+        let (settings, errors) = validateSettings(["meetingHotkey": NSNull()])
+        #expect(errors.isEmpty && settings != nil && settings?.meetingHotkey == nil)
+    }
+
+    @Test func appearanceAndMeetingHotkeyValuesAreRejected() {
+        #expect(validateSettings(["theme": "sepia", "accentColor": "#FF0000", "meetingHotkey": "m"]).1 == [
+            #"settings.json: "accentColor" must be one of: system, blue, purple, pink, red, orange, yellow, green, graphite"#,
+            #"settings.json: "meetingHotkey" must be an object like {"mods": ["alt"], "key": "space"}"#,
+            #"settings.json: "theme" must be one of: system, light, dark"#,
+        ])
+        #expect(validateSettings(["meetingHotkey": ["mods": ["hyper"], "key": "m"]]).1 == [
+            #"settings.json: "meetingHotkey.mods" must be a list of: cmd, alt, ctrl, shift"#,
+        ])
+    }
+
     @Test func meetingsFolderExpandsTildeAndMyNameFallsBackToTheAccountName() {
         var settings = Settings.defaults
         let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)

@@ -39,6 +39,8 @@
   "callAutoStartSeconds": 5,
   "callAutoStopSeconds": 10,
   "callApps": ["Teams", "Zoom", "Meet"],
+  "theme": "system",
+  "accentColor": "system",
   "overlayStyle": {
     "position": "bottom",
     "width": 560,

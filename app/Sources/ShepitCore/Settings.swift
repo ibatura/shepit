@@ -145,7 +145,14 @@ public struct Settings: Equatable, Sendable {
     public var callAutoStopSeconds: Int
     /// Apps that get an offer: any of `Settings.callAppNames`.
     public var callApps: [String]
+    /// Light or dark for the window, the call panels and the dialogs: "system", "light", "dark".
+    public var theme: String
+    /// One of `Settings.accentColors`; "system" follows macOS.
+    public var accentColor: String
+    /// Starts or stops a meeting transcript; nil = no shortcut.
+    public var meetingHotkey: Hotkey?
 
+    public static let accentColors = ["system", "blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"]
     public static let callAppNames = CallApp.allCases.map(\.rawValue)
 
     public init(
@@ -186,7 +193,10 @@ public struct Settings: Equatable, Sendable {
         callAutoStart: Bool = false,
         callAutoStartSeconds: Int = 5,
         callAutoStopSeconds: Int = 10,
-        callApps: [String] = Settings.callAppNames
+        callApps: [String] = Settings.callAppNames,
+        theme: String = "system",
+        accentColor: String = "system",
+        meetingHotkey: Hotkey? = nil
     ) {
         self.mode = mode
         self.hotkey = hotkey
@@ -226,6 +236,9 @@ public struct Settings: Equatable, Sendable {
         self.callAutoStartSeconds = callAutoStartSeconds
         self.callAutoStopSeconds = callAutoStopSeconds
         self.callApps = callApps
+        self.theme = theme
+        self.accentColor = accentColor
+        self.meetingHotkey = meetingHotkey
     }
 
     /// `meetingsFolder` with a leading `~/` expanded.

@@ -63,7 +63,7 @@ public final class SettingsStore {
         if FileManager.default.fileExists(atPath: file.path) { load() } // merge into the file as it is now, not as at the last poll
         guard settingsAreValid else { throw SettingsStoreError.brokenSettings }
         var raw = rawSettings
-        raw[key] = value
+        if value is NSNull { raw.removeValue(forKey: key) } else { raw[key] = value } // null removes the key
         if key == "engines" {
             raw.removeValue(forKey: "model")
             raw.removeValue(forKey: "previewModel")

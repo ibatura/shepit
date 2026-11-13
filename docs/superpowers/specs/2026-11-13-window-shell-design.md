@@ -29,7 +29,7 @@ Today Shepit has a Settings window and a long menu. This part turns the Settings
 - The menu as in §7 below.
 
 **Non-goals**
-- The content of Meetings, Dictations and People (their own parts).
+- The content of Meetings, Dictations and People (their own parts). Meetings will be stored in a local database and changed in the window (name, people, merge, a line given to another person): that is the Meetings part, next after this one (`docs/future-ideas.md`).
 - A new look for Dictionary and Statistics, and the new statistics numbers (their own parts).
 - `rememberVoices` (the People part).
 - A global hotkey for "Copy last dictation" (set aside in `docs/future-ideas.md`).

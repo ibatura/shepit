@@ -175,6 +175,7 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `hotkey` | `{"mods": ["alt"], "key": "space"}` | `mods`: any of `"cmd"`, `"alt"` (Option), `"ctrl"`, `"shift"`. `key`: a single character (`"d"`) or a key name (`"space"`, `"return"`, `"f13"`…) | The dictation hotkey. Keys are physical positions, so they work in any keyboard layout |
 | `cancelKey` | `"escape"` | a key name | Cancels a recording. Only active while recording |
 | `addWordHotkey` | `{"mods": ["ctrl", "alt"], "key": "d"}` | same format as `hotkey` | Adds the selected word to the dictionary |
+| `meetingHotkey` | none | same format as `hotkey`, or `null` | Starts a meeting transcript, or stops the running one. Leave it out for no shortcut |
 | `engines` | whisper.cpp `large-v3-turbo` for every task | `{"dictation": {"engine": …, "model": …}, "preview": …, "meetings": …}`; engines `whispercpp`, `whisperkit`, `parakeet`, `apple` | Engine and model per task (Settings → Engines & Models). Old files with `model` / `previewModel` still work |
 | `language` | `"uk"` | `"uk"`, `"en"`, `"auto"` | Keep `"uk"` for Ukrainian with English terms. `"auto"` may translate your speech into one language |
 | `stylePrompt` | a Ukrainian sentence with English terms | any text | Example text the engine imitates. Keep English terms in Latin script — this is what makes it write `pull request` instead of «пул реквест» |
@@ -206,6 +207,8 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `callAutoStartSeconds` | `5` | 3–60 | Length of that countdown |
 | `callAutoStopSeconds` | `10` | 3–120 | Seconds from the call's end until the transcript stops, unless you press Keep recording |
 | `callApps` | `["Teams", "Zoom", "Meet"]` | any of these | Apps that get the panel |
+| `theme` | `"system"` | `"system"`, `"light"`, `"dark"` | Light or dark for the window, the call panels and the dialogs; `system` follows macOS |
+| `accentColor` | `"system"` | `"system"`, `"blue"`, `"purple"`, `"pink"`, `"red"`, `"orange"`, `"yellow"`, `"green"`, `"graphite"` | Accent colour; `system` follows macOS |
 
 **Meeting file names.** Placeholders: `{date}` (2026-10-26), `{time}` (14-05), `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`, `{weekday}` (Mon), `{title}` (the meeting name, up to 80 characters), `{app}` (Teams, Meet). Empty parts and the separators around them are dropped; a name that's taken gets ` (2)`. Not allowed outside placeholders: `\ : * ? " < > | # ^ [ ]`. Examples for a meeting "Weekly sync" on Monday 26 Oct 2026 at 14:05:
 

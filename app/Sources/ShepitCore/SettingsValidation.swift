@@ -60,7 +60,9 @@ public func validateSettings(
                 return "must be a list of: \(Settings.callAppNames.joined(separator: ", ")), each at most once"
             }
             return nil
-        })
+        }),
+        ("theme", enumCheck(["system", "light", "dark"])),
+        ("accentColor", enumCheck(Settings.accentColors))
     ]
 
     for (key, check) in settingChecks {
@@ -83,6 +85,11 @@ public func validateSettings(
         if let hotkey = validateHotkey(value, key: "addWordHotkey", errors: &errors) {
             settings.addWordHotkey = hotkey
         }
+    }
+
+    // null means no shortcut, the same as leaving the key out.
+    if let value = raw["meetingHotkey"], !(value is NSNull) {
+        settings.meetingHotkey = validateHotkey(value, key: "meetingHotkey", errors: &errors)
     }
 
     if let rawStyle = raw["overlayStyle"] {
@@ -329,6 +336,8 @@ private func assign(_ value: Any, to key: String, settings: inout Settings) {
     case "callAutoStartSeconds": settings.callAutoStartSeconds = integerValue(value)!
     case "callAutoStopSeconds": settings.callAutoStopSeconds = integerValue(value)!
     case "callApps": settings.callApps = value as! [String]
+    case "theme": settings.theme = value as! String
+    case "accentColor": settings.accentColor = value as! String
     default: break
     }
 }
