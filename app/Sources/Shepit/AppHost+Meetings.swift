@@ -16,12 +16,7 @@ extension AppHost {
         return ModelCatalog.isDownloaded(engine) && MeetingModel.vad.isDownloaded() ? nil : "download the model in Settings"
     }
 
-    var meetingActive: Bool {
-        switch meeting?.state {
-        case .recording, .finishing, .detectingSpeakers: true
-        default: false
-        }
-    }
+    var meetingActive: Bool { meeting?.state.isActive == true }
 
     func recoverMeeting() {
         if let note = MeetingSession.recover(stateDir: Paths.dataDir, sessionsRoot: Self.meetingSessionsRoot, now: Date()) {
@@ -31,15 +26,11 @@ extension AppHost {
 
     /// The meeting hotkey: what the menu's Start or Stop does at this moment.
     func toggleMeeting() {
-        switch meeting?.state {
-        case .recording: Task { await meeting?.stop() }
-        case .finishing, .detectingSpeakers: panel.message("Transcript is finishing")
-        default:
-            if let missing = meetingMissing {
-                panel.message("⚠ Meeting transcript not started", detail: missing)
-            } else {
-                Task { await startMeeting() }
-            }
+        switch MeetingControl(meeting?.state ?? .idle, missing: meetingMissing) {
+        case .stop: Task { await meeting?.stop() }
+        case .busy: panel.message("Transcript is finishing")
+        case .blocked(let missing): panel.message("⚠ Meeting transcript not started", detail: missing)
+        case .start: Task { await startMeeting() }
         }
     }
 

@@ -66,6 +66,33 @@ public enum MeetingState: Equatable, Sendable {
     case detectingSpeakers
     case done(speakers: Int?)
     case interrupted
+
+    /// A transcript is recording or still being written.
+    public var isActive: Bool {
+        switch self {
+        case .recording, .finishing, .detectingSpeakers: true
+        case .idle, .done, .interrupted: false
+        }
+    }
+}
+
+/// What Start/Stop does at this moment: the same in the menu, on Home and for the meeting hotkey.
+public enum MeetingControl: Equatable, Sendable {
+    case stop
+    /// The transcript is being finished: nothing to start or stop.
+    case busy
+    /// Start can't run; what is missing.
+    case blocked(String)
+    case start
+
+    /// `missing`: nil when a meeting can start, else what to download first.
+    public init(_ state: MeetingState, missing: String?) {
+        switch state {
+        case .recording: self = .stop
+        case .finishing, .detectingSpeakers: self = .busy
+        case .idle, .done, .interrupted: self = missing.map(MeetingControl.blocked) ?? .start
+        }
+    }
 }
 
 /// The statistics row for one meeting (`05-statistics.md` §1). Numbers only.

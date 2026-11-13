@@ -65,7 +65,7 @@ public enum HomeModel {
         let microphone = view.settings.microphone
         return Home(status: MenuModel.statusLine(view), dictating: view.state != .idle,
              microphones: microphone.isEmpty || view.microphones.contains(microphone) ? view.microphones : view.microphones + [microphone],
-             microphoneEnabled: view.state == .idle && !MenuModel.meetingActive(view.meeting), warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
+             microphoneEnabled: view.state == .idle && !view.meeting.isActive, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
              dictations: view.history.map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
     }
@@ -95,7 +95,7 @@ public enum HomeModel {
         let rows: [(EngineTask, String, String, Bool)] = [
             (.dictation, "Dictation", "The text that gets pasted", !dictating),
             (.preview, "Live draft", "The preview in the panel while you speak", !dictating),
-            (.meetings, "Meetings", "Meeting transcripts", !MenuModel.meetingActive(view.meeting)),
+            (.meetings, "Meetings", "Meeting transcripts", !view.meeting.isActive),
         ]
         return rows.map { task, title, hint, enabled in
             let current = view.settings.engines[task] ?? Settings.defaults.engines[task]!

@@ -85,14 +85,7 @@ public enum MenuModel {
     private static let languageTitles = ["uk": "Ukrainian", "en": "English", "auto": "Auto-detect"]
 
     public static func title(_ view: MenuView) -> String {
-        meetingActive(view.meeting) ? "⏺" + dictationTitle(view) : dictationTitle(view)
-    }
-
-    static func meetingActive(_ state: MeetingState) -> Bool {
-        switch state {
-        case .recording, .finishing, .detectingSpeakers: true
-        case .idle, .done, .interrupted: false
-        }
+        view.meeting.isActive ? "⏺" + dictationTitle(view) : dictationTitle(view)
     }
 
     /// The meeting's line under the status line (window shell design §7); nil when no meeting runs.
@@ -114,16 +107,14 @@ public enum MenuModel {
     }
 
     private static func meetingItems(_ view: MenuView) -> [MenuItem] {
-        let start: MenuItem
-        switch view.meeting {
-        case .recording: start = MenuItem(title: "Stop meeting transcript", action: .stopMeeting)
-        case .finishing, .detectingSpeakers: start = MenuItem(title: "Start meeting transcript", enabled: false)
-        case .idle, .done, .interrupted:
-            start = view.meetingMissing.map { MenuItem(title: "Start meeting transcript (\($0))", enabled: false) }
-                ?? MenuItem(title: "Start meeting transcript", action: .startMeeting)
+        let start = switch MeetingControl(view.meeting, missing: view.meetingMissing) {
+        case .stop: MenuItem(title: "Stop meeting transcript", action: .stopMeeting)
+        case .busy: MenuItem(title: "Start meeting transcript", enabled: false)
+        case .blocked(let missing): MenuItem(title: "Start meeting transcript (\(missing))", enabled: false)
+        case .start: MenuItem(title: "Start meeting transcript", action: .startMeeting)
         }
         // Off during a session: the note is still being written and relabelled.
-        let idle = !meetingActive(view.meeting)
+        let idle = !view.meeting.isActive
         return [
             start,
             MenuItem(title: "Copy last meeting transcript", action: .copyLastMeeting),

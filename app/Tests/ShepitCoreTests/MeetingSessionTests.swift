@@ -496,3 +496,19 @@ struct MeetingSessionTests {
         #expect(try size() == 44 + 3 * 32_000)
     }
 }
+
+// Window shell design §5, §7: the menu, Home and the meeting hotkey decide Start/Stop alike.
+struct MeetingControlTests {
+    @Test func startOrStopFollowsTheState() {
+        #expect(MeetingControl(.recording(elapsed: 1, waiting: 0), missing: "download the model") == .stop)
+        #expect(MeetingControl(.finishing(left: 1), missing: nil) == .busy)
+        #expect(MeetingControl(.detectingSpeakers, missing: nil) == .busy)
+        #expect(MeetingControl(.idle, missing: nil) == .start)
+        #expect(MeetingControl(.done(speakers: 2), missing: "download the model") == .blocked("download the model"))
+    }
+
+    @Test func activeWhileRecordingOrWriting() {
+        let states: [MeetingState] = [.idle, .recording(elapsed: 1, waiting: 0), .finishing(left: 1), .detectingSpeakers, .done(speakers: nil), .interrupted]
+        #expect(states.map(\.isActive) == [false, true, true, true, false, false])
+    }
+}
