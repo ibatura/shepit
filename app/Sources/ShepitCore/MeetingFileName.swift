@@ -46,6 +46,16 @@ public enum MeetingFileName {
         }
     }
 
+    /// The note's path after its meeting is renamed (Meetings design §8): the file name part of `template` filled again,
+    /// in the folder the note is in now, unique against other files. A template without `{title}` keeps the name.
+    public static func renamed(_ note: URL, template: String, start: Date, title: String?, app: String?, calendar: Calendar = .current,
+                               exists: (URL) -> Bool) -> URL {
+        guard template.contains("{title}") else { return note }
+        let name = (relativePath(template, start: start, title: title, app: app, calendar: calendar) as NSString).lastPathComponent
+        // The note itself is not "taken", even when the new name differs only in case (APFS ignores case).
+        return unique(name, in: note.deletingLastPathComponent()) { $0.path.lowercased() != note.path.lowercased() && exists($0) }
+    }
+
     private static func fill(_ template: String, start: Date, title: String?, app: String?, calendar: Calendar) -> String {
         let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: start)
         func two(_ value: Int?) -> String { String(format: "%02d", value ?? 0) }

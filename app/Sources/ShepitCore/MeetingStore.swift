@@ -169,6 +169,32 @@ public final class MeetingStore {
         return names.filter { seen.insert($0).inserted }
     }
 
+    /// Renames a meeting (Meetings design §8): the store, the note's `title` line and file name, and `meeting-names.json`.
+    /// The store and the note change together or not at all; a missing note changes only the store and the names file.
+    public func rename(_ meeting: Meeting, to title: String?, template: String, namesFile: URL, calendar: Calendar = .current) throws {
+        let fm = FileManager.default
+        let note = URL(fileURLWithPath: meeting.path)
+        try transaction {
+            try rename(meeting.id, title: title)
+            guard fm.fileExists(atPath: note.path) else { return }
+            let target = MeetingFileName.renamed(note, template: template, start: meeting.start, title: title, app: meeting.app,
+                                                 calendar: calendar) { fm.fileExists(atPath: $0.path) }
+            if target != note { try relink(meeting.id, path: target.path) }
+            let text = try String(contentsOf: note, encoding: .utf8)
+            let titled = MeetingNote.settingTitle(text, title)
+            if titled != text { try Data(titled.utf8).write(to: note, options: .atomic) }
+            guard target != note else { return }
+            do {
+                try fm.moveItem(at: note, to: target)
+            } catch {
+                if titled != text { try? Data(text.utf8).write(to: note, options: .atomic) }
+                throw error
+            }
+        }
+        // Best effort: the names file only prefills the name dialog.
+        try? MeetingNames.save(MeetingNames.renaming(MeetingNames.load(namesFile), start: meeting.start, to: title, app: meeting.app), to: namesFile)
+    }
+
     /// Runs `body` as one change: all of it is kept, or none when it throws.
     public func transaction<T>(_ body: () throws -> T) throws -> T {
         try sqlite.transaction(body)

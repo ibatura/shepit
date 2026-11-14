@@ -83,4 +83,15 @@ public enum MeetingNames {
         guard let best = daily.max(by: { ($0.value.count, $0.value.max()!) < ($1.value.count, $1.value.max()!) }) else { return nil }
         return shown[best.key]
     }
+
+    /// The meeting that started at `start` renamed to `title` (Meetings design §8): its entry gets the new name, one is added
+    /// when it had none, and it is removed for no name. The file keeps whole seconds, so starts match within a second.
+    public static func renaming(_ entries: [Entry], start: Date, to title: String?, app: String?) -> [Entry] {
+        let others = entries.filter { abs($0.start.timeIntervalSince(start)) >= 1 }
+        guard let title else { return others }
+        if entries.contains(where: { abs($0.start.timeIntervalSince(start)) < 1 }) {
+            return entries.map { abs($0.start.timeIntervalSince(start)) < 1 ? Entry(title: title, app: $0.app, start: $0.start) : $0 }
+        }
+        return adding(entries, title: title, app: app, start: start)
+    }
 }
