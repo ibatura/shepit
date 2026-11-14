@@ -43,6 +43,11 @@ Not blockers; the reviews of the branch found them and they were left as they ar
 - Home greys out Mode, Language, Microphone and the engine pickers while their job runs, but the same keys stay editable in Settings.
 - A minimized window shows its old Home for up to 2 s after it comes back.
 
+### New ideas (the author, 2026-11-15; not ordered yet)
+
+- **The call panel should slide in finished.** Today the offer, stop and "Transcript ready" panels appear in pieces: the text and the card are drawn apart, and the card flies in from the top left before it lands in the top right. It should slide in from the right edge, already fully drawn. A likely cause: `CallPanel.show` orders the panel front at its old frame (`.zero` the first time) before SwiftUI has drawn the new state, and places it again on the next pass.
+- **A new look for the dictation overlay.** After the window's redesign the overlay (recording, transcribing, live draft) looks as if it came from another app. Redesign it in the style of the window and the call panel (`2026-11-11-visual-style/`), and make it better while at it.
+
 ### The main window (decided 2026-11-11)
 
 2026-10-27: the author reviewed the phase 3 screens (Settings → Meetings, Rename speakers prompts, Statistics). They work, but everything is a menu item followed by a small dialog. Shepit should be a program you can work in; the menu stays for quick actions only.
