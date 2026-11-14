@@ -44,22 +44,14 @@ public enum MenuModel {
         }
     }
 
-    private static func meetingItems(_ view: AppSnapshot) -> [MenuItem] {
-        let start = switch MeetingControl(view.meeting, missing: view.meetingMissing) {
+    /// Start or Stop; the rest of the meeting items live in the window's Meetings section (Meetings design §9).
+    private static func meetingItem(_ view: AppSnapshot) -> MenuItem {
+        switch MeetingControl(view.meeting, missing: view.meetingMissing) {
         case .stop: MenuItem(title: "Stop meeting transcript", action: .stopMeeting)
         case .busy: MenuItem(title: "Start meeting transcript", enabled: false)
         case .blocked(let missing): MenuItem(title: "Start meeting transcript (\(missing))", enabled: false)
         case .start: MenuItem(title: "Start meeting transcript", action: .startMeeting)
         }
-        // Off during a session: the note is still being written and relabelled.
-        let idle = !view.meeting.isActive
-        return [
-            start,
-            MenuItem(title: "Copy last meeting transcript", action: .copyLastMeeting),
-            MenuItem(title: "Rename speakers…", enabled: idle, action: .renameSpeakers),
-            MenuItem(title: "Rename speakers in another note…", enabled: idle, action: .renameSpeakersInNote),
-            MenuItem(title: "Open meetings folder", action: .openMeetingsFolder),
-        ]
     }
 
     private static func dictationTitle(_ view: AppSnapshot) -> String {
@@ -89,7 +81,7 @@ public enum MenuModel {
             items.append(MenuItem(title: "⚠ Microphone access denied — click to open Settings", action: .grantMicrophone))
         }
         items += [.separator, MenuItem(title: "Open Shepit", keyEquivalent: "o", action: .openWindow), .separator]
-        items += meetingItems(view) // all but Start and Stop move to the window with its Meetings section
+        items.append(meetingItem(view))
         items += [.separator, MenuItem(title: "Copy last dictation", enabled: !view.history.isEmpty, action: view.history.first.map { .copyText($0.text) })]
         if view.settings.historyMenuItems > 0 {
             let entries = view.history.prefix(view.settings.historyMenuItems).map {

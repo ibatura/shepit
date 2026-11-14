@@ -13,6 +13,7 @@ final class AppHost: ControllerHost {
     let dictionaryStore = DictionaryStore(file: Paths.dictionaryFile)
     let recorder = AudioRecorder()
     let stats = StatsDatabase(file: Paths.dataDir.appending(path: "stats.sqlite"))
+    let meetings = MeetingStore(file: Paths.dataDir.appending(path: "meetings.sqlite"))
     lazy var models = ModelHost(factory: EngineFactory.make, onLoad: { [weak self] choice, seconds in
         Task { @MainActor in self?.recordLoad(choice, seconds) }
     })
@@ -322,10 +323,7 @@ final class AppHost: ControllerHost {
         case .startMeeting: Task { await startMeeting() }
         case .startCall: callEvent(.startCurrent)
         case .stopMeeting: Task { await meeting?.stop() }
-        case .copyLastMeeting: copyLastMeeting()
         case .openMeetingsFolder: openMeetingsFolder()
-        case .renameSpeakers: if let note = lastMeetingNote() { renameSpeakers(in: note) }
-        case .renameSpeakersInNote: if let note = pickMeetingNote() { renameSpeakers(in: note) }
         case .quit: NSApp.terminate(nil)
         }
     }

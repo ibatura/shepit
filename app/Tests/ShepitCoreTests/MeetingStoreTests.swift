@@ -123,4 +123,53 @@ struct MeetingStoreTests {
         #expect(try store.people(id).allSatisfy { $0.name == nil })
         #expect(try store.lines(id).map(\.current) == ["Me", "Person 1", "Person 2", "Person 1"])
     }
+
+    // Adding from a note (§4)
+
+    @Test func aNoteIsAddedWithItsFrontMatterAndHeaders() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Kyiv")!
+        let note = dir.appending(path: "n.md")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("""
+        ---
+        date: 2026-07-31
+        time: "10:00"
+        title: "Sync"
+        app: Zoom
+        ---
+        [Person 1] 2026-07-31 10:00:05
+        hi
+        [Ivan] 2026-07-31 10:12:30
+        bye
+
+        """.utf8).write(to: note)
+        let id = try #require(try store.add(note: note, you: "Ivan", calendar: calendar))
+        let start = calendar.date(from: DateComponents(year: 2026, month: 7, day: 31, hour: 10))!
+        #expect(try store.meetings() == [.init(id: id, path: note.path, title: "Sync", app: "Zoom", start: start, duration: 750, you: "Ivan")])
+        #expect(try store.lines(id).map(\.original) == ["Person 1", "Ivan"])
+        #expect(try store.add(note: note, you: "Ivan", calendar: calendar) == nil) // listed already
+    }
+
+    @Test func whatTheSessionKnowsWinsAndAMissingYouIsNone() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let note = dir.appending(path: "n.md")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("[Person 1] 2026-07-31 10:00:05\nhi\n".utf8).write(to: note)
+        _ = try #require(try store.add(note: note, you: "Ivan", start: start, duration: 42))
+        #expect(try store.meetings().first.map { [$0.start, $0.duration, $0.you] as [AnyHashable?] } == [start, 42.0, nil])
+    }
+
+    @Test func aFileWithoutEntriesIsNotATranscript() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let note = dir.appending(path: "n.md")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("# Just a note\n".utf8).write(to: note)
+        #expect(throws: MeetingStore.NotATranscript.self) { try store.add(note: note, you: nil) }
+        #expect(try store.meetings().isEmpty)
+    }
 }

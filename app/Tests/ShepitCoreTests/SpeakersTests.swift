@@ -1,7 +1,7 @@
 import Testing
 @testable import ShepitCore
 
-// Spec §5.5 steps 4–5 and §5.7 rename.
+// Spec §5.5 steps 4–5; Meetings design §8.
 struct SpeakersTests {
     private func turn(_ speaker: String, _ start: Double, _ end: Double) -> SpeakerTurn {
         SpeakerTurn(speaker: speaker, start: start, end: end)
@@ -117,49 +117,6 @@ struct SpeakersTests {
         let crlf = note.replacingOccurrences(of: "\n", with: "\r\n")
         let expected = Speakers.relabel(note, live: "Співрозмовники", entries: entries).replacingOccurrences(of: "\n", with: "\r\n")
         #expect(Speakers.relabel(crlf, live: "Співрозмовники", entries: entries) == expected)
-        #expect(Speakers.labels(in: crlf).first?.label == "Співрозмовники")
-    }
-
-    // labels and rename
-
-    private let labelled = """
-    ---
-    tags: [transcript]
-    ---
-    [Person 1] 2026-07-31 18:22:37
-    Так.
-    [Ivan Batura] 2026-07-31 18:22:40
-    Добре, почнемо з плану на тиждень.
-    [Person 1] 2026-07-31 18:22:45
-    Мені потрібен доступ до репозиторію сьогодні.
-    [Person 2] 2026-07-31 18:23:01
-    Ок.
-
-    """
-
-    @Test func labelsInOrderOfFirstAppearanceWithASentenceLengthExample() {
-        let labels = Speakers.labels(in: labelled)
-        #expect(labels.map(\.label) == ["Person 1", "Ivan Batura", "Person 2"])
-        #expect(labels[0].firstAt == "2026-07-31 18:22:45")
-        #expect(labels[0].firstText == "Мені потрібен доступ до репозиторію сьогодні.")
-        #expect(labels[2].firstAt == "2026-07-31 18:23:01") // no long entry: the first one
-        #expect(labels[2].firstText == "Ок.")
-    }
-
-    @Test func renameRewritesHeadersOnlyAndMergesLabels() {
-        let text = labelled + "Person 1 сказав, що [Person 1] 2026-07-31 18:22:37\n"
-        let result = Speakers.rename(text, ["Person 1": "Olha Barbara", "Person 2": "Olha Barbara", "Ivan Batura": "", "Nobody": "X"])
-        #expect(result.contains("[Olha Barbara] 2026-07-31 18:22:37\nТак."))
-        #expect(result.contains("[Olha Barbara] 2026-07-31 18:23:01\nОк."))
-        #expect(result.contains("[Ivan Batura] 2026-07-31 18:22:40"))
-        #expect(result.hasSuffix("Person 1 сказав, що [Person 1] 2026-07-31 18:22:37\n"))
-    }
-
-    @Test func renameTrimsNamesAndSkipsUnchanged() {
-        let result = Speakers.rename(labelled, ["Person 1": "  Olha\n Barbara \n", "Person 2": "Person 2", "Ivan Batura": " \n "])
-        #expect(result.contains("[Olha Barbara] 2026-07-31 18:22:37\nТак."))
-        #expect(result.contains("[Ivan Batura] 2026-07-31 18:22:40"))
-        #expect(result.contains("[Person 2] 2026-07-31 18:23:01"))
     }
 
     // setLabels (Meetings design §8)

@@ -20,8 +20,19 @@ extension AppHost {
 
     func recoverMeeting() {
         if let note = MeetingSession.recover(stateDir: Paths.dataDir, sessionsRoot: Self.meetingSessionsRoot, now: Date()) {
+            addToMeetings(note, you: settings.myName())
             panel.message("⚠ The last meeting transcript was interrupted: \(note.lastPathComponent)")
         }
+    }
+
+    /// Puts a note in the meetings list (Meetings design §4); a failure is logged, the note itself is kept.
+    func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil) {
+        do {
+            _ = try meetings.add(note: note, you: you, start: start, duration: duration)
+        } catch {
+            NSLog("Shepit meetings list: %@", String(describing: error))
+        }
+        refreshStatus()
     }
 
     /// The meeting hotkey: what the menu's Start or Stop does at this moment.
@@ -131,6 +142,7 @@ extension AppHost {
             // An empty transcript of a call is removed and gets no statistics row.
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
             guard !effects.contains(.removeEmptyNote) else { return }
+            self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration)
             self.recordMeeting(record)
             // The call panel says "Transcript ready", unless an offer or a stop countdown is in its place.
             if case .ready = self.callOffer.panel {} else { self.panel.message("Transcript ready", detail: detail) }
@@ -242,28 +254,6 @@ extension AppHost {
         return field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// The newest note (`last-meeting`, spec §5.7), or a notice when it's gone.
-    func lastMeetingNote() -> URL? {
-        let file = Paths.dataDir.appending(path: MeetingSession.lastMeetingFile)
-        guard let path = try? String(contentsOf: file, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines), !path.isEmpty else {
-            panel.message("No meeting transcript yet")
-            return nil
-        }
-        let note = URL(fileURLWithPath: path)
-        guard FileManager.default.fileExists(atPath: note.path) else {
-            panel.message("The last meeting transcript was moved or deleted")
-            return nil
-        }
-        return note
-    }
-
-    func copyLastMeeting() {
-        guard let note = lastMeetingNote(), let text = try? String(contentsOf: note, encoding: .utf8) else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(MeetingNote.stripFrontMatter(text), forType: .string)
-        panel.message("📋 Meeting transcript copied")
-    }
-
     func openMeetingsFolder() {
         let folder = settings.meetingsFolderURL(home: Paths.home)
         do {
@@ -273,66 +263,6 @@ extension AppHost {
             return
         }
         NSWorkspace.shared.open(folder)
-    }
-
-    /// Rename speakers (spec §5.7): one prompt per label in order of first appearance; empty or unchanged = skip,
-    /// Cancel = stop asking (names given so far still apply). Only header lines change, via temp file + rename.
-    func renameSpeakers(in note: URL) {
-        guard !meetingActive else { return }
-        guard let text = try? String(contentsOf: note, encoding: .utf8) else {
-            showAlert("Can't read \(note.lastPathComponent)")
-            return
-        }
-        let labels = Speakers.labels(in: text)
-        guard !labels.isEmpty else {
-            panel.message("No speakers in \(note.lastPathComponent)")
-            return
-        }
-        var names: [String: String] = [:]
-        for (index, speaker) in labels.enumerated() {
-            guard let name = askSpeakerName(speaker, number: index + 1, of: labels.count) else { break }
-            names[speaker.label] = name
-        }
-        // Read again: the prompts can take minutes, and the note may have been edited meanwhile (Obsidian).
-        guard !names.isEmpty, let current = try? String(contentsOf: note, encoding: .utf8) else { return }
-        let renamed = Speakers.rename(current, names)
-        guard renamed != current else { return }
-        do {
-            try Data(renamed.utf8).write(to: note, options: .atomic)
-            panel.message("✏️ Speakers renamed in \(note.lastPathComponent)")
-        } catch {
-            showAlert("Can't write \(note.lastPathComponent): \(error.localizedDescription)")
-        }
-    }
-
-    /// A note for "Rename speakers in another note…", picked in `meetingsFolder`.
-    func pickMeetingNote() -> URL? {
-        NSApp.activate()
-        let panel = NSOpenPanel()
-        panel.message = "Choose a meeting note"
-        panel.prompt = "Rename speakers"
-        panel.allowedContentTypes = [.init(filenameExtension: "md")!]
-        panel.allowsMultipleSelection = false
-        let folder = settings.meetingsFolderURL(home: Paths.home)
-        if FileManager.default.fileExists(atPath: folder.path) { panel.directoryURL = folder }
-        return panel.runModal() == .OK ? panel.url : nil
-    }
-
-    private func askSpeakerName(_ speaker: (label: String, firstAt: String, firstText: String), number: Int, of total: Int) -> String? {
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = "Who is \(speaker.label)? (\(number) of \(total))"
-        let quote = speaker.firstText.count > 200 ? String(speaker.firstText.prefix(200)) + "…" : speaker.firstText
-        alert.informativeText = "First said at \(speaker.firstAt):\n“\(quote)”\n\nLeave empty to keep the label. The same name for two labels merges them."
-        let field = NSTextField(string: "")
-        field.placeholderString = speaker.label
-        field.frame = NSRect(x: 0, y: 0, width: 320, height: 24)
-        alert.accessoryView = field
-        alert.window.initialFirstResponder = field
-        alert.addButton(withTitle: number < total ? "Next" : "Rename")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
-        return field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Quit mid-session: ask first (spec §5.10). Returns false when the user keeps the app running.
@@ -349,7 +279,11 @@ extension AppHost {
     }
 
     func interruptMeeting() {
-        meeting?.interrupt()
+        if let session = meeting, session.state.isActive {
+            session.interrupt()
+            addToMeetings(session.config.noteFile, you: session.config.myName, start: session.startedAt,
+                          duration: Date().timeIntervalSince(session.startedAt))
+        }
         meetingTimer?.cancel()
         meetingTimer = nil
         meetingMute?.cancel()

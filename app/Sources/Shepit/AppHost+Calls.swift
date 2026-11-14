@@ -94,7 +94,7 @@ extension AppHost {
         case .removeEmptyNote:
             removeEmptyMeeting()
         case .namePeople:
-            if let note = lastMeetingNote() { renameSpeakers(in: note) }
+            showWindow(.meetings)
         case .record(let outcome, let app):
             guard settings.collectStats else { break }
             do {

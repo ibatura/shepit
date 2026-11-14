@@ -19,10 +19,7 @@ public enum AppAction: Equatable, Sendable {
     /// Start for the call the app has noticed (`CallOffer.current`): with its name, no dialog, as its offer does.
     case startCall
     case stopMeeting
-    case copyLastMeeting
     case openMeetingsFolder
-    case renameSpeakers
-    case renameSpeakersInNote
     case quit
 }
 

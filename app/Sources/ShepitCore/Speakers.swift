@@ -11,7 +11,7 @@ public struct SpeakerTurn: Equatable, Sendable {
     }
 }
 
-/// Remote speaker labels after the call (spec §5.5) and renaming (§5.7). Only entry header lines
+/// Remote speaker labels after the call (spec §5.5) and changes from the window (Meetings design §8). Only entry header lines
 /// (`[label] YYYY-MM-DD HH:MM:SS`) are ever changed; everything else in the note stays as the user left it.
 public enum Speakers {
     public static let nearestWithin = 2.0
@@ -60,37 +60,6 @@ public enum Speakers {
             seen[timestamp] = index + 1
             guard label == live, let labels = byTime[timestamp], labels.count == headers[timestamp], let new = labels[index] else { return nil }
             return new
-        }
-    }
-
-    /// Distinct labels in order of first appearance, with the time and text of the first entry that has at
-    /// least four words (else the first entry), so the user can find that speaker in the Teams transcript.
-    public static func labels(in note: String) -> [(label: String, firstAt: String, firstText: String)] {
-        let lines = lines(note).map { $0.hasSuffix("\r") ? String($0.dropLast()) : $0 }
-        var order: [String] = []
-        var first: [String: (String, String)] = [:]
-        var long: [String: (String, String)] = [:]
-        for (i, line) in lines.enumerated() {
-            guard let (label, timestamp) = header(line) else { continue }
-            let text = i + 1 < lines.count && header(lines[i + 1]) == nil ? lines[i + 1] : ""
-            if first[label] == nil {
-                order.append(label)
-                first[label] = (timestamp, text)
-            }
-            if long[label] == nil, text.split(separator: " ").count >= 4 { long[label] = (timestamp, text) }
-        }
-        return order.map { label in
-            let (at, text) = long[label] ?? first[label]!
-            return (label, at, text)
-        }
-    }
-
-    /// Renames labels in header lines. Empty or unchanged names are skipped; two labels with one name merge.
-    public static func rename(_ note: String, _ names: [String: String]) -> String {
-        mapHeaders(note) { label, _ in
-            // A name is one line: a newline in it would split the header.
-            guard let name = names[label].map(MeetingNote.oneLine), !name.isEmpty, name != label else { return nil }
-            return name
         }
     }
 

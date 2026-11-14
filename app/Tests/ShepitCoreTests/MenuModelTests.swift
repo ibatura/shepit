@@ -43,8 +43,7 @@ struct MenuModelTests {
         let items = MenuModel.build(view())
         #expect(items.map(\.title) == [
             "Ready — whisper.cpp large-v3-turbo", "-", "Open Shepit", "-",
-            "Start meeting transcript", "Copy last meeting transcript", "Rename speakers…", "Rename speakers in another note…",
-            "Open meetings folder", "-",
+            "Start meeting transcript", "-",
             "Copy last dictation", "Recent", "Add word…", "-",
             "Mode", "Language", "Dictation engine", "-", "Settings…", "Quit Shepit",
         ])
@@ -181,24 +180,14 @@ struct MenuModelTests {
     @Test func meetingStartAndStopItems() {
         let idle = MenuModel.build(view())
         #expect(find(idle, "Start meeting transcript")?.action == .startMeeting)
-        #expect(find(idle, "Copy last meeting transcript")?.action == .copyLastMeeting)
-        #expect(find(idle, "Open meetings folder")?.action == .openMeetingsFolder)
+        for gone in ["Copy last meeting transcript", "Rename speakers…", "Rename speakers in another note…", "Open meetings folder"] {
+            #expect(find(idle, gone) == nil, "\(gone)") // in the window's Meetings section now
+        }
         #expect(find(MenuModel.build(view { $0.meeting = .recording(elapsed: 1, waiting: 0) }), "Stop meeting transcript")?.action == .stopMeeting)
         let finishing = find(MenuModel.build(view { $0.meeting = .finishing(left: 2) }), "Start meeting transcript")
         #expect(finishing?.enabled == false)
         let missing = MenuModel.build(view { $0.meetingMissing = "download the model in Settings" })
         #expect(find(missing, "Start meeting transcript (download the model in Settings)")?.enabled == false)
         #expect(find(MenuModel.build(view { $0.meeting = .done(speakers: 1) }), "Start meeting transcript")?.enabled == true)
-    }
-
-    @Test func renameSpeakersItemsAreOffWhileASessionRuns() {
-        let idle = MenuModel.build(view { $0.meeting = .done(speakers: 2) })
-        #expect(find(idle, "Rename speakers…")?.action == .renameSpeakers)
-        #expect(find(idle, "Rename speakers in another note…")?.action == .renameSpeakersInNote)
-        for state in [MeetingState.recording(elapsed: 1, waiting: 0), .finishing(left: 1), .detectingSpeakers] {
-            let items = MenuModel.build(view { $0.meeting = state })
-            #expect(find(items, "Rename speakers…")?.enabled == false)
-            #expect(find(items, "Rename speakers in another note…")?.enabled == false)
-        }
     }
 }

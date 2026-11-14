@@ -132,7 +132,6 @@ public struct MeetingError: LocalizedError, Equatable {
 /// detected and relabelled, and the call audio is deleted.
 @MainActor
 public final class MeetingSession {
-    public static let lastMeetingFile = "last-meeting"
     public static let activeMeetingFile = "active-meeting"
 
     public var onState: ((MeetingState) -> Void)?
@@ -140,7 +139,7 @@ public final class MeetingSession {
     public var onFinished: ((MeetingRecord) -> Void)?
     public private(set) var state = MeetingState.idle { didSet { if state != oldValue { onState?(state) } } }
 
-    private let config: MeetingConfig
+    public let config: MeetingConfig
     public var title: String? { config.title }
     public var app: String? { config.app }
     private let mic: MeetingAudioSource
@@ -167,14 +166,12 @@ public final class MeetingSession {
     private var transcription: Task<Void, Never>?
     private var callWAV: WAVFileWriter?
     private var capturing = false
-    private var startedAt = Date.distantPast
+    public private(set) var startedAt = Date.distantPast
     private var lastSpeech = Date.distantPast
     private var callHasSound = false
     private var warnedSilentCall = false
     private var written: [(timestamp: String, stream: MeetingStream, offsets: Range<Double>)] = []
     private var words: [MeetingStream: Int] = [.mine: 0, .call: 0]
-    /// `last-meeting` as it was before this session wrote its own.
-    private var earlierLast: Data?
     private var leanings: [MeetingStream: LanguageLeaning] = [:]
     private var failedChunks = 0
     private var stopping = false
@@ -236,9 +233,6 @@ public final class MeetingSession {
             cleanUpAudio()
             throw error is MeetingError ? error : MeetingError(error.localizedDescription)
         }
-        let last = config.stateDir.appending(path: Self.lastMeetingFile)
-        earlierLast = try? Data(contentsOf: last)
-        try? Data((config.noteFile.path + "\n").utf8).write(to: last, options: .atomic)
         state = .recording(elapsed: 0, waiting: 0)
         if services.speakers == nil {
             onNotice?("Speakers won't be detected: download the speaker model in Settings → Meetings")
@@ -397,7 +391,9 @@ public final class MeetingSession {
                 onNotice?("Can't write the meeting note \(config.noteFile.path): \(error.localizedDescription)")
                 continue
             }
-            written.append((MeetingNote.timestamp(entry.wallStart, calendar: config.calendar), entry.stream, entry.offsets))
+            let timestamp = MeetingNote.timestamp(entry.wallStart, calendar: config.calendar)
+            written.append((timestamp, entry.stream, entry.offsets))
+            liveEntries.append(MeetingNote.Entry(label: label, timestamp: timestamp, text: text, line: liveEntries.count))
             if !entry.failed { words[entry.stream, default: 0] += text.split(whereSeparator: \.isWhitespace).count }
         }
     }
@@ -520,17 +516,17 @@ public final class MeetingSession {
     /// Entries written to the note so far.
     public var entries: Int { written.count }
 
-    /// A finished transcript without a single entry: deletes the note and puts the earlier `last-meeting` back
-    /// (call offer design §5.4). False, and nothing changes, when there are entries or the session is not done.
+    /// The entries written so far with their live labels, for the window (Meetings design §7); `line` is the entry's index.
+    public private(set) var liveEntries: [MeetingNote.Entry] = []
+
+    /// Words recognized so far on both sides.
+    public var wordCount: Int { words.values.reduce(0, +) }
+
+    /// A finished transcript without a single entry: deletes the note (call offer design §5.4).
+    /// False, and nothing changes, when there are entries or the session is not done.
     @discardableResult public func removeEmptyNote() -> Bool {
         guard case .done = state, written.isEmpty else { return false }
         try? FileManager.default.removeItem(at: config.noteFile)
-        let last = config.stateDir.appending(path: Self.lastMeetingFile)
-        if let earlierLast {
-            try? earlierLast.write(to: last, options: .atomic)
-        } else {
-            try? FileManager.default.removeItem(at: last)
-        }
         return true
     }
 
@@ -570,6 +566,8 @@ public final class MeetingSession {
         where dir.lastPathComponent.hasPrefix("meeting-") {
             try? fm.removeItem(at: dir)
         }
+        // Earlier versions kept the newest note's path here; the meetings database knows it now.
+        try? fm.removeItem(at: stateDir.appending(path: "last-meeting"))
         let active = stateDir.appending(path: activeMeetingFile)
         guard let path = try? String(contentsOf: active, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
         try? fm.removeItem(at: active)
