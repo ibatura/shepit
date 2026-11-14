@@ -108,7 +108,6 @@ final class MainWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        actions.resumeHotkeys() // a shortcut being recorded when the window closes would leave them off
         NSApp.setActivationPolicy(.accessory)
     }
 }

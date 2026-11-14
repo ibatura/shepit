@@ -3,6 +3,11 @@ import Testing
 @testable import ShepitCore
 
 struct KeyNamesTests {
+    @Test func onlyF1ToF20GoWithoutAModifier() {
+        #expect(KeyNames.isFunctionKey("f1") && KeyNames.isFunctionKey("f13") && KeyNames.isFunctionKey("f20"))
+        #expect(!KeyNames.isFunctionKey("f") && !KeyNames.isFunctionKey("forwarddelete") && !KeyNames.isFunctionKey("space"))
+    }
+
     @Test func defaultHotkeysMap() {
         #expect(KeyNames.keyCode("space") == UInt32(kVK_Space))
         #expect(KeyNames.modifiers(["alt"]) == UInt32(optionKey))

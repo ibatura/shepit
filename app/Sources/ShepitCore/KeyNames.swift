@@ -12,6 +12,11 @@ public enum KeyNames {
         names[Int(code)]
     }
 
+    /// F1–F20: the only keys a hotkey may use without a modifier (the letter F and forward delete are not among them).
+    public static func isFunctionKey(_ name: String) -> Bool {
+        name.count > 1 && name.first == "f" && name.dropFirst().allSatisfy(\.isNumber)
+    }
+
     public static func modifiers(_ mods: [String]) -> UInt32 {
         mods.reduce(0) { flags, mod in
             switch mod {

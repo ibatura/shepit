@@ -32,9 +32,10 @@ public struct Hotkey: Equatable, Sendable {
         self.key = key
     }
 
-    /// The same key with the same modifiers, in whatever order the file lists them.
+    /// The same key with the same modifiers, whatever the modifiers' order or the key name's case
+    /// (`KeyNames` reads names in any case).
     public func sameKeys(as other: Hotkey) -> Bool {
-        key == other.key && Set(mods) == Set(other.mods)
+        key.lowercased() == other.key.lowercased() && Set(mods) == Set(other.mods)
     }
 }
 
@@ -273,11 +274,13 @@ public struct Settings: Equatable, Sendable {
     }
 
     /// Why the hotkey `key` can't have these keys ("That is the dictation hotkey"); nil when no other hotkey has them.
+    /// The cancel key counts too: it is registered while a dictation records.
     public func hotkeyClash(_ keys: Hotkey, for key: String) -> String? {
         let hotkeys: [(key: String, hotkey: Hotkey?, name: String)] = [
-            ("hotkey", hotkey, "dictation"), ("addWordHotkey", addWordHotkey, "add-word"), ("meetingHotkey", meetingHotkey, "meeting transcript"),
+            ("hotkey", hotkey, "dictation hotkey"), ("addWordHotkey", addWordHotkey, "add-word hotkey"),
+            ("meetingHotkey", meetingHotkey, "meeting transcript hotkey"), ("cancelKey", Hotkey(mods: [], key: cancelKey), "cancel key"),
         ]
-        return hotkeys.first { $0.key != key && $0.hotkey?.sameKeys(as: keys) == true }.map { "That is the \($0.name) hotkey" }
+        return hotkeys.first { $0.key != key && $0.hotkey?.sameKeys(as: keys) == true }.map { "That is the \($0.name)" }
     }
 
     /// The engine set for a task; the default one when the file names none.

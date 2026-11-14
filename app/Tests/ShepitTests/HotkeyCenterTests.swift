@@ -121,10 +121,12 @@ struct HotkeyCenterTests {
         let registrar = FakeRegistrar()
         let center = HotkeyCenter(registrar: registrar)
         var settings = Settings.defaults
-        for taken in [settings.hotkey, settings.addWordHotkey, Hotkey(mods: ["alt", "ctrl"], key: "d")] {
-            settings.meetingHotkey = taken
+        let taken = [(settings.hotkey, "dictation hotkey"), (settings.addWordHotkey, "add-word hotkey"),
+                     (Hotkey(mods: ["alt", "ctrl"], key: "D"), "add-word hotkey")] // any order, any case
+        for (hotkey, name) in taken {
+            settings.meetingHotkey = hotkey
             #expect(center.apply(settings) == .failed([
-                "meetingHotkey \(KeyNames.label(taken)) is already the dictation or add-word hotkey — change it in Settings → Hotkeys",
+                "meetingHotkey \(KeyNames.label(hotkey)): That is the \(name) — change it in Settings → Hotkeys",
             ]))
             #expect(registrar.active.count == 2 && registrar.active[4] == nil)
         }

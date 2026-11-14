@@ -308,6 +308,16 @@ struct SettingsTests {
         ])
     }
 
+    @Test func aHotkeyClashIgnoresModifierOrderAndCaseAndCountsTheCancelKey() {
+        var settings = Settings.defaults
+        settings.cancelKey = "f5"
+        let addWord = settings.addWordHotkey
+        #expect(settings.hotkeyClash(Hotkey(mods: addWord.mods.reversed(), key: addWord.key.uppercased()), for: "meetingHotkey")
+            == "That is the add-word hotkey")
+        #expect(settings.hotkeyClash(Hotkey(mods: [], key: "F5"), for: "meetingHotkey") == "That is the cancel key")
+        #expect(settings.hotkeyClash(Hotkey(mods: [], key: "f5"), for: "cancelKey") == nil) // recording the same key again
+    }
+
     @Test func appearanceAndMeetingHotkeyDefaults() {
         let settings = validateSettings([:]).0
         #expect(settings?.theme == "system")

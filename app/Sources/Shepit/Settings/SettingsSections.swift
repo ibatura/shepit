@@ -41,24 +41,27 @@ struct HotkeysSection: View {
                 ChoicePicker(title: "Mode", choices: ShepitCore.Settings.modes, selection: model.binding("mode", \.mode))
                     .pickerStyle(.segmented)
             }
-            Hinted(hint: conflict ?? "The dictation hotkey") {
+            Hinted(hint: clash("hotkey", model.settings.hotkey) ?? "The dictation hotkey") {
                 ShortcutField(title: "Dictation hotkey", hotkey: model.settings.hotkey, allowsModifiers: true, actions: actions,
                               refuse: { model.settings.hotkeyClash($0, for: "hotkey") }) {
                     model.set("hotkey", hotkey: $0)
                 }
             }
-            Hinted(hint: "Cancels a recording. Only active while recording, so it works normally otherwise") {
-                ShortcutField(title: "Cancel key", hotkey: Hotkey(mods: [], key: model.settings.cancelKey), allowsModifiers: false, actions: actions) {
+            Hinted(hint: clash("cancelKey", Hotkey(mods: [], key: model.settings.cancelKey))
+                ?? "Cancels a recording. Only active while recording, so it works normally otherwise") {
+                ShortcutField(title: "Cancel key", hotkey: Hotkey(mods: [], key: model.settings.cancelKey), allowsModifiers: false, actions: actions,
+                              refuse: { model.settings.hotkeyClash($0, for: "cancelKey") }) {
                     model.set("cancelKey", $0.key)
                 }
             }
-            Hinted(hint: conflict ?? "Adds the selected word to the dictionary") {
+            Hinted(hint: clash("addWordHotkey", model.settings.addWordHotkey) ?? "Adds the selected word to the dictionary") {
                 ShortcutField(title: "Add-word hotkey", hotkey: model.settings.addWordHotkey, allowsModifiers: true, actions: actions,
                               refuse: { model.settings.hotkeyClash($0, for: "addWordHotkey") }) {
                     model.set("addWordHotkey", hotkey: $0)
                 }
             }
-            Hinted(hint: "Starts a meeting transcript, or stops the running one. No shortcut until you record one") {
+            Hinted(hint: clash("meetingHotkey", model.settings.meetingHotkey)
+                ?? "Starts a meeting transcript, or stops the running one. No shortcut until you record one") {
                 ShortcutField(title: "Meeting transcript hotkey", hotkey: model.settings.meetingHotkey, allowsModifiers: true, actions: actions,
                               refuse: { model.settings.hotkeyClash($0, for: "meetingHotkey") }, onRemove: { model.remove("meetingHotkey") }) {
                     model.set("meetingHotkey", hotkey: $0)
@@ -70,8 +73,9 @@ struct HotkeysSection: View {
         }
     }
 
-    private var conflict: String? {
-        model.settings.hotkey == model.settings.addWordHotkey ? "⚠ The dictation and add-word hotkeys are the same" : nil
+    /// The hint under a field whose keys another hotkey also has (a hand edit of settings.json).
+    private func clash(_ key: String, _ hotkey: Hotkey?) -> String? {
+        hotkey.flatMap { model.settings.hotkeyClash($0, for: key) }.map { "⚠ \($0)" }
     }
 }
 
@@ -102,6 +106,9 @@ struct ShortcutField: View {
             }
         }
         .onDisappear(perform: stop)
+        // The window is kept when it closes, so the field doesn't disappear: closing must end the recording as well,
+        // or the monitor would go on taking keys typed in Shepit's dialogs.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { _ in stop() }
     }
 
     private var label: String {
@@ -121,7 +128,7 @@ struct ShortcutField: View {
             let flags = event.modifierFlags
             let mods = [(NSEvent.ModifierFlags.control, "ctrl"), (.option, "alt"), (.shift, "shift"), (.command, "cmd")]
                 .filter { flags.contains($0.0) }.map(\.1)
-            if allowsModifiers, mods.isEmpty, !key.hasPrefix("f") {
+            if allowsModifiers, mods.isEmpty, !KeyNames.isFunctionKey(key) {
                 problem = "Add ⌃, ⌥, ⇧ or ⌘"
                 return nil
             }
