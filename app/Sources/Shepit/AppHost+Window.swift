@@ -31,7 +31,9 @@ extension AppHost {
     func applyAccentColor(_ color: AccentColor) {
         let key = "AppleAccentColor"
         let code = color.code
-        guard UserDefaults.standard.object(forKey: key) as? Int != code else { return }
+        // Shepit's own preference only: `object(forKey:)` would also read the system-wide accent.
+        let current = Bundle.main.bundleIdentifier.flatMap { UserDefaults.standard.persistentDomain(forName: $0)?[key] } as? Int
+        guard current != code else { return }
         UserDefaults.standard.set(code, forKey: key)
         // macOS reads the preference when an app starts, and again on this notification (the one System Settings
         // sends; other apps re-read their own colour and find it unchanged).

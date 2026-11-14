@@ -1,7 +1,7 @@
 import AppKit
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private let host = AppHost()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let app = NSMenu(title: "Shepit")
         app.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
         app.addItem(.separator())
-        app.addItem(withTitle: "Quit Shepit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        app.addItem(withTitle: "Quit Shepit", action: #selector(quit), keyEquivalent: "q").target = self
         let window = NSMenu(title: "Window")
         window.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         window.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
@@ -40,6 +40,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         host.showWindow(.settings)
+    }
+
+    @objc private func quit() {
+        NSApp.terminate(nil)
+    }
+
+    /// The app menu's ⌘, and ⌘Q work only while the window is open: without it, a dialog that left Shepit
+    /// in front would take a ⌘Q meant for the app the user sees. The status menu keeps its own Quit.
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        NSApp.activationPolicy() == .regular
     }
 
     /// Quit asks first during a meeting; engines are unloaded before exit (whisper.cpp's Metal teardown
