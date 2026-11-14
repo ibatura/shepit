@@ -76,9 +76,9 @@ struct HomeModelTests {
 
     @Test func meetingRowWithADetectedCall() {
         let named = home { $0.call = CallOffer.Current(name: "Weekly sync", app: .teams) }.meeting
-        #expect(named == Home.MeetingRow(title: "Weekly sync", hint: "Teams", button: .init(title: "Start transcript", action: .startCall(title: "Weekly sync", app: .teams))))
+        #expect(named == Home.MeetingRow(title: "Weekly sync", hint: "Teams", button: .init(title: "Start transcript", action: .startCall)))
         let unnamed = home { $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
-        #expect(unnamed.title == "Zoom call" && unnamed.hint == nil && unnamed.button?.action == .startCall(title: nil, app: .zoom))
+        #expect(unnamed.title == "Zoom call" && unnamed.hint == nil && unnamed.button?.action == .startCall)
     }
 
     @Test func meetingRowWhileATranscriptRuns() {
@@ -103,10 +103,14 @@ struct HomeModelTests {
         #expect(home { $0.meeting = .detectingSpeakers }.card?.headline == "Detecting speakers")
     }
 
-    @Test func meetingRowWithoutTheModelHasItsButtonOff() {
-        let row = home { $0.meetingMissing = "download the model in Settings"; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
-        #expect(row == Home.MeetingRow(title: "No call right now", hint: "To start a transcript, download the model in Settings",
-                                       button: .init(title: "Start transcript")))
+    @Test func withoutTheModelStartIsOffButTheCallIsStillNamed() {
+        let missing = "download the model in Settings"
+        #expect(home { $0.meetingMissing = missing }.meeting
+            == Home.MeetingRow(title: "No call right now", hint: "To start a transcript, \(missing)", button: .init(title: "Start transcript")))
+        #expect(home { $0.meetingMissing = missing; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
+            == Home.MeetingRow(title: "Zoom call", hint: "To start a transcript, \(missing)", button: .init(title: "Start transcript")))
+        #expect(home { $0.meetingMissing = missing; $0.call = CallOffer.Current(name: "Weekly sync", app: .teams) }.meeting.hint
+            == "Teams · To start a transcript, \(missing)")
     }
 
     @Test func lastDictationsWithTheDateWhenNotToday() {

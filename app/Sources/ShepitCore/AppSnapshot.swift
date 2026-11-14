@@ -16,8 +16,8 @@ public enum AppAction: Equatable, Sendable {
     case grantAccessibility
     case grantMicrophone
     case startMeeting
-    /// Start for a call the app has noticed: with its name, no dialog.
-    case startCall(title: String?, app: CallApp)
+    /// Start for the call the app has noticed (`CallOffer.current`): with its name, no dialog, as its offer does.
+    case startCall
     case stopMeeting
     case copyLastMeeting
     case openMeetingsFolder

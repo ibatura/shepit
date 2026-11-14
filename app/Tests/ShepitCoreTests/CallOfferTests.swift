@@ -77,6 +77,22 @@ struct CallOfferTests {
         #expect(m.panel == nil)
     }
 
+    @Test func homesStartCountsAsTheOffersStartOnlyWhileTheOfferIsUp() {
+        var m = Machine()
+        #expect(m.send(.startCurrent, at: 0) == []) // no call
+        m.teamsCall()
+        m.send(.named("Weekly sync"), at: 4)
+        #expect(m.send(.startCurrent, at: 5) == [.start(title: "Weekly sync", app: .teams)])
+        #expect(m.send(.sessionStarted(byPanel: true), at: 5) == [.record(.started, app: .teams)])
+        #expect(m.send(.startCurrent, at: 6) == []) // a transcript runs
+
+        var n = Machine()
+        n.teamsCall()
+        n.send(.pressedOther, at: 4) // Not this call: counted as dismissed
+        #expect(n.send(.startCurrent, at: 10) == [.start(title: nil, app: .teams)])
+        #expect(n.send(.sessionStarted(byPanel: true), at: 10) == []) // not counted a second time
+    }
+
     @Test func aStartThatFailedIsNotCounted() {
         var m = Machine()
         m.teamsCall()
@@ -101,7 +117,8 @@ struct CallOfferTests {
         var m = Machine()
         m.settings.callOffer = false
         m.teamsCall()
-        #expect(m.panel == nil && m.log.isEmpty)
+        #expect(m.panel == nil && m.log == [.lookForName]) // no offer; the name is for Home's Start
+        #expect(m.offer.current == CallOffer.Current(name: nil, app: .teams))
 
         var n = Machine()
         n.settings.callApps = ["Zoom"]

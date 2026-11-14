@@ -39,6 +39,8 @@ public struct CallOffer: Sendable {
         case meetFound(Bool), named(String?)
         /// The panel's main and second button.
         case pressedMain, pressedOther
+        /// Home's Start for the call that runs now (`current`), with its offer on screen or not.
+        case startCurrent
         case sessionStarted(byPanel: Bool)
         /// Stop was pressed or the session stopped by itself: it is finishing.
         case sessionStopping
@@ -175,6 +177,13 @@ public struct CallOffer: Sendable {
             case nil:
                 break
             }
+        case .startCurrent:
+            guard session == nil, current != nil, let app = call?.app else { break }
+            if case .offered = call?.phase {
+                effects.append(start(app, .started)) // counted like its offer's Start
+            } else {
+                effects.append(.start(title: call?.name, app: app)) // the offer was answered already, or never shown
+            }
         case .pressedOther:
             switch panel {
             case .ended:
@@ -227,7 +236,7 @@ public struct CallOffer: Sendable {
         if session?.awaitsCall == true { session?.ours = true }
         guard settings.callOffer, session == nil else {
             call?.phase = .quiet
-            return []
+            return session == nil ? [.lookForName] : [] // Home still offers Start for the call, with its name
         }
         call?.phase = .offered(since: now)
         return [.lookForName]

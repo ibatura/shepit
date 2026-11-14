@@ -79,7 +79,7 @@ public enum MeetingState: Equatable, Sendable {
     }
 }
 
-/// What Start/Stop does at this moment: the same in the menu, on Home and for the meeting hotkey.
+/// What Start/Stop does at this moment, in the menu and for the meeting hotkey.
 public enum MeetingControl: Equatable, Sendable {
     case stop
     /// The transcript is being finished: nothing to start or stop.

@@ -124,15 +124,15 @@ public enum HomeModel {
         case .detectingSpeakers: return Home.MeetingRow(title: "Detecting speakers…")
         case .idle, .done, .interrupted: break
         }
-        if let missing = view.meetingMissing {
-            return Home.MeetingRow(title: "No call right now", hint: "To start a transcript, \(missing)", button: Home.Button(title: "Start transcript"))
-        }
+        // Without the model Start is off, but the row still names the call that runs (spec §10).
+        let missing = view.meetingMissing.map { "To start a transcript, \($0)" }
         if let call = view.call {
-            return Home.MeetingRow(title: call.name ?? "\(call.app.rawValue) call", hint: call.name == nil ? nil : call.app.rawValue,
-                                   button: Home.Button(title: "Start transcript", action: .startCall(title: call.name, app: call.app)))
+            let hint = [call.name == nil ? nil : call.app.rawValue, missing].compactMap { $0 }.joined(separator: " · ")
+            return Home.MeetingRow(title: call.name ?? "\(call.app.rawValue) call", hint: hint.isEmpty ? nil : hint,
+                                   button: Home.Button(title: "Start transcript", action: missing == nil ? .startCall : nil))
         }
         return Home.MeetingRow(title: "No call right now",
-                               hint: view.settings.callOffer ? "Shepit offers a transcript when a call starts" : "Call offers are off",
-                               button: Home.Button(title: "Start transcript", action: .startMeeting))
+                               hint: missing ?? (view.settings.callOffer ? "Shepit offers a transcript when a call starts" : "Call offers are off"),
+                               button: Home.Button(title: "Start transcript", action: missing == nil ? .startMeeting : nil))
     }
 }

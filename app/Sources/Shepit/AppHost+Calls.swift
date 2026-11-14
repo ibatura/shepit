@@ -33,8 +33,8 @@ extension AppHost {
         } else {
             callPanel.hide()
         }
-        // A name found after the offer is gone must not land on the next call.
-        if offeredApp == nil { callNameLookup?.cancel() }
+        // A name found after the call is gone must not land on the next call.
+        if callOffer.current == nil { callNameLookup?.cancel() }
         // The timer runs only while time alone can change something.
         if callOffer.needsTick {
             // Also under a dialog or an open menu: the next call's offer and the stop countdown don't wait for it.
@@ -48,14 +48,6 @@ extension AppHost {
         return effects
     }
 
-    /// The app of the offer on screen.
-    private var offeredApp: CallApp? {
-        switch callOffer.panel {
-        case .offer(_, let app, _), .autoStart(_, let app, _): app
-        default: nil
-        }
-    }
-
     private func run(_ effect: CallOffer.Effect) {
         switch effect {
         case .lookForMeet:
@@ -66,7 +58,7 @@ extension AppHost {
                 await MainActor.run { _ = self.callEvent(.meetFound(found)) }
             }
         case .lookForName:
-            guard let app = offeredApp?.rawValue else { return }
+            guard let app = callOffer.current?.app.rawValue else { return }
             // A repeating meeting (same time last week, or daily) is named like last time, at once.
             let names = MeetingNames.load(Paths.dataDir.appending(path: MeetingNames.fileName))
             if let name = MeetingNames.repeating(names, at: Date(), app: app) { callEvent(.named(name)) }

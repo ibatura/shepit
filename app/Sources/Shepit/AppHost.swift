@@ -312,7 +312,7 @@ final class AppHost: ControllerHost {
         case .grantAccessibility: Permissions.requestAccessibility()
         case .grantMicrophone: Permissions.requestMicrophone()
         case .startMeeting: Task { await startMeeting() }
-        case .startCall(let title, let app): startMeeting(title: title, app: app.rawValue)
+        case .startCall: callEvent(.startCurrent)
         case .stopMeeting: Task { await meeting?.stop() }
         case .copyLastMeeting: copyLastMeeting()
         case .openMeetingsFolder: openMeetingsFolder()
