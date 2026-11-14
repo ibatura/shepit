@@ -161,4 +161,13 @@ struct SpeakersTests {
         #expect(result.contains("[Ivan Batura] 2026-07-31 18:22:40"))
         #expect(result.contains("[Person 2] 2026-07-31 18:23:01"))
     }
+
+    // setLabels (Meetings design §8)
+
+    @Test func setLabelsChangesOnlyTheGivenHeaderLines() {
+        let note = "---\ntitle: x\n---\n[A] 2026-07-31 10:00:00\r\ntext [A] 2026-07-31 10:00:00\r\n[B] 2026-07-31 10:00:01\r\nmore\r\n"
+        #expect(Speakers.setLabels(note, [3: "Olena K.", 4: "no header here", 5: "Two\nlines", 99: "out of range"])
+                == "---\ntitle: x\n---\n[Olena K.] 2026-07-31 10:00:00\r\ntext [A] 2026-07-31 10:00:00\r\n[Two lines] 2026-07-31 10:00:01\r\nmore\r\n")
+        #expect(Speakers.setLabels(note, [3: " "]) == note)
+    }
 }

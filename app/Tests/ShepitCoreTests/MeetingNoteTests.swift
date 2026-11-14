@@ -137,6 +137,79 @@ struct MeetingNoteTests {
         try Data().write(to: blocker)
         #expect(throws: (any Error).self) { try NoteWriter(file: blocker.appending(path: "note.md"), frontMatter: "").create() }
     }
+
+    // Reading a note and changing its title (Meetings design §4, §6, §8)
+
+    private let written = """
+    ---
+    date: 2026-07-31
+    time: "14:30"
+    title: "Say \\"hi\\" \\\\ bye"
+    app: Teams
+    tags: [transcript]
+    ---
+    [Ivan Batura] 2026-07-31 14:30:05
+    \\# not a heading
+    [Person 1] 2026-07-31 14:30:09
+    ⚠ не вдалося розпізнати
+    ⚠ Мікрофон перестав записувати о 14:31:00
+    [Person 2] 2026-07-31 14:31:02
+    1\\. first
+    second line added in Obsidian
+
+    """
+
+    @Test func parseReadsFrontMatterAndEntries() {
+        let note = MeetingNote.parse(written, calendar: calendar)
+        #expect(note.start == calendar.date(from: DateComponents(year: 2026, month: 7, day: 31, hour: 14, minute: 30)))
+        #expect(note.title == #"Say "hi" \ bye"#)
+        #expect(note.app == "Teams")
+        #expect(note.entries == [
+            .init(label: "Ivan Batura", timestamp: "2026-07-31 14:30:05", text: "# not a heading", line: 7),
+            .init(label: "Person 1", timestamp: "2026-07-31 14:30:09", text: "⚠ не вдалося розпізнати", line: 9),
+            .init(label: nil, timestamp: "", text: "⚠ Мікрофон перестав записувати о 14:31:00", line: 11),
+            .init(label: "Person 2", timestamp: "2026-07-31 14:31:02", text: "1. first\nsecond line added in Obsidian", line: 12),
+        ])
+    }
+
+    @Test func aWarningUnderAnEmptiedEntryIsALineOfItsOwn() {
+        let note = MeetingNote.parse("[Me] 2026-07-31 14:30:05\n⚠ Запис перервано о 14:31:00\n", calendar: calendar)
+        #expect(note.entries.map(\.label) == ["Me", nil])
+    }
+
+    @Test func parseWithoutFrontMatterOrHeaders() {
+        let bare = MeetingNote.parse("[Me] 2026-07-31 14:30:05\nhello\n", calendar: calendar)
+        #expect(bare.start == nil && bare.title == nil && bare.app == nil)
+        #expect(bare.entries.map(\.line) == [0])
+        #expect(MeetingNote.parse("---\ndate: 2026-07-31\n---\nJust text\n", calendar: calendar).entries.isEmpty)
+    }
+
+    @Test func parseReadsPlainAndSingleQuotedValuesAndCRLF() {
+        let note = MeetingNote.parse("---\r\ndate: 2026-07-31\r\ntime: 09:05\r\ntitle: 'It''s on'\r\n---\r\n[Me] 2026-07-31 09:05:01\r\nhi\r\n", calendar: calendar)
+        #expect(note.start == calendar.date(from: DateComponents(year: 2026, month: 7, day: 31, hour: 9, minute: 5)))
+        #expect(note.title == "It's on")
+        #expect(note.entries == [.init(label: "Me", timestamp: "2026-07-31 09:05:01", text: "hi", line: 5)])
+    }
+
+    @Test func timestampsReadBackAsDates() {
+        #expect(MeetingNote.date("2026-07-31 14:30:05", calendar: calendar) == at(14, 30, 5))
+        #expect(MeetingNote.date("2026-07-31 25:30:05", calendar: calendar) == nil)
+    }
+
+    @Test func settingTheTitleReplacesAddsOrRemovesOnlyThatLine() {
+        let body = "[Me] 2026-07-31 14:30:05\ntitle: not front matter\n"
+        let withTitle = "---\ndate: 2026-07-31\ntime: \"14:30\"\ntitle: \"Old\"\ntags: [transcript]\n---\n" + body
+        let without = "---\ndate: 2026-07-31\ntime: \"14:30\"\ntags: [transcript]\n---\n" + body
+        #expect(MeetingNote.settingTitle(withTitle, "New \"one\"") == withTitle.replacingOccurrences(of: #""Old""#, with: #""New \"one\"""#))
+        #expect(MeetingNote.settingTitle(without, "New") == withTitle.replacingOccurrences(of: "Old", with: "New"))
+        #expect(MeetingNote.settingTitle(withTitle, nil) == without)
+        #expect(MeetingNote.settingTitle(withTitle, "  ") == without)
+        #expect(MeetingNote.settingTitle(without, nil) == without)
+        #expect(MeetingNote.settingTitle(body, "New") == body)
+        let crlf = without.replacingOccurrences(of: "\n", with: "\r\n")
+        #expect(MeetingNote.settingTitle(crlf, "Two\nlines") == withTitle.replacingOccurrences(of: "Old", with: "Two lines").replacingOccurrences(of: "\n", with: "\r\n"))
+    }
+
 }
 
 struct MeetingFillerTests {

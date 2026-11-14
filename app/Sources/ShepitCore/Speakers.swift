@@ -89,9 +89,21 @@ public enum Speakers {
     public static func rename(_ note: String, _ names: [String: String]) -> String {
         mapHeaders(note) { label, _ in
             // A name is one line: a newline in it would split the header.
-            guard let name = names[label]?.split(whereSeparator: \.isWhitespace).joined(separator: " "), !name.isEmpty, name != label else { return nil }
+            guard let name = names[label].map(MeetingNote.oneLine), !name.isEmpty, name != label else { return nil }
             return name
         }
+    }
+
+    /// Sets the labels of the header lines at the given line numbers (as `MeetingNote.parse` counts them).
+    /// Lines that are not headers, empty labels and every other line stay byte for byte.
+    public static func setLabels(_ note: String, _ labels: [Int: String]) -> String {
+        var lines = lines(note)
+        for (index, label) in labels where lines.indices.contains(index) {
+            let name = MeetingNote.oneLine(label)
+            guard !name.isEmpty, let (_, timestamp) = header(lines[index]) else { continue }
+            lines[index] = "[\(name)] \(timestamp)" + (lines[index].hasSuffix("\r") ? "\r" : "")
+        }
+        return lines.joined(separator: "\n")
     }
 
     /// Rewrites header lines whose `change(label, timestamp)` returns a new label.
@@ -107,7 +119,7 @@ public enum Speakers {
         note.components(separatedBy: "\n")
     }
 
-    private static func header(_ raw: String) -> (label: String, timestamp: String)? {
+    static func header(_ raw: String) -> (label: String, timestamp: String)? {
         let line = raw.hasSuffix("\r") ? String(raw.dropLast()) : raw
         guard let match = line.wholeMatch(of: /\[(.+)\] (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/) else { return nil }
         return (String(match.1), String(match.2))
