@@ -2,6 +2,9 @@ import Foundation
 
 /// Text of the meeting note (spec §5.4 "Content"): front matter, then `[label] YYYY-MM-DD HH:MM:SS` + one text line per entry.
 public enum MeetingNote {
+    /// The label of the call side until speakers are told apart (spec §5.4).
+    public static let callLabel = "Співрозмовники"
+
     public static func frontMatter(start: Date, title: String?, app: String?, calendar: Calendar = .current) -> String {
         let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: start)
         var lines = ["---", "date: \(date(c))", #"time: "\#(two(c.hour)):\#(two(c.minute))""#]

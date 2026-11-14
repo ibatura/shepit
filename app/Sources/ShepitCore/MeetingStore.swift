@@ -176,15 +176,17 @@ public final class MeetingStore {
         try sqlite.run("UPDATE lines SET current = original WHERE meeting = ?", [meeting])
     }
 
-    /// Names given to people in other meetings, newest meeting first, each once.
-    public func suggestedNames(excluding meeting: Int) throws -> [String] {
+    /// Every real name of every meeting, for the name fields: names given in the window, and labels that are names
+    /// ("you", the labels of notes added by hand), not "Person N" or the live label. Newest meeting first, each once.
+    public func knownNames() throws -> [String] {
         let names = try sqlite.rows("""
-            SELECT people.name FROM people JOIN meetings ON meetings.id = people.meeting
-            WHERE people.meeting != ? AND people.name IS NOT NULL AND people.name != ''
+            SELECT COALESCE(people.name, people.key) FROM people JOIN meetings ON meetings.id = people.meeting
             ORDER BY meetings.start DESC, people.rowid
-            """, [meeting]) { Self.text($0, 0) }
+            """) { Self.text($0, 0) }
         var seen = Set<String>()
-        return names.filter { seen.insert($0).inserted }
+        return names.filter { name in
+            !name.isEmpty && name != MeetingNote.callLabel && name.wholeMatch(of: /Person \d+/) == nil && seen.insert(name).inserted
+        }
     }
 
     /// Renames a meeting (Meetings design §8): the store, the note's `title` line and file name, and `meeting-names.json`.

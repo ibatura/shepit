@@ -140,7 +140,7 @@ private extension MeetingsModel.Question {
     }
 }
 
-/// Open note, Remove from list…, Move note to Trash…: the ⋯ menu and a row's right-click menu.
+/// Open note, Remove note from list…, Move file to Trash…: the ⋯ menu and a row's right-click menu.
 private struct MeetingMenu: View {
     let model: MeetingsModel
     let meeting: MeetingStore.Meeting
@@ -152,8 +152,8 @@ private struct MeetingMenu: View {
             Button("Open note") { NSWorkspace.shared.open(URL(fileURLWithPath: meeting.path)) }.disabled(missing)
             Divider()
         }
-        Button("Remove from list…") { model.question = .remove(meeting) }
-        Button("Move note to Trash…") { model.question = .trash(meeting) }.disabled(missing)
+        Button("Remove note from list…") { model.question = .remove(meeting) }
+        Button("Move file to Trash…") { model.question = .trash(meeting) }.disabled(missing)
     }
 }
 
@@ -228,7 +228,7 @@ private struct FinishedMeeting: View {
                     Text(meeting.path).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
                     HStack {
                         Button("Locate note…", action: model.locate)
-                        Button("Remove from list…") { model.question = .remove(meeting) }
+                        Button("Remove note from list…") { model.question = .remove(meeting) }
                     }
                 } else if let page = open.page {
                     people(page)
@@ -329,8 +329,8 @@ private struct FinishedMeeting: View {
     }
 }
 
-/// A person's name: a combo box that suggests names given in other meetings, as the meeting-name dialog does.
-/// Saved on Enter, when it loses focus, or when a suggestion is picked.
+/// A person's name: a combo box of the names Shepit knows. While typing, its list opens with the names that match.
+/// Saved on Enter, when it loses focus, or when a name is picked from the list.
 private struct NameField: NSViewRepresentable {
     let text: String
     let placeholder: String
@@ -339,7 +339,6 @@ private struct NameField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSComboBox {
         let box = NSComboBox()
-        box.completes = true
         box.numberOfVisibleItems = 12
         box.delegate = context.coordinator
         return box
@@ -347,8 +346,10 @@ private struct NameField: NSViewRepresentable {
 
     func updateNSView(_ box: NSComboBox, context: Context) {
         context.coordinator.commit = commit
+        context.coordinator.names = suggestions
         box.placeholderString = placeholder
-        if box.currentEditor() == nil, box.stringValue != text { box.stringValue = text } // not while typing
+        guard box.currentEditor() == nil else { return } // not while typing: the list then shows the matches
+        if box.stringValue != text { box.stringValue = text }
         if box.objectValues as? [String] != suggestions {
             box.removeAllItems()
             box.addItems(withObjectValues: suggestions)
@@ -360,17 +361,31 @@ private struct NameField: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, NSComboBoxDelegate {
         var commit: (String) -> Void
+        var names: [String] = []
 
         init(commit: @escaping (String) -> Void) {
             self.commit = commit
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let box = notification.object as? NSComboBox else { return }
+            let matches = MeetingPage.matching(names, typed: box.stringValue)
+            box.removeAllItems()
+            box.addItems(withObjectValues: matches)
+            // Opens or closes the list, as clicking ▾ does.
+            box.cell?.setAccessibilityExpanded(!matches.isEmpty)
         }
 
         func controlTextDidEndEditing(_ notification: Notification) {
             if let box = notification.object as? NSComboBox { commit(box.stringValue) }
         }
 
-        func comboBoxSelectionDidChange(_ notification: Notification) {
-            if let box = notification.object as? NSComboBox, let name = box.objectValueOfSelectedItem as? String { commit(name) }
+        /// A name picked with a click or Enter; moving through the list with the arrows doesn't save.
+        func comboBoxWillDismiss(_ notification: Notification) {
+            guard let box = notification.object as? NSComboBox, box.indexOfSelectedItem >= 0,
+                  let name = box.objectValueOfSelectedItem as? String else { return }
+            box.stringValue = name
+            commit(name)
         }
     }
 }

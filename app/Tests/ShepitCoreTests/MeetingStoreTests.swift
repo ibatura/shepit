@@ -94,7 +94,7 @@ struct MeetingStoreTests {
         #expect(try store.newPerson(id) == "Person 9")
     }
 
-    @Test func suggestedNamesComeFromOtherMeetingsNewestFirst() throws {
+    @Test func knownNamesAreEveryRealNameNewestMeetingFirst() throws {
         let (store, dir) = store()
         defer { try? FileManager.default.removeItem(at: dir) }
         let old = try addSample(store, path: "/old.md")
@@ -105,7 +105,10 @@ struct MeetingStoreTests {
         try store.setName(new, person: "Person 2", to: "Olena K.")
         try store.setName(new, person: "Person 1", to: "Anna")
         try store.setName(this, person: "Person 1", to: "Only here")
-        #expect(try store.suggestedNames(excluding: this) == ["Anna", "Olena K.", "Marko D."])
+        // A note added by hand: its labels are names, except the live label and "Person N".
+        _ = try store.add(path: "/added.md", start: start.addingTimeInterval(-3600), duration: nil, title: nil, app: nil, you: nil,
+                          entries: [entry(MeetingNote.callLabel, 1), entry("Olha Barbara", 2), entry("Person 4", 3)])
+        #expect(try store.knownNames() == ["Me", "Only here", "Anna", "Olena K.", "Marko D.", "Olha Barbara"])
     }
 
     @Test func aFailedChangeLeavesTheDatabaseAsItWas() throws {

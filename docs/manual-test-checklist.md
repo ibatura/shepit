@@ -105,7 +105,7 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 | N7 | Delete an entry in Obsidian; come back | Lines with that entry's time (to the second) can't be given; the rest can ||
 | N8 | Move the note in Finder; come back; Locate note… | "note not found" in the list and the meeting; after Locate the transcript is back ||
 | N9 | Add notes… with the old notes and a non-transcript `.md`; Add notes… again | The old meetings appear with the right dates; the message counts the skipped files; the second time all are skipped ||
-| N10 | Remove from list… on one meeting; Move note to Trash… on another | Both ask first; the first note stays in its folder; the second is in the Trash; both leave the list ||
+| N10 | Remove note from list… on one meeting; Move file to Trash… on another | Both ask first; the first note stays in its folder; the second is in the Trash; both leave the list ||
 | N11 | Name people on the "Transcript ready" panel; the recording card during a transcript | The window opens on that meeting; the card opens the running one ||
 | N12 | Quit Shepit during a transcript, start it again | The meeting is in the list; the note ends with "Запис перервано" ||
 | N13 | Open the 🎙 menu | No Copy last meeting transcript, Rename speakers or Open meetings folder; Start / Stop meeting transcript is there ||

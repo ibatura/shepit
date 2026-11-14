@@ -116,7 +116,7 @@ Open a finished meeting to:
 - **Merge into:** all lines of one person go to another (for one voice that speaker detection split in two). Your own voice heard through the call can be merged into you.
 - **Give a line to another person:** click the line. **New person** makes a `Person N` for a voice that speaker detection put under someone else.
 - **Reset people…** puts every line back to the person speaker detection gave it; the names you typed stay.
-- **Copy** (the note without its front matter), **Open note**, and in **⋯**: **Remove from list…** (the note stays) and **Move note to Trash…**.
+- **Copy** (the note without its front matter), **Open note**, and in **⋯**: **Remove note from list…** (the note stays) and **Move file to Trash…**.
 
 The transcript is read only here; edit it in Obsidian. Shepit changes only the `[name] time` lines and the `title` line, and reads the note again right before each change, so your edits stay. If you add or delete a line in Obsidian, the lines with the same time (to the second) can no longer be given to someone else. A label typed by hand in a `[name] time` line is not read back.
 
@@ -332,7 +332,7 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | Clipboard | — | The dictated text passes through the clipboard for a moment; your previous clipboard is put back |
 | Meeting notes | `meetingsFolder` (`~/.local/share/dictation/meetings` by default, local) | Until you delete them. A synced folder (iCloud Drive, an Obsidian vault in iCloud) uploads the notes to that service |
 | Meeting names | `~/.local/share/dictation/meeting-names.json` | The names you gave meetings, with app and start time, to suggest them again (last 300) |
-| Meetings list | `~/.local/share/dictation/meetings.sqlite` | Each meeting's note path, name, app, start and duration, the names you gave its people and who said each line — **not** what was said, which stays in the note. Remove from list… deletes a meeting from it; `uninstall.sh --purge` deletes it |
+| Meetings list | `~/.local/share/dictation/meetings.sqlite` | Each meeting's note path, name, app, start and duration, the names you gave its people and who said each line — **not** what was said, which stays in the note. Remove note from list… deletes a meeting from it; `uninstall.sh --purge` deletes it |
 | Meeting audio | a private temporary folder | Only during the meeting and speaker detection, then deleted — also after a failure, and at the next launch after a crash |
 
 **Shepit's permissions:** Accessibility lets it send ⌘V, read a selected word (⌘C, for ⌃⌥D) and read window and tab titles and the call's mute button, to suggest a meeting name and leave out what you say while muted (it also asks Teams and Chrome to keep their accessibility information built, which they otherwise do only for assistive apps); Microphone lets it record while you dictate or during a meeting transcript; System Audio Recording lets it record the call, only between Start and Stop. It uses them for nothing else.

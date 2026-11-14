@@ -19,7 +19,7 @@ Today a meeting is only a file. Shepit writes the note, labels the remote voices
 - "Reset people" puts every line back to the person speaker detection gave it; the database keeps that first labelling.
 - Renaming a meeting renames its note file: the `meetingFileName` template is filled again with the new name, in the same folder, with ` (2)` added when that name is taken. Links to the note from other Obsidian notes are not updated.
 - A meeting whose note was moved or renamed stays in the list, marked "note not found", with a way to point at the file.
-- Two actions remove a meeting: "Remove from list" (the note stays) and "Move note to Trash" (both go).
+- Two actions remove a meeting: "Remove note from list" (the note stays) and "Move file to Trash" (both go).
 - The menu loses Copy last meeting transcript, Rename speakers (both) and Open meetings folder (style spec §7).
 
 2026-11-14:
@@ -27,13 +27,17 @@ Today a meeting is only a file. Shepit writes the note, labels the remote voices
 - The database is `~/.local/share/dictation/meetings.sqlite`, a fixed path like `stats.sqlite`, with no setting.
 - A person's name field suggests names given to people in earlier meetings.
 
+2026-11-15, after trying the screens:
+- The two removals are named **Remove note from list** and **Move file to Trash**.
+- The name field suggests every real name Shepit knows: names given in the window, the labels of notes added by hand, and "you". The list opens while typing and also matches across scripts ("Іван" finds "Ivan Batura").
+
 ## 3. Goals, non-goals, anti-goals
 
 **Goals**
 - The Meetings section as in mockups 2 and 3: the list grouped by week, a finished meeting, the meeting being recorded.
 - Every transcript from this version on is in the database; older notes are added with Add notes….
 - Name a meeting; name people, merge them, give a line to another person, reset.
-- Copy, Open note, Open meetings folder, Locate note, Remove from list, Move note to Trash.
+- Copy, Open note, Open meetings folder, Locate note, Remove note from list, Move file to Trash.
 - The menu keeps only Start and Stop for meetings.
 
 **Non-goals**
@@ -73,7 +77,7 @@ The section has two columns: the list on the left, the chosen meeting on the rig
 - A row: the name, or "Teams call", "Zoom call", "Meet call" without one, or "Meeting" without a name and an app. Under it: day and time ("Tue 10:00"; "3 Oct, 10:00" in the month groups), the duration in minutes, the app. A missing note shows "Thu 09:30 · note not found".
 - While a transcript runs it is the first row, with a red dot: "Recording · 12:34 · Teams", then "Finishing (3 left)" and "Detecting speakers…".
 - Under the list: **Add notes…** and **Open meetings folder**.
-- A right click on a row: Open note, Remove from list…, Move note to Trash….
+- A right click on a row: Open note, Remove note from list…, Move file to Trash….
 - Empty list: "No meetings yet", and "Every transcript is added here. For notes made before this version, use Add notes…".
 - The chosen meeting is remembered with the window's state (the app's preferences), like the section.
 
@@ -82,11 +86,11 @@ The section has two columns: the list on the left, the chosen meeting on the rig
 **Top**
 - The name, as an editable title. It is saved on Enter or when the field loses focus; empty means no name (§8).
 - The app, the date and time, the duration, as small labels.
-- Copy (the note without its front matter, as the menu's Copy did), Open note (in the app that opens `.md` files), and a ⋯ menu with Remove from list… and Move note to Trash….
+- Copy (the note without its front matter, as the menu's Copy did), Open note (in the app that opens `.md` files), and a ⋯ menu with Remove note from list… and Move file to Trash….
 
 **People**
 - One row per person who has lines, in order of their first line: a colour dot with initials ("P1" for Person 1), a name field, the share of words, and Merge into.
-- The name field shows the label as its placeholder ("Person 1"). It suggests names given to people in other meetings, newest first. It is saved on Enter or when it loses focus; empty puts the label back.
+- The name field shows the label as its placeholder ("Person 1"). While typing, a list opens with the names Shepit knows from all meetings (names given here, labels that are names, "you"), newest meeting first, matched also across scripts. It is saved on Enter or when it loses focus; empty puts the label back.
 - A name another person of this meeting already has asks: "Olena K. is already in this meeting. Merge Person 3 into Olena K.?" with Merge and Cancel.
 - **Merge into** lists the other people of the meeting. All lines of this person go to the chosen one, and the row goes away.
 - The "you" row has the name and "you", and no Merge into. Its name can be changed for this note. Others can be merged into you (your own voice heard through the call audio).
@@ -99,7 +103,7 @@ The section has two columns: the list on the left, the chosen meeting on the rig
 - An entry the window can't pair with the database (§8) is shown with the label the note has and can't be given.
 - The text is the note as it is now: read when the meeting is opened, when the window becomes active again, and after every change.
 
-**A missing note:** instead of People and Transcript, "The note was moved, renamed or deleted:" with its last path, **Locate note…** (a file chooser; the chosen note becomes this meeting's note and its entries are paired again) and **Remove from list…**.
+**A missing note:** instead of People and Transcript, "The note was moved, renamed or deleted:" with its last path, **Locate note…** (a file chooser; the chosen note becomes this meeting's note and its entries are paired again) and **Remove note from list…**.
 
 ## 7. The meeting being recorded
 
@@ -129,8 +133,8 @@ Every change goes into the note and the database together, or into neither. A wr
 - A missing note changes only the database and `meeting-names.json`.
 
 **Removing**
-- **Remove from list…** asks: "The note stays. Names given here and Reset people are lost; Add notes… adds the note again with the labels it has." Then the meeting leaves the database.
-- **Move note to Trash…** asks with the file's name, moves the note to the Trash and removes the meeting from the database.
+- **Remove note from list…** asks: "The note stays. Names given here and Reset people are lost; Add notes… adds the note again with the labels it has." Then the meeting leaves the database.
+- **Move file to Trash…** asks with the file's name, moves the note to the Trash and removes the meeting from the database.
 
 ## 9. Elsewhere in the app
 
@@ -167,7 +171,7 @@ Manual (added to `docs/manual-test-checklist.md` as N1–N13):
 - N7 Delete an entry in Obsidian: that second's entries can't be given; the rest work.
 - N8 Move the note in Finder: "note not found"; Locate note….
 - N9 Add notes… with the old notes; a file that is not a transcript is skipped; adding again skips them all.
-- N10 Remove from list; Move note to Trash (the note is in the Trash).
+- N10 Remove note from list; Move file to Trash (the note is in the Trash).
 - N11 Name people from the "Transcript ready" panel; the recording card opens the running meeting.
 - N12 Quit during a transcript: the meeting is in the list after the next launch, marked interrupted in the note.
 - N13 The menu has no Copy last meeting transcript, Rename speakers or Open meetings folder.

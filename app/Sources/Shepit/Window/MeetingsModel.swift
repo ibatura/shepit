@@ -28,7 +28,7 @@ final class MeetingsModel {
         var meeting: MeetingStore.Meeting
         /// nil while the note is being read.
         var page: MeetingPage.Page?
-        /// Names given to people in other meetings, for the name fields.
+        /// Every real name Shepit knows, for the name fields.
         var suggestions: [String] = []
     }
 
@@ -120,7 +120,7 @@ final class MeetingsModel {
         }
         if open?.meeting.id != id { open = Open(meeting: meeting, page: nil) } // keeps the old page on a re-read: no flicker
         let people = (try? store.people(id)) ?? [], lines = (try? store.lines(id)) ?? []
-        let suggestions = (try? store.suggestedNames(excluding: id)) ?? []
+        let suggestions = (try? store.knownNames()) ?? []
         let url = URL(fileURLWithPath: meeting.path)
         // A note in iCloud Drive that macOS has offloaded is downloaded on read: not on the main thread.
         reading = Task {

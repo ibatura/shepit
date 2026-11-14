@@ -140,4 +140,14 @@ struct MeetingPageTests {
         #expect(MeetingPage.facts(meeting(1, day(11, 10, 9, 5)), calendar: calendar) == ["Teams", "10 Nov 2026, 09:05", "48 min"])
         #expect(MeetingPage.facts(meeting(1, day(11, 10), app: nil, duration: nil), calendar: calendar) == ["10 Nov 2026, 10:00"])
     }
+
+    @Test func namesMatchAnywhereInAnyScript() {
+        let names = ["Ivan Batura", "Олена К.", "Marko D.", "José"]
+        #expect(MeetingPage.matching(names, typed: "Іван") == ["Ivan Batura"])
+        #expect(MeetingPage.matching(names, typed: "bat") == ["Ivan Batura"])
+        #expect(MeetingPage.matching(names, typed: "olena") == ["Олена К."])
+        #expect(MeetingPage.matching(names, typed: "jose") == ["José"])
+        #expect(MeetingPage.matching(names, typed: " ") == names)
+        #expect(MeetingPage.matching(names, typed: "zz").isEmpty)
+    }
 }

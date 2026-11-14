@@ -111,6 +111,15 @@ public enum MeetingPage {
         return Set(lines.map(\.current)).sorted().first { $0 != person && (names[$0] ?? $0).caseInsensitiveCompare(name) == .orderedSame }
     }
 
+    /// The names that contain what was typed, ignoring case, accents and script ("Іван" finds "Ivan Batura"); all for nothing typed.
+    public static func matching(_ names: [String], typed: String) -> [String] {
+        func folded(_ text: String) -> String {
+            (text.applyingTransform(.toLatin, reverse: false) ?? text).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+        }
+        let typed = folded(typed.trimmingCharacters(in: .whitespaces))
+        return typed.isEmpty ? names : names.filter { folded($0).contains(typed) }
+    }
+
     /// A typed name as it is stored: one line, trimmed; nil when empty.
     public static func name(_ typed: String) -> String? {
         let name = MeetingNote.oneLine(typed)

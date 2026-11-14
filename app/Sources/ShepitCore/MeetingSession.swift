@@ -34,7 +34,7 @@ public struct MeetingConfig: Sendable {
     public var noteFile: URL
     public var frontMatter: String
     public var myName: String
-    public var liveLabel = "Співрозмовники"
+    public var liveLabel = MeetingNote.callLabel
     /// Private dir for call.wav, deleted when the session ends (spec §5.1).
     public var sessionDir: URL
     /// Where `last-meeting` and `active-meeting` live (spec §5.7, §5.10).
