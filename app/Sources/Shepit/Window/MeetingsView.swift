@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 import ShepitCore
 
-/// The window's Meetings section (Meetings design §5–7, mockups 2 and 3): the list, and the chosen meeting.
+/// The window's Meetings section (Meetings design §5–8, mockups 2 and 3): the list, and the chosen meeting.
 struct MeetingsView: View {
-    let model: MeetingsModel
+    @Bindable var model: MeetingsModel
     let actions: WindowActions
 
     var body: some View {
@@ -24,6 +24,18 @@ struct MeetingsView: View {
             detail.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear { model.reload() }
+        .alert(title(model.question), isPresented: Binding(get: { model.question != nil }, set: { if !$0, let q = model.question { model.answer(q, yes: false) } }),
+               presenting: model.question) { question in
+            Button(button(question), role: question.destructive ? .destructive : nil) { model.answer(question, yes: true) }
+            Button("Cancel", role: .cancel) { model.answer(question, yes: false) }
+        } message: { question in
+            Text(message(question))
+        }
+        .alert("Can't do that", isPresented: Binding(get: { model.problem != nil }, set: { if !$0 { model.problem = nil } })) {
+            Button("OK") { model.problem = nil }
+        } message: {
+            Text(model.problem ?? "")
+        }
     }
 
     @ViewBuilder private var list: some View {
@@ -33,7 +45,7 @@ struct MeetingsView: View {
             ContentUnavailableView("No meetings yet", systemImage: "person.2.wave.2",
                                    description: Text("Every transcript is added here. For notes made before this version, use Add notes…"))
         } else {
-            List(selection: Binding(get: { model.selection }, set: { model.selection = $0 })) {
+            List(selection: $model.selection) {
                 ForEach(groups, id: \.title) { group in
                     if group.title.isEmpty {
                         rows(group)
@@ -58,8 +70,7 @@ struct MeetingsView: View {
             .tag(row.id.map(MeetingsModel.Selection.meeting) ?? .running)
             .contextMenu {
                 if let meeting = model.meetings.first(where: { $0.id == row.id }) {
-                    Button("Open note") { NSWorkspace.shared.open(URL(fileURLWithPath: meeting.path)) }
-                        .disabled(model.missing.contains(meeting.id))
+                    MeetingMenu(model: model, meeting: meeting, missing: model.missing.contains(meeting.id), withOpen: true)
                 }
             }
         }
@@ -75,7 +86,7 @@ struct MeetingsView: View {
             }
         case .meeting(let id)?:
             if let open = model.open, open.meeting.id == id {
-                FinishedMeeting(open: open, missing: model.missing.contains(id), actions: actions)
+                FinishedMeeting(model: model, open: open, missing: model.missing.contains(id), actions: actions).id(id)
             } else {
                 choose
             }
@@ -86,6 +97,63 @@ struct MeetingsView: View {
 
     private var choose: some View {
         ContentUnavailableView("Choose a meeting", systemImage: "person.2.wave.2")
+    }
+
+    // The questions of §6 and §8.
+
+    private func title(_ question: MeetingsModel.Question?) -> String {
+        switch question {
+        case .merge(_, _, _, let name)?: "\(name) is already in this meeting"
+        case .reset?: "Reset people?"
+        case .remove(let meeting)?: "Remove “\(MeetingPage.title(meeting.title, meeting.app))” from the list?"
+        case .trash(let meeting)?: "Move “\(URL(fileURLWithPath: meeting.path).lastPathComponent)” to the Trash?"
+        case nil: ""
+        }
+    }
+
+    private func message(_ question: MeetingsModel.Question) -> String {
+        switch question {
+        case .merge(_, let person, _, let name):
+            "Merge \(model.open?.page?.people.first { $0.key == person }?.name ?? person) into \(name)?"
+        case .reset: "Every line goes back to the person speaker detection gave it. Names given to people stay."
+        case .remove: "The note stays. Names given here and Reset people are lost; Add notes… adds the note again with the labels it has."
+        case .trash: "The meeting is removed from the list too."
+        }
+    }
+
+    private func button(_ question: MeetingsModel.Question) -> String {
+        switch question {
+        case .merge: "Merge"
+        case .reset: "Reset"
+        case .remove: "Remove"
+        case .trash: "Move to Trash"
+        }
+    }
+}
+
+private extension MeetingsModel.Question {
+    var destructive: Bool {
+        switch self {
+        case .remove, .trash: true
+        case .merge, .reset: false
+        }
+    }
+}
+
+/// Open note, Remove from list…, Move note to Trash…: the ⋯ menu and a row's right-click menu.
+private struct MeetingMenu: View {
+    let model: MeetingsModel
+    let meeting: MeetingStore.Meeting
+    let missing: Bool
+    var withOpen = false
+
+    var body: some View {
+        if withOpen {
+            Button("Open note") { NSWorkspace.shared.open(URL(fileURLWithPath: meeting.path)) }.disabled(missing)
+            Divider()
+        }
+        Button("Remove from list…") { model.question = .remove(meeting) }
+        Button("Move note to Trash…") { model.question = .trash(meeting) }.disabled(missing)
     }
 }
 
@@ -118,11 +186,16 @@ private struct EntryRow: View {
     }
 }
 
-/// A finished meeting (§6): the top, People and the transcript. Read only in this version.
+/// A finished meeting (§6): the name, People and the transcript.
 private struct FinishedMeeting: View {
+    let model: MeetingsModel
     let open: MeetingsModel.Open
     let missing: Bool
     let actions: WindowActions
+    @State private var title = ""
+    @FocusState private var editingTitle: Bool
+    /// The transcript row whose "Give this line to" is open.
+    @State private var giving: Int?
 
     private static let colors: [Color] = [.green, .purple, .orange, .cyan, .pink, .blue, .yellow, .indigo, .mint, .brown]
     private var meeting: MeetingStore.Meeting { open.meeting }
@@ -131,7 +204,11 @@ private struct FinishedMeeting: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text(MeetingPage.title(meeting.title, meeting.app)).font(.title2).fontWeight(.semibold)
+                TextField(MeetingPage.title(nil, meeting.app), text: $title)
+                    .textFieldStyle(.plain).font(.title2).fontWeight(.semibold)
+                    .focused($editingTitle)
+                    .onSubmit(saveTitle)
+                    .onChange(of: editingTitle) { if !editingTitle { saveTitle() } }
                 HStack(spacing: 6) {
                     ForEach(MeetingPage.facts(meeting), id: \.self) { fact in
                         Text(fact).font(.caption).padding(.horizontal, 8).padding(.vertical, 3).background(.quaternary, in: Capsule())
@@ -139,24 +216,26 @@ private struct FinishedMeeting: View {
                     Spacer()
                     Button("Copy", action: copy).disabled(missing)
                     Button("Open note") { NSWorkspace.shared.open(note) }.disabled(missing)
+                    Menu {
+                        MeetingMenu(model: model, meeting: meeting, missing: missing)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 }
                 if missing {
                     Text("The note was moved, renamed or deleted:").padding(.top, 12)
                     Text(meeting.path).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-                } else if let page = open.page {
-                    Caption("People")
-                    VStack(spacing: 0) {
-                        ForEach(Array(page.people.enumerated()), id: \.element.key) { index, person in
-                            if index > 0 { Divider().padding(.leading, 44) }
-                            personRow(person, color: Self.colors[index % Self.colors.count])
-                        }
+                    HStack {
+                        Button("Locate note…", action: model.locate)
+                        Button("Remove from list…") { model.question = .remove(meeting) }
                     }
-                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
-                    Caption("Transcript (read only)")
-                    LazyVStack(alignment: .leading, spacing: 10) {
-                        ForEach(Array(page.rows.enumerated()), id: \.offset) { _, row in
-                            EntryRow(name: row.name, time: row.time, text: row.text)
+                } else if let page = open.page {
+                    people(page)
+                    Caption("Transcript (read only) · click a line to give it to another person")
+                    LazyVStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(page.rows.enumerated()), id: \.offset) { index, row in
+                            transcriptRow(row, index: index, people: page.people)
                         }
                     }
                 } else {
@@ -165,24 +244,134 @@ private struct FinishedMeeting: View {
             }
             .padding(20)
         }
+        .onAppear { title = meeting.title ?? "" }
+        .onChange(of: meeting.title) { title = meeting.title ?? "" }
     }
 
-    private func personRow(_ person: MeetingPage.PersonRow, color: Color) -> some View {
+    private func saveTitle() {
+        if !model.rename(meeting, typed: title) { title = meeting.title ?? "" }
+    }
+
+    private func people(_ page: MeetingPage.Page) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Caption("People")
+            VStack(spacing: 0) {
+                ForEach(Array(page.people.enumerated()), id: \.element.key) { index, person in
+                    if index > 0 { Divider().padding(.leading, 46) }
+                    personRow(person, color: color(of: person.key, in: page), page: page)
+                }
+            }
+            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+            HStack {
+                Spacer()
+                Button("Reset people…") { model.question = .reset(meeting: meeting.id) }.disabled(!page.canReset)
+            }
+        }
+    }
+
+    private func color(of person: String, in page: MeetingPage.Page) -> Color {
+        Self.colors[(page.people.firstIndex { $0.key == person } ?? 0) % Self.colors.count]
+    }
+
+    private func personRow(_ person: MeetingPage.PersonRow, color: Color, page: MeetingPage.Page) -> some View {
         HStack(spacing: 10) {
             Text(person.initials).font(.caption2).fontWeight(.bold).foregroundStyle(.white)
                 .frame(width: 26, height: 26).background(color, in: Circle())
-            Text(person.name).foregroundStyle(person.named ? .primary : .secondary)
+            NameField(text: person.named ? person.name : "", placeholder: person.key, suggestions: open.suggestions) {
+                model.name(meeting.id, person: person.key, typed: $0)
+            }
+            .frame(width: 230)
             Spacer()
             let share = "\(Int((person.share * 100).rounded()))%"
             Text(person.isYou ? "you · \(share)" : share).foregroundStyle(.secondary).monospacedDigit()
+            if !person.mergeTargets.isEmpty {
+                Menu("Merge into") {
+                    ForEach(person.mergeTargets, id: \.self) { target in
+                        Button(page.people.first { $0.key == target }?.name ?? target) { model.merge(meeting.id, person: person.key, into: target) }
+                    }
+                }
+                .fixedSize()
+            }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, 6)
+    }
+
+    @ViewBuilder private func transcriptRow(_ row: MeetingPage.Row, index: Int, people: [MeetingPage.PersonRow]) -> some View {
+        let entry = EntryRow(name: row.name, time: row.time, text: row.text)
+            .padding(.horizontal, 6).padding(.vertical, 3)
+            .background(giving == index ? Color.accentColor.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 6))
+        if let place = row.place {
+            entry
+                .contentShape(Rectangle())
+                .onTapGesture { giving = index }
+                .popover(isPresented: Binding(get: { giving == index }, set: { if !$0 { giving = nil } }), arrowEdge: .trailing) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Give this line to").font(.caption).foregroundStyle(.secondary).padding(.bottom, 4)
+                        ForEach(people.filter { $0.key != row.person }, id: \.key) { person in
+                            Button(person.name) { giving = nil; model.give(meeting.id, line: place, to: person.key) }
+                        }
+                        Divider().padding(.vertical, 4)
+                        Button("New person") { giving = nil; model.giveToNewPerson(meeting.id, line: place) }
+                    }
+                    .buttonStyle(.borderless)
+                    .padding(12)
+                }
+        } else {
+            entry
+        }
     }
 
     private func copy() {
         guard let text = try? String(contentsOf: note, encoding: .utf8) else { return }
         actions.perform(.copyText(MeetingNote.stripFrontMatter(text)))
+    }
+}
+
+/// A person's name: a combo box that suggests names given in other meetings, as the meeting-name dialog does.
+/// Saved on Enter, when it loses focus, or when a suggestion is picked.
+private struct NameField: NSViewRepresentable {
+    let text: String
+    let placeholder: String
+    let suggestions: [String]
+    let commit: (String) -> Void
+
+    func makeNSView(context: Context) -> NSComboBox {
+        let box = NSComboBox()
+        box.completes = true
+        box.numberOfVisibleItems = 12
+        box.delegate = context.coordinator
+        return box
+    }
+
+    func updateNSView(_ box: NSComboBox, context: Context) {
+        context.coordinator.commit = commit
+        box.placeholderString = placeholder
+        if box.currentEditor() == nil, box.stringValue != text { box.stringValue = text } // not while typing
+        if box.objectValues as? [String] != suggestions {
+            box.removeAllItems()
+            box.addItems(withObjectValues: suggestions)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(commit: commit) }
+
+    @MainActor
+    final class Coordinator: NSObject, NSComboBoxDelegate {
+        var commit: (String) -> Void
+
+        init(commit: @escaping (String) -> Void) {
+            self.commit = commit
+        }
+
+        func controlTextDidEndEditing(_ notification: Notification) {
+            if let box = notification.object as? NSComboBox { commit(box.stringValue) }
+        }
+
+        func comboBoxSelectionDidChange(_ notification: Notification) {
+            if let box = notification.object as? NSComboBox, let name = box.objectValueOfSelectedItem as? String { commit(name) }
+        }
     }
 }
 

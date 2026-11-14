@@ -52,7 +52,7 @@ extension AppHost {
         let added = chooser.urls.filter { url in ((try? meetingStore.add(note: url, you: you)) ?? nil) != nil }.count
         let skipped = chooser.urls.count - added
         panel.message(added == 1 ? "1 note added" : "\(added) notes added",
-                      detail: skipped == 0 ? "" : "\(skipped) skipped: already in the list or not a transcript")
+                      detail: skipped == 0 ? "" : "\(skipped) skipped: already in the list, not a transcript, or can't be read")
         mainWindow.meetingsChanged()
     }
 

@@ -58,7 +58,8 @@ final class AppHost: ControllerHost {
         addMeetingNotes: { [unowned self] in self.addMeetingNotes() },
         downloads: downloads)
     lazy var mainWindow = MainWindow(model: settingsModel, actions: windowActions,
-                                     meetings: MeetingsModel(store: meetingStore, live: { [unowned self] in self.liveMeeting() }),
+                                     meetings: MeetingsModel(store: meetingStore, live: { [unowned self] in self.liveMeeting() },
+                                                             template: { [unowned self] in self.settings.meetingFileName }),
                                      home: { [unowned self] in HomeModel.build(self.snapshot()) })
     /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
     var lookups = Lookups()
