@@ -274,11 +274,11 @@ Settings → Meetings shows a live example as you type.
 | 🎙⚠ in the menu bar | Open the menu to read the error. Try **Reload model** on the window's Home. "Not downloaded" → Settings → Engines and models → Download |
 | No draft text in the panel | The draft engine isn't downloaded (Settings → Engines and models), or Overlay → Live draft is off |
 | English words come out in Cyrillic | Add them to `terms` and a `replace` rule (see Dictionary) |
-| First words cut off / worse recognition with Bluetooth headphones | Using their microphone switches Bluetooth to a low-quality headset mode, which also takes ~0.5 s to start. Choose 🎙 → Microphone → MacBook Pro Microphone; your music stays in high quality |
+| First words cut off / worse recognition with Bluetooth headphones | Using their microphone switches Bluetooth to a low-quality headset mode, which also takes ~0.5 s to start. Choose MacBook Pro Microphone on Home (🎙 → Open Shepit) or in Settings → Dictation; your music stays in high quality |
 | Meeting note has only your voice | System Settings → Privacy & Security → Screen & System Audio Recording → turn on Shepit (Shepit says so after 2 min of your speech with a silent call) |
 | "Start meeting transcript (download the model in Settings)" | Settings → Meetings → Download voice detection, and the meetings engine in Engines and models |
 | Speakers stay `[Співрозмовники]` | Settings → Meetings → Download speaker detection; it applies to the next meeting |
-| Lost text | Everything is in 🎙 → Open history. Audio of failed attempts is kept for 24 h in `~/.local/share/dictation/failed/` |
+| Lost text | Everything is in the history file: Dictations → **Open history file**, or Settings → History and privacy → Open history. Audio of failed attempts is kept for 24 h in `~/.local/share/dictation/failed/` |
 
 ## Update
 
