@@ -170,6 +170,8 @@ struct MenuModelTests {
         #expect(MenuModel.meetingLine(.finishing(left: 3)) == "Meeting: finishing (3 left)")
         #expect(MenuModel.meetingLine(.detectingSpeakers) == "Meeting: detecting speakers…")
         #expect(MenuModel.meetingLine(.idle) == nil)
+        let long = MenuModel.meetingLine(.recording(elapsed: 9, waiting: 0), title: String(repeating: "Quarterly planning ", count: 6)) ?? ""
+        #expect(long.count < 70 && long.hasSuffix("… · 0:09"))
         let items = MenuModel.build(view { $0.meeting = .finishing(left: 1) })
         #expect(items[1].title == "Meeting: finishing (1 left)" && !items[1].enabled)
         let named = MenuModel.build(view { $0.meeting = .recording(elapsed: 9, waiting: 0); $0.meetingTitle = "Weekly sync" })

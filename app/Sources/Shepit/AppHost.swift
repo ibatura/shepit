@@ -132,6 +132,7 @@ final class AppHost: ControllerHost {
             }
         }
         if initial || before?.theme != after.theme { applyTheme(after.theme) }
+        if initial || before?.engines != after.engines { lookups.meetingMissing = meetingMissing } // follows the meetings engine
         if initial || before?.accentColor != after.accentColor { applyAccentColor(after.accentColor) }
         if announce, settingsOK, dictionaryOK { panel.message("Config reloaded") }
         refreshStatus()
@@ -162,6 +163,7 @@ final class AppHost: ControllerHost {
 
     private func poll() {
         reloadConfig(announce: false)
+        refreshLookups()
         Task {
             let load = await self.models.loadState(.dictation)
             if load != self.dictationLoad {
@@ -218,9 +220,14 @@ final class AppHost: ControllerHost {
         var meetingMissing: String?
     }
 
+    /// Enough history for Home and for the menu's Recent.
+    var recentHistory: [History.Entry] {
+        History.recent(Paths.historyFile, count: max(HomeModel.dictationCount, settings.historyMenuItems))
+    }
+
     func gatherLookups() {
         lookups = Lookups(downloaded: ModelCatalog.downloadedChoices(), microphones: AudioRecorder.inputDevices().map(\.name),
-                          history: History.recent(Paths.historyFile, count: max(HomeModel.dictationCount, settings.historyMenuItems)),
+                          history: recentHistory,
                           accessibilityGranted: Permissions.accessibilityGranted, microphoneDenied: Permissions.microphoneDenied,
                           meetingMissing: meetingMissing)
     }
@@ -346,6 +353,7 @@ final class AppHost: ControllerHost {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         try? History.clear(Paths.historyFile)
         FailedAudio.cleanup(Paths.failedDir, olderThanHours: 0, now: Date().addingTimeInterval(1))
+        refreshHistory()
         panel.message("🗑 History cleared")
     }
 
@@ -422,6 +430,7 @@ final class AppHost: ControllerHost {
         guard settings.saveHistory else { return }
         do {
             try History.append(text, to: Paths.historyFile, at: Date())
+            refreshHistory()
         } catch {
             panel.message("Could not write history: \(error.localizedDescription)")
         }

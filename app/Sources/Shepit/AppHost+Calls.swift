@@ -44,7 +44,7 @@ extension AppHost {
             callTicker = nil
         }
         for effect in effects { run(effect) }
-        refreshLive() // Home shows the call that runs now
+        refreshStatus() // Home shows the call that runs now
         return effects
     }
 

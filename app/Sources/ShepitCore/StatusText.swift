@@ -43,8 +43,8 @@ extension EngineChoice {
 enum StatusText {
     static let maxLine = 90
 
-    static func shorten(_ s: String) -> String {
-        s.count > maxLine ? String(s.prefix(maxLine - 2)) + "…" : s
+    static func shorten(_ s: String, to max: Int = maxLine) -> String {
+        s.count > max ? String(s.prefix(max - 2)) + "…" : s
     }
 
     /// "0:09", "12:34", "1:02:03".

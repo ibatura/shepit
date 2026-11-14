@@ -5,8 +5,11 @@ import ShepitCore
 struct HomeSection: View {
     let model: SettingsModel
     let actions: WindowActions
-    let home: Home
+    /// Read in `body`, so the meeting clock redraws Home and not the window around it.
+    let live: WindowModel
     let navigation: WindowNavigation
+
+    private var home: Home { live.home }
 
     var body: some View {
         Form {

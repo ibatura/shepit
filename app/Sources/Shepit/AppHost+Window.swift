@@ -9,16 +9,25 @@ extension AppHost {
         mainWindow.show(section)
     }
 
-    /// After a change of state: the menu-bar title, and the open window with its devices and files looked up again
-    /// (the 2-s poll comes here too, so a plugged-in microphone or a finished download shows up).
+    /// After a change of state (a dictation, the meeting clock every second, a call, a settings write): the menu-bar
+    /// title and the open window, with the lookups they have. No device or disk lookups here.
     func refreshStatus() {
-        if mainWindow.isOpen { gatherLookups() }
-        refreshLive()
+        menu?.refreshTitle()
+        mainWindow.refresh()
     }
 
-    /// Only the live state changed (the meeting clock ticks every second): the lookups are reused.
-    func refreshLive() {
-        menu?.refreshTitle()
+    /// Devices, downloads and permissions change without an event we can rely on: the 2-s poll looks them up again
+    /// for the open window.
+    func refreshLookups() {
+        guard mainWindow.isOpen else { return }
+        gatherLookups()
+        mainWindow.refresh()
+    }
+
+    /// After history.log was written or cleared: the open window lists it at once.
+    func refreshHistory() {
+        guard mainWindow.isOpen else { return }
+        lookups.history = recentHistory
         mainWindow.refresh()
     }
 

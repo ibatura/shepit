@@ -35,7 +35,8 @@ public enum MenuModel {
     public static func meetingLine(_ state: MeetingState, title: String? = nil) -> String? {
         switch state {
         case .recording(let elapsed, let waiting):
-            let parts = ["⏺ Recording", title, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
+            // A long calendar subject must not widen the whole menu; the clock stays visible.
+            let parts = ["⏺ Recording", title.map { StatusText.shorten($0, to: 40) }, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
             return parts.compactMap { $0 }.joined(separator: " · ")
         case .finishing(let left): return "Meeting: finishing (\(left) left)"
         case .detectingSpeakers: return "Meeting: detecting speakers…"
