@@ -323,6 +323,8 @@ the UI doesn't freeze — and the README tells them to click Allow.
   name; Statistics records one row per meeting (`2026-10-18-native-app/05-statistics.md`).
 
 ### 5.7 Copy, rename, open
+*Replaced on 2026-11-14 by the window's Meetings section (`2026-11-14-meetings-design.md`): the menu items below and `last-meeting` are gone.*
+
 - File names come from a template, so the last transcript can't be found by name:
   the tool keeps the path of the newest note in `~/.local/share/dictation/last-meeting`
   (one line of text). During a session that's the current note.

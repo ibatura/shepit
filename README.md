@@ -70,9 +70,6 @@ The menu has the quick actions; everything else is in [the window](#the-window).
 | Status line | Ready / Loading / Recording / Transcribing, or the current error; ⚠ lines below it name settings errors or permission problems. While a meeting runs, a second line shows its name, its time and how many phrases wait for recognition |
 | Open Shepit (⌘O) | Opens the window on the section it showed last (also: launch Shepit again) |
 | Start / Stop meeting transcript | See [Meeting transcripts](#meeting-transcripts) |
-| Copy last meeting transcript | The newest note without its front matter, to the clipboard |
-| Rename speakers… / … in another note… | Give `Person 1`, `Person 2` real names in the last note, or in a note you pick |
-| Open meetings folder | The folder with the notes, in Finder |
 | Copy last dictation | The newest dictation, to the clipboard |
 | Recent | Your last dictations. Click one to copy its full text |
 | Add word… | Same as ⌃⌥D |
@@ -91,12 +88,13 @@ Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open 
 | Section | What is there |
 |---|---|
 | Home | Dictation status, Mode, Language, Microphone, **Reload settings** (re-reads both files now; normally automatic within 2 s) and **Reload model** (if an engine got stuck); the engine for each job; the meeting transcript with Start and Stop; your last 10 dictations with Copy |
+| Meetings | Every meeting transcript: name the meeting and its people, merge people, give a line to another person (see [Meetings in the window](#meetings-in-the-window)) |
 | Dictionary | Terms, replace rules and drop phrases (see [Dictionary](#dictionary)) |
 | Statistics | Numbers about your dictations and meetings, kept on this Mac |
 | Settings | All settings (see [Settings](#settings)) |
-| Meetings, Dictations, People | Not built yet. Meeting actions are in the menu; Dictations has **Open history file** |
+| Dictations, People | Not built yet. Dictations has **Open history file** |
 
-While a meeting transcript runs, a card at the top of the sidebar shows its time and name.
+While a meeting transcript runs, a card at the top of the sidebar shows its time and name; a click opens it in Meetings.
 
 ## Meeting transcripts
 
@@ -105,7 +103,24 @@ Shepit can write a transcript of a Teams, Meet or any other call into a Markdown
 1. Join the call, then 🎙 → **Start meeting transcript**. A dialog asks for the meeting name, prefilled with the one found in the Teams call window or on the Google Meet page (a meeting from a calendar; a quick meet.new call has no name). Zoom shows no topic, so there the note only records "Zoom". When the app gives no name, a meeting that ran at this time before (same weekday last weeks, or daily) gets the name you gave it then. ▾ in the field lists names you used recently; they are kept only on this Mac, in `~/.local/share/dictation/meeting-names.json`. If the call window was still loading, the name appears in the dialog a second or two later. Enter to accept, empty for none, Cancel to not start.
 2. The note appears at once and fills a few seconds behind the conversation. You can keep it open in Obsidian.
 3. 🎙 → **Stop meeting transcript** when the call ends. The last phrases are finished, then remote voices are told apart: `[Співрозмовники]` becomes `[Person 1]`, `[Person 2]`, … ("Meeting: detecting speakers…" in the menu meanwhile).
-4. 🎙 → **Rename speakers…** asks who each Person is, showing the first thing they said so you can find them in the Teams transcript. Empty keeps the label; the same name for two labels merges them; Cancel stops asking.
+4. Name the people in the window: **Meetings** (or **Name people** on the "Transcript ready" panel). See below.
+
+### Meetings in the window
+
+Shepit window → **Meetings** lists every transcript, newest first, grouped by week and then by month. A transcript being recorded is at the top with a red dot: open it to see its time, words, phrases waiting, whether your microphone is muted in the call app, the lines written so far, and **Stop**.
+
+Open a finished meeting to:
+
+- **Rename it:** click its name. The note's `title` and its file name change too (the `meetingFileName` template is filled again, in the folder the note is in now). Links to the note from other Obsidian notes are not updated: Obsidian does that only for renames made inside it.
+- **Name people:** type a name next to `Person 1`; names given in earlier meetings are suggested. Every line of that person gets the name in the note. A name another person of the meeting already has asks to merge the two.
+- **Merge into:** all lines of one person go to another (for one voice that speaker detection split in two). Your own voice heard through the call can be merged into you.
+- **Give a line to another person:** click the line. **New person** makes a `Person N` for a voice that speaker detection put under someone else.
+- **Reset people…** puts every line back to the person speaker detection gave it; the names you typed stay.
+- **Copy** (the note without its front matter), **Open note**, and in **⋯**: **Remove from list…** (the note stays) and **Move note to Trash…**.
+
+The transcript is read only here; edit it in Obsidian. Shepit changes only the `[name] time` lines and the `title` line, and reads the note again right before each change, so your edits stay. If you add or delete a line in Obsidian, the lines with the same time (to the second) can no longer be given to someone else. A label typed by hand in a `[name] time` line is not read back.
+
+A meeting whose note was moved, renamed or deleted shows **note not found**, with **Locate note…** to point at the file. Notes made before this version are not in the list: **Add notes…** under the list adds them (pick several, or ⌘A in the folder); a file with no transcript lines is skipped.
 
 ### The call panel
 
@@ -115,7 +130,7 @@ You don't have to open the menu. When Teams, Zoom or a Google Meet tab (Chrome, 
 - **Not this call**, or the panel hiding by itself after 15 seconds (`callOfferSeconds`), means no more panels for this call. Start from the menu still works.
 - **Nothing is recorded without your click**, unless you turn on **Start automatically** (`callAutoStart`): then the panel counts down and the transcript starts unless you press **Don't record**.
 - When the call ends, the panel counts down 10 seconds (`callAutoStopSeconds`) and the transcript stops by itself; **Keep recording** leaves it running. This applies to a transcript started from the panel, or from the menu during the call. A transcript started with no call is never stopped this way.
-- After Stop the panel says **Transcript ready**, with **Name people** (the same as Rename speakers…).
+- After Stop the panel says **Transcript ready**, with **Name people**, which opens the meeting in the window.
 - A call's transcript without a single line is removed (for example Start on a pre-join screen that you then closed).
 
 The settings are in 🎙 → Settings… → **Calls**. Known limits, because a call is detected only by an app holding the microphone:
@@ -317,6 +332,7 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | Clipboard | — | The dictated text passes through the clipboard for a moment; your previous clipboard is put back |
 | Meeting notes | `meetingsFolder` (`~/.local/share/dictation/meetings` by default, local) | Until you delete them. A synced folder (iCloud Drive, an Obsidian vault in iCloud) uploads the notes to that service |
 | Meeting names | `~/.local/share/dictation/meeting-names.json` | The names you gave meetings, with app and start time, to suggest them again (last 300) |
+| Meetings list | `~/.local/share/dictation/meetings.sqlite` | Each meeting's note path, name, app, start and duration, the names you gave its people and who said each line — **not** what was said, which stays in the note. Remove from list… deletes a meeting from it; `uninstall.sh --purge` deletes it |
 | Meeting audio | a private temporary folder | Only during the meeting and speaker detection, then deleted — also after a failure, and at the next launch after a crash |
 
 **Shepit's permissions:** Accessibility lets it send ⌘V, read a selected word (⌘C, for ⌃⌥D) and read window and tab titles and the call's mute button, to suggest a meeting name and leave out what you say while muted (it also asks Teams and Chrome to keep their accessibility information built, which they otherwise do only for assistive apps); Microphone lets it record while you dictate or during a meeting transcript; System Audio Recording lets it record the call, only between Start and Stop. It uses them for nothing else.
@@ -332,7 +348,7 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | `~/.local/share/dictation/stats.sqlite` | Usage statistics |
 | `~/.local/share/dictation/models/` | Model files |
 | `~/.local/share/dictation/meetings/` | Meeting notes (default `meetingsFolder`) |
-| `~/.local/share/dictation/last-meeting` | Path of the newest meeting note |
+| `~/.local/share/dictation/meetings.sqlite` | The meetings list: names, people and who said each line |
 | `~/.local/share/dictation/meeting-names.json` | Meeting names you used, for the name dialog |
 
 ## Development
