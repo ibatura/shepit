@@ -25,22 +25,22 @@ public enum MeetingTitle {
     public static let browsers = ["Google Chrome", "Safari", "Arc", "Microsoft Edge", "Firefox", "Brave Browser", "Opera", "Vivaldi", "Chromium"]
 
     /// `windows` front-most first. A Teams meeting window wins over a Meet tab.
-    public static func detect(_ windows: [Window]) -> (title: String?, app: String?) {
+    public static func detect(_ windows: [Window]) -> (title: String?, app: CallApp?) {
         // New Teams (2026-11-04): the call window is titled just "Refinement: Phase 3 …", with no
         // " | Microsoft Teams"; the window with the mute button tells it from chats and the calendar.
         for window in windows where window.app.hasPrefix("Microsoft Teams") && window.inCall {
-            return (teamsCall(window.title), "Teams")
+            return (teamsCall(window.title), .teams)
         }
         for window in windows where window.app.hasPrefix("Microsoft Teams") {
-            if let title = teams(window.title) { return (title, "Teams") }
+            if let title = teams(window.title) { return (title, .teams) }
         }
         // Zoom keeps the topic out of most titles: "Zoom Meeting" is a call with no name.
         for window in windows where window.app == zoom && (window.inCall || window.title.hasPrefix("Zoom Meeting")) {
             let title = window.title.trimmingCharacters(in: .whitespaces)
-            return (zoomGeneric.contains(title) ? nil : title, "Zoom")
+            return (zoomGeneric.contains(title) ? nil : title, .zoom)
         }
         for window in windows where browsers.contains(window.app) {
-            if let found = meet(window.title) { return (found.isEmpty ? nil : found, "Meet") }
+            if let found = meet(window.title) { return (found.isEmpty ? nil : found, .meet) }
         }
         return (nil, nil)
     }

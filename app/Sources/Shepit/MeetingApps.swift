@@ -19,9 +19,9 @@ enum MeetingApps {
         var meetName: String?
 
         /// The meeting app and name: window titles first, then the Meet page.
-        var detected: (title: String?, app: String?) {
+        var detected: (title: String?, app: CallApp?) {
             let found = MeetingTitle.detect(windows)
-            return found.app == "Meet" && found.title == nil ? (meetName, "Meet") : found
+            return found.app == .meet && found.title == nil ? (meetName, .meet) : found
         }
     }
 
@@ -76,7 +76,7 @@ enum MeetingApps {
                     let tabs = tabTitles(window, until: deadline)
                     scan.windows += tabs.filter { $0 != title }.map { MeetingTitle.Window(app: name, title: $0) }
                     // Only a window showing Meet has the call controls in its tree (background tabs don't).
-                    if MeetingTitle.detect([MeetingTitle.Window(app: name, title: title)]).app == "Meet" { callRoots.append((window, index)) }
+                    if MeetingTitle.detect([MeetingTitle.Window(app: name, title: title)]).app == .meet { callRoots.append((window, index)) }
                 } else {
                     callRoots.append((window, index))
                 }

@@ -78,7 +78,7 @@ extension AppHost {
                 }
             }
             // A repeating meeting (same time last week, or daily) is named like last time, unless the app named it.
-            let guess = detected.title ?? MeetingNames.repeating(names, at: Date(), app: detected.app) ?? ""
+            let guess = detected.title ?? MeetingNames.repeating(names, at: Date(), app: detected.app?.rawValue) ?? ""
             guard let answer = askMeetingName(guess, recent: MeetingNames.recent(names), later: later) else { return } // Cancel: no session, no file
             if let scan = later.result {
                 let found = scan.detected
@@ -93,7 +93,7 @@ extension AppHost {
 
     /// Starts a transcript with the name and app as given, without asking (call offer design §5.4).
     /// Without `mute`, `MuteWatch` looks for the button itself. `fromCall`: started by the call panel.
-    func startMeeting(title: String?, app: String?, mute muteButton: MuteButton? = nil, fromCall: Bool = false) {
+    func startMeeting(title: String?, app: CallApp?, mute muteButton: MuteButton? = nil, fromCall: Bool = false) {
         guard !meetingActive, meetingMissing == nil else { return }
         let settings = settings
         let start = Date()
@@ -102,17 +102,17 @@ extension AppHost {
             let namesFile = Paths.dataDir.appending(path: MeetingNames.fileName)
             let names = MeetingNames.load(namesFile)
             do {
-                try MeetingNames.save(MeetingNames.adding(names, title: title, app: app, start: start), to: namesFile)
+                try MeetingNames.save(MeetingNames.adding(names, title: title, app: app?.rawValue, start: start), to: namesFile)
                 meetingNamesBefore = names
             } catch {
                 NSLog("Shepit meeting names: %@", String(describing: error))
             }
         }
         let folder = settings.meetingsFolderURL(home: Paths.home)
-        let relative = MeetingFileName.relativePath(settings.meetingFileName, start: start, title: title, app: app)
+        let relative = MeetingFileName.relativePath(settings.meetingFileName, start: start, title: title, app: app?.rawValue)
         let note = MeetingFileName.unique(relative, in: folder) { FileManager.default.fileExists(atPath: $0.path) }
         let engine = settings.engine(for: .meetings)
-        var config = MeetingConfig(noteFile: note, frontMatter: MeetingNote.frontMatter(start: start, title: title, app: app),
+        var config = MeetingConfig(noteFile: note, frontMatter: MeetingNote.frontMatter(start: start, title: title, app: app?.rawValue),
                                    myName: settings.myName(),
                                    sessionDir: Self.meetingSessionsRoot.appending(path: "meeting-\(UUID().uuidString)", directoryHint: .isDirectory),
                                    stateDir: Paths.dataDir, engine: engine)

@@ -111,13 +111,13 @@ public enum HomeModel {
         case .detectingSpeakers: headline = "Detecting speakers"
         case .idle, .done, .interrupted: return nil
         }
-        return Home.Card(headline: headline, detail: [view.meetingTitle, view.meetingApp].compactMap { $0 }.joined(separator: " · "))
+        return Home.Card(headline: headline, detail: [view.meetingTitle, view.meetingApp?.rawValue].compactMap { $0 }.joined(separator: " · "))
     }
 
     private static func meeting(_ view: AppSnapshot) -> Home.MeetingRow {
         switch view.meeting {
         case .recording(let elapsed, let waiting):
-            let parts = [view.meetingApp, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
+            let parts = [view.meetingApp?.rawValue, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
             return Home.MeetingRow(recording: true, title: view.meetingTitle ?? "Meeting transcript",
                                    hint: parts.compactMap { $0 }.joined(separator: " · "), button: Home.Button(title: "Stop", action: .stopMeeting))
         case .finishing(let left): return Home.MeetingRow(title: "Finishing the transcript (\(left) left)")

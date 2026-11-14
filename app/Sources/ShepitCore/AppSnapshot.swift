@@ -39,7 +39,7 @@ public struct AppSnapshot: Sendable {
     /// The running transcript's name; nil when it has none.
     public var meetingTitle: String?
     /// The app the running transcript was started for ("Teams"); nil when unknown.
-    public var meetingApp: String?
+    public var meetingApp: CallApp?
     /// A call that runs now and is not recorded.
     public var call: CallOffer.Current?
     /// The newest history entries, newest first: enough for Home and for Recent (`historyMenuItems`).

@@ -54,14 +54,14 @@ extension AppHost {
             Task.detached {
                 // Titles of browser windows and tabs only; a Teams window must not hide a Meet tab.
                 let windows = MeetingApps.scan(limit: 2, depth: .titles).windows.filter { MeetingTitle.browsers.contains($0.app) }
-                let found = MeetingTitle.detect(windows).app == CallApp.meet.rawValue
+                let found = MeetingTitle.detect(windows).app == .meet
                 await MainActor.run { _ = self.callEvent(.meetFound(found)) }
             }
         case .lookForName:
-            guard let app = callOffer.current?.app.rawValue else { return }
+            guard let app = callOffer.current?.app else { return }
             // A repeating meeting (same time last week, or daily) is named like last time, at once.
             let names = MeetingNames.load(Paths.dataDir.appending(path: MeetingNames.fileName))
-            if let name = MeetingNames.repeating(names, at: Date(), app: app) { callEvent(.named(name)) }
+            if let name = MeetingNames.repeating(names, at: Date(), app: app.rawValue) { callEvent(.named(name)) }
             callNameLookup?.cancel()
             callNameLookup = Task {
                 // The name the app shows wins. The call window's tree can still be building: look up to 5 times, as Start does.
@@ -71,7 +71,7 @@ extension AppHost {
                     let found = await Task.detached {
                         // Only the windows of the call's own kind: a Teams window must not hide the Meet call's name.
                         var scan = MeetingApps.scan(limit: 2)
-                        scan.windows = scan.windows.filter { MeetingTitle.browsers.contains($0.app) == (app == CallApp.meet.rawValue) }
+                        scan.windows = scan.windows.filter { MeetingTitle.browsers.contains($0.app) == (app == .meet) }
                         return scan.detected
                     }.value
                     if Task.isCancelled { return }
@@ -87,7 +87,7 @@ extension AppHost {
             } else if let missing = meetingMissing {
                 panel.message("⚠ Meeting transcript not started", detail: missing)
             } else {
-                startMeeting(title: title, app: app.rawValue, fromCall: true)
+                startMeeting(title: title, app: app, fromCall: true)
             }
         case .stop:
             Task { await meeting?.stop() }

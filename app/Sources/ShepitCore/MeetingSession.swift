@@ -42,7 +42,7 @@ public struct MeetingConfig: Sendable {
     public var engine: EngineChoice
     /// The meeting's name and the app it runs in ("Teams"), when known: shown while it records.
     public var title: String?
-    public var app: String?
+    public var app: CallApp?
     public var frameSamples = 4096
     public var threshold: Float = 0.5
     public var maxSilence: TimeInterval = 30 * 60
@@ -141,7 +141,7 @@ public final class MeetingSession {
 
     public let config: MeetingConfig
     public var title: String? { config.title }
-    public var app: String? { config.app }
+    public var app: CallApp? { config.app }
     private let mic: MeetingAudioSource
     private let call: MeetingAudioSource
     private let services: MeetingServices

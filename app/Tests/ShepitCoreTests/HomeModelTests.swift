@@ -83,7 +83,7 @@ struct HomeModelTests {
 
     @Test func meetingRowWhileATranscriptRuns() {
         let recording = home {
-            $0.meeting = .recording(elapsed: 754, waiting: 2); $0.meetingTitle = "Weekly sync"; $0.meetingApp = "Teams"
+            $0.meeting = .recording(elapsed: 754, waiting: 2); $0.meetingTitle = "Weekly sync"; $0.meetingApp = .teams
             $0.call = CallOffer.Current(name: "Weekly sync", app: .teams)
         }.meeting
         #expect(recording == Home.MeetingRow(recording: true, title: "Weekly sync", hint: "Teams · 12:34 · 2 phrases waiting",
@@ -97,7 +97,7 @@ struct HomeModelTests {
     @Test func theSidebarCardShowsOnlyWhileATranscriptRuns() {
         #expect(home().card == nil)
         #expect(home { $0.meeting = .done(speakers: 2); $0.meetingTitle = "Weekly sync" }.card == nil)
-        let named = home { $0.meeting = .recording(elapsed: 754, waiting: 2); $0.meetingTitle = "Weekly sync"; $0.meetingApp = "Teams" }.card
+        let named = home { $0.meeting = .recording(elapsed: 754, waiting: 2); $0.meetingTitle = "Weekly sync"; $0.meetingApp = .teams }.card
         #expect(named == Home.Card(headline: "Recording 12:34", detail: "Weekly sync · Teams"))
         #expect(home { $0.meeting = .finishing(left: 1) }.card == Home.Card(headline: "Finishing", detail: ""))
         #expect(home { $0.meeting = .detectingSpeakers }.card?.headline == "Detecting speakers")
