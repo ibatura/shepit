@@ -96,16 +96,16 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
-| N1 | A real call: start a transcript, open Meetings while it records, mute and unmute in the call app; Stop | The running meeting is first in the list with a red dot; time, words, phrases waiting and "Your microphone" follow; entries appear and the list follows them unless scrolled up; finishing, detecting speakers, then the meeting with its people stays chosen ||
-| N2 | Name two people; look at the note in Obsidian | Only the `[name] time` lines of those people changed; text and front matter untouched; earlier names are suggested in a second meeting ||
-| N3 | Type the name another person has; Cancel, then again and Merge; Merge into; Reset people… | The merge question; Cancel keeps both; Merge and Merge into give all lines to one person; Reset brings every line back and keeps the names ||
-| N4 | Click a line, give it to another person; click another, New person | The header of that line only changes; New person makes the next `Person N` ||
-| N5 | Rename a meeting; start a transcript at the same time of day later (or next week) | The note's file is renamed in its folder, its `title` changed; the name dialog offers the new name ||
-| N6 | Edit an entry's text in Obsidian while the meeting is open; come back to Shepit; name a person | The window shows the edit; the edit is still in the note after the change ||
-| N7 | Delete an entry in Obsidian; come back | Lines with that entry's time (to the second) can't be given; the rest can ||
-| N8 | Move the note in Finder; come back; Locate note… | "note not found" in the list and the meeting; after Locate the transcript is back ||
-| N9 | Add notes… with the old notes and a non-transcript `.md`; Add notes… again | The old meetings appear with the right dates; the message counts the skipped files; the second time all are skipped ||
-| N10 | Remove note from list… on one meeting; Move file to Trash… on another | Both ask first; the first note stays in its folder; the second is in the Trash; both leave the list ||
-| N11 | Name people on the "Transcript ready" panel; the recording card during a transcript | The window opens on that meeting; the card opens the running one ||
-| N12 | Quit Shepit during a transcript, start it again | The meeting is in the list; the note ends with "Запис перервано" ||
-| N13 | Open the 🎙 menu | No Copy last meeting transcript, Rename speakers or Open meetings folder; Start / Stop meeting transcript is there ||
+| L1 | A real call: start a transcript, open Meetings while it records, mute and unmute in the call app; Stop | The running meeting is first in the list with a red dot; time, words, phrases waiting and "Your microphone" follow; entries appear and the list follows them unless scrolled up; finishing, detecting speakers, then the meeting with its people stays chosen ||
+| L2 | Name two people; look at the note in Obsidian; in another meeting type «Іван» in a name field | Only the `[name] time` lines of those people changed; text and front matter untouched; while typing, a list opens with the matching names, «Іван» finds «Ivan Batura» ||
+| L3 | Type the name another person has; Cancel, then again and Merge; Merge into; Reset people… | The merge question; Cancel keeps both; Merge and Merge into give all lines to one person; Reset brings every line back and keeps the names ||
+| L4 | Click a line, give it to another person; click another, New person | The header of that line only changes; New person makes the next `Person N` ||
+| L5 | Rename a meeting; start a transcript at the same time of day later (or next week) | The note's file is renamed in its folder, its `title` changed; the name dialog offers the new name ||
+| L6 | Edit an entry's text in Obsidian while the meeting is open; come back to Shepit; name a person | The window shows the edit; the edit is still in the note after the change ||
+| L7 | Delete an entry in Obsidian; come back | Lines with that entry's time (to the second) can't be given; the rest can ||
+| L8 | Move the note in Finder; come back; Locate note… | "note not found" in the list and the meeting; after Locate the transcript is back ||
+| L9 | Add notes… with the old notes and a non-transcript `.md`; Add notes… again | The old meetings appear with the right dates; the message counts the skipped files; the second time all are skipped ||
+| L10 | Remove note from list… on one meeting; Move file to Trash… on another | Both ask first; the first note stays in its folder; the second is in the Trash; both leave the list ||
+| L11 | Name people on the "Transcript ready" panel; the recording card during a transcript | The window opens on that meeting; the card opens the running one ||
+| L12 | Quit Shepit during a transcript, start it again | The meeting is in the list; the note ends with "Запис перервано" ||
+| L13 | Open the 🎙 menu | No Copy last meeting transcript, Rename speakers or Open meetings folder; Start / Stop meeting transcript is there ||

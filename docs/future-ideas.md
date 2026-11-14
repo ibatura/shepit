@@ -47,6 +47,7 @@ Not blockers; the reviews of the branch found them and they were left as they ar
 
 - **The call panel should slide in finished.** Today the offer, stop and "Transcript ready" panels appear in pieces: the text and the card are drawn apart, and the card flies in from the top left before it lands in the top right. It should slide in from the right edge, already fully drawn. A likely cause: `CallPanel.show` orders the panel front at its old frame (`.zero` the first time) before SwiftUI has drawn the new state, and places it again on the next pass.
 - **A new look for the dictation overlay.** After the window's redesign the overlay (recording, transcribing, live draft) looks as if it came from another app. Redesign it in the style of the window and the call panel (`2026-11-11-visual-style/`), and make it better while at it.
+- **Every database query on an index.** Check each query of `meetings.sqlite` and `stats.sqlite` with `EXPLAIN QUERY PLAN`; where one scans a whole table, add the index it needs. Known at the time of writing (2026-11-15): in `meetings.sqlite`, `people` and `lines` are keyed by meeting first and `meetings.path` is unique, but the list sorts `meetings` by `start` with no index, and the name suggestions read all of `people` on purpose; in `stats.sqlite`, `dictations` and `meetings` have an index on `time`, `offers` and `model_events` none.
 
 ### The main window (decided 2026-11-11)
 

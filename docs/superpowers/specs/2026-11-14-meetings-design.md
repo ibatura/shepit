@@ -161,20 +161,20 @@ Every change goes into the note and the database together, or into neither. A wr
 
 Unit tests: reading notes (front matter with and without `title` and `app`, CRLF, escaped lines, ⚠ lines, no headers); header changes touch only the given entries; pairing with entries added and deleted in Obsidian; the `title` line set, added, removed; the database (a new file, each way of adding, order, rename, name, merge, give, new person, reset, remove, relink, suggestions leave out this meeting, data kept after reopening); list groups and row texts (this week, last week, months, the running states, a missing note, no name); shares; the rename file name (with and without `{title}`, subfolders in the template, a taken name); the `meeting-names.json` entry renamed; the menu without the removed items.
 
-Manual (added to `docs/manual-test-checklist.md` as N1–N13):
-- N1 A real call: the running meeting first in the list with time, words, waiting phrases and mute; live entries; Stop, finishing, people.
-- N2 Name people; the note in Obsidian shows only the headers changed.
-- N3 The same name for two people asks to merge; Merge into; Reset people brings the lines back and keeps the names.
-- N4 Give a line; New person.
-- N5 Rename a meeting: the file renamed in its folder, the front matter `title`, the new name offered at that time next week (or by a second transcript started at the same time of day).
-- N6 Edit an entry's text in Obsidian while the meeting is open: the window shows it on return; a change in the window keeps the edit.
-- N7 Delete an entry in Obsidian: that second's entries can't be given; the rest work.
-- N8 Move the note in Finder: "note not found"; Locate note….
-- N9 Add notes… with the old notes; a file that is not a transcript is skipped; adding again skips them all.
-- N10 Remove note from list; Move file to Trash (the note is in the Trash).
-- N11 Name people from the "Transcript ready" panel; the recording card opens the running meeting.
-- N12 Quit during a transcript: the meeting is in the list after the next launch, marked interrupted in the note.
-- N13 The menu has no Copy last meeting transcript, Rename speakers or Open meetings folder.
+Manual (added to `docs/manual-test-checklist.md` as L1–L13):
+- L1 A real call: the running meeting first in the list with time, words, waiting phrases and mute; live entries; Stop, finishing, people.
+- L2 Name people; the note in Obsidian shows only the headers changed.
+- L3 The same name for two people asks to merge; Merge into; Reset people brings the lines back and keeps the names.
+- L4 Give a line; New person.
+- L5 Rename a meeting: the file renamed in its folder, the front matter `title`, the new name offered at that time next week (or by a second transcript started at the same time of day).
+- L6 Edit an entry's text in Obsidian while the meeting is open: the window shows it on return; a change in the window keeps the edit.
+- L7 Delete an entry in Obsidian: that second's entries can't be given; the rest work.
+- L8 Move the note in Finder: "note not found"; Locate note….
+- L9 Add notes… with the old notes; a file that is not a transcript is skipped; adding again skips them all.
+- L10 Remove note from list; Move file to Trash (the note is in the Trash).
+- L11 Name people from the "Transcript ready" panel; the recording card opens the running meeting.
+- L12 Quit during a transcript: the meeting is in the list after the next launch, marked interrupted in the note.
+- L13 The menu has no Copy last meeting transcript, Rename speakers or Open meetings folder.
 
 ## 12. My calls (not confirmed one by one)
 
