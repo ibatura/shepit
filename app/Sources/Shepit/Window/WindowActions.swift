@@ -9,6 +9,7 @@ struct WindowActions {
     var perform: (AppAction) -> Void
     var hotkeyProblem: () -> String?
     var openSettingsFile: () -> Void
+    var openDictionaryFile: () -> Void
     var openDataFolder: () -> Void
     var clearStatistics: () -> Void
     var setLaunchAtLogin: (Bool) -> String?

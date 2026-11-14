@@ -9,7 +9,7 @@ public enum DictionaryStoreError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .brokenDictionary:
-            "dictionary.json has errors; fix it first (Edit dictionary…)"
+            "dictionary.json has errors; fix it first (Open Shepit → Open dictionary file)"
         case .emptyRight:
             "the correct spelling is empty"
         case .validation(let errors):

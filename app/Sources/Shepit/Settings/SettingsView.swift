@@ -29,7 +29,8 @@ struct SettingsView: View {
                 }
             }
             .formStyle(.grouped)
-            .disabled(model.isReadOnly)
+            // History and privacy locks only its settings: its file actions work while settings.json is broken.
+            .disabled(model.isReadOnly && section != .historyPrivacy)
         }
     }
 }

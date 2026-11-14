@@ -190,38 +190,44 @@ struct HistoryPrivacySection: View {
 
     var body: some View {
         Section("History") {
-            Hinted(hint: "Save every result to history.log. With this off nothing new is written") {
-                Toggle("Save history", isOn: model.binding("saveHistory", \.saveHistory))
-            }
-            Hinted(hint: "Delete history entries older than this many days. 0 = keep forever") {
-                Stepper(value: model.binding("historyDays", \.historyDays), in: 0...3650) {
-                    Text(model.settings.historyDays == 0 ? "Keep history: forever" : "Keep history: \(model.settings.historyDays) days")
+            Group {
+                Hinted(hint: "Save every result to history.log. With this off nothing new is written") {
+                    Toggle("Save history", isOn: model.binding("saveHistory", \.saveHistory))
+                }
+                Hinted(hint: "Delete history entries older than this many days. 0 = keep forever") {
+                    Stepper(value: model.binding("historyDays", \.historyDays), in: 0...3650) {
+                        Text(model.settings.historyDays == 0 ? "Keep history: forever" : "Keep history: \(model.settings.historyDays) days")
+                    }
+                }
+                Hinted(hint: "How many recent dictations the Recent submenu shows. 0 hides it") {
+                    Stepper(value: model.binding("historyMenuItems", \.historyMenuItems), in: 0...50) {
+                        Text("Recent menu items: \(model.settings.historyMenuItems)")
+                    }
+                }
+                Hinted(hint: "How long the audio of a failed transcription is kept so you can retry. 0 = delete it right away") {
+                    Stepper(value: model.binding("failedAudioHours", \.failedAudioHours), in: 0...720) {
+                        Text("Keep failed audio: \(model.settings.failedAudioHours) h")
+                    }
                 }
             }
-            Hinted(hint: "How many recent dictations the Recent submenu shows. 0 hides it") {
-                Stepper(value: model.binding("historyMenuItems", \.historyMenuItems), in: 0...50) {
-                    Text("Recent menu items: \(model.settings.historyMenuItems)")
-                }
-            }
-            Hinted(hint: "How long the audio of a failed transcription is kept so you can retry. 0 = delete it right away") {
-                Stepper(value: model.binding("failedAudioHours", \.failedAudioHours), in: 0...720) {
-                    Text("Keep failed audio: \(model.settings.failedAudioHours) h")
-                }
-            }
+            .disabled(model.isReadOnly)
             HStack {
                 Button("Open history") { actions.perform(.openHistory) }
                 Button("Clear history…") { actions.perform(.clearHistory) }
             }
         }
         Section("Statistics") {
-            Hinted(hint: "Record usage statistics on this Mac: numbers only, never what you dictated") {
-                Toggle("Collect statistics", isOn: model.binding("collectStats", \.collectStats))
-            }
-            Hinted(hint: "Your typing speed, for “time saved” in Statistics (10–200)") {
-                Stepper(value: model.binding("typingSpeedWpm", \.typingSpeedWpm), in: 10...200, step: 5) {
-                    Text("Typing speed: \(model.settings.typingSpeedWpm) words per minute")
+            Group {
+                Hinted(hint: "Record usage statistics on this Mac: numbers only, never what you dictated") {
+                    Toggle("Collect statistics", isOn: model.binding("collectStats", \.collectStats))
+                }
+                Hinted(hint: "Your typing speed, for “time saved” in Statistics (10–200)") {
+                    Stepper(value: model.binding("typingSpeedWpm", \.typingSpeedWpm), in: 10...200, step: 5) {
+                        Text("Typing speed: \(model.settings.typingSpeedWpm) words per minute")
+                    }
                 }
             }
+            .disabled(model.isReadOnly)
             Button("Clear statistics…", action: actions.clearStatistics)
         }
     }

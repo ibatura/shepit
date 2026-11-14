@@ -21,7 +21,7 @@ struct MainView: View {
             .navigationSplitViewColumnWidth(190)
         } detail: {
             VStack(alignment: .leading, spacing: 0) {
-                ProblemBanner(model: model, openFile: actions.openSettingsFile)
+                ProblemBanner(model: model, actions: actions)
                 section
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -102,7 +102,7 @@ private struct Placeholder: View {
 /// settings.json errors (controls are read-only until the file is fixed) and refused writes.
 private struct ProblemBanner: View {
     let model: SettingsModel
-    let openFile: () -> Void
+    let actions: WindowActions
 
     var body: some View {
         let lines = model.errors + model.dictionaryErrors + (model.lastError.map { [$0] } ?? [])
@@ -112,7 +112,8 @@ private struct ProblemBanner: View {
                 if model.isReadOnly || model.dictionaryIsReadOnly {
                     HStack {
                         Text("Fix the file to change these settings here.")
-                        Button("Open settings file", action: openFile)
+                        if model.isReadOnly { Button("Open settings file", action: actions.openSettingsFile) }
+                        if model.dictionaryIsReadOnly { Button("Open dictionary file", action: actions.openDictionaryFile) }
                     }
                 }
             }

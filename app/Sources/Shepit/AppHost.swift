@@ -42,6 +42,7 @@ final class AppHost: ControllerHost {
         perform: { [unowned self] in self.perform($0) },
         hotkeyProblem: { [unowned self] in self.hotkeyProblem },
         openSettingsFile: { [unowned self] in self.edit(Paths.settingsFile, empty: "{}") },
+        openDictionaryFile: { [unowned self] in self.edit(Paths.dictionaryFile, empty: #"{"terms": [], "replace": {}, "dropPhrases": []}"#) },
         openDataFolder: { NSWorkspace.shared.open(Paths.dataDir) },
         clearStatistics: { [unowned self] in self.clearStatistics() },
         setLaunchAtLogin: { Self.setLaunchAtLogin($0) },
