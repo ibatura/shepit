@@ -85,3 +85,5 @@ Date: ____
 | W8 | Dictate a short and a very long text with Home open; press Copy; press All dictations | Both appear at the top within a few seconds; the long one is cut to two lines; Copy gives the whole text; All dictations opens the placeholder with Open history file ||
 | W9 | Settings → Appearance: each theme and a few accent colours, without restarting Shepit; `Shepit panel-test`; open a dialog (Clear history…) | The window, the call panel and the dialog follow the theme and the colour || 2026-11-13 in part: the accent colour changes at once (it needed a restart before commit 8d46025); the theme, the call panel and a dialog not reported
 | W10 | Settings → Hotkeys: record a meeting hotkey; press it with no meeting, during one, and right after Stop; try to record the dictation hotkey's keys; Remove | Starts as the menu's Start; stops; "Transcript is finishing"; the clash is refused inline; after Remove the key is gone from `settings.json` and the shortcut does nothing ||
+
+2026-11-14: after the review fixes the author clicked through the window on the installed app and found it working; the rows above were not checked one by one.

@@ -8,7 +8,7 @@ Build order agreed on 2026-11-11:
 
 1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
 2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Merged into `main` on 2026-11-13. Left: the list under "Call offer: left open" below.
-3. **Window shell** with Home and Settings.
+3. **Window shell** with Home and Settings: built on branch `window-shell`; the three end-of-branch reviews are done and their findings fixed (2026-11-14). Left: the list under "Window shell: left open" below.
 4. **Meetings**: the database, names, merging people, giving a line to another person.
 5. **Dictations and Dictionary.**
 6. **Statistics**, with the new numbers.
@@ -30,6 +30,18 @@ Found by the reviews of the branch and not changed; none blocks the merge except
 - Whether the panel's buttons take a click while a dialog is open was not tried (its countdown runs).
 - Speech in the first seconds after Start on a pre-join screen: one test note had only the line said after Cancel; not looked into.
 - Structure, for the Meetings part: the call app is a `CallApp` in some places and a string in others (`MeetingTitle.detect`, `Settings.callApps`), with two browser lists; the menu's Start and the panel each have their own name lookup.
+
+### Window shell: left open (2026-11-14)
+
+Not blockers; the reviews of the branch found them and they were left as they are.
+
+- Manual checks W1–W10 were not done one by one; the author clicked through the window on the installed app (2026-11-14) and it worked. Not seen on screen: the shortcut recorder ending when the window closes, ⌘Q with no window, Home's Start after "Not this call" and with call offers off, the banner's Open dictionary file.
+- `Shepit panel-test` does not read `settings.json`, so its panel always follows the macOS theme (W9 can't show the theme there).
+- `examples/settings.json` has `theme` and `accentColor` but not `meetingHotkey` (the spec asked for all three).
+- The test that every settings key is in exactly one Settings section only checks "at most one".
+- Structure, for the next parts: the `engines` object is written in two places (`AppHost.perform(.setEngine)` and `SettingsModel.setEngine`); the job titles and hints are in `HomeModel` and `EnginesSection`, and differ; engine names are in three switches; the warnings list is in both `HomeModel` and `MenuModel`; `AppHost.Lookups` repeats six `AppSnapshot` fields; `Placeholder` has a separate optional button title and action; Settings → Dictation lists microphones from its own CoreAudio query in `body`, not from the lookups.
+- Home greys out Mode, Language, Microphone and the engine pickers while their job runs, but the same keys stay editable in Settings.
+- A minimized window shows its old Home for up to 2 s after it comes back.
 
 ### The main window (decided 2026-11-11)
 

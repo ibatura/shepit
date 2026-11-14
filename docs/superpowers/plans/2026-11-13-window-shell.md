@@ -123,9 +123,9 @@ app/Sources/Shepit/
 
 ### Task 9: GATE — the author's checks and reviews
 
-- [ ] W1–W10 with the author on the installed app, W7 on a real call.
-- [ ] The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks.
-- [ ] Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`. Ask the author before merging into `main`.
+- [x] W1–W10 with the author on the installed app, W7 on a real call. In part: W3, and parts of W2, W7 and W9 on 2026-11-13; on 2026-11-14 the author clicked through the window and found it working, without going through the list.
+- [x] The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks. 2026-11-14: thermo-nuclear (all applied), `/code-review max` (15 findings, all fixed), `/security-review` (nothing found).
+- [x] Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`. Ask the author before merging into `main`.
 
 ---
 
