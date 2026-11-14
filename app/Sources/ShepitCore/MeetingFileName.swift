@@ -5,7 +5,7 @@ public enum MeetingFileName {
     public static let placeholders = ["date", "time", "year", "month", "day", "hour", "minute", "weekday", "title", "app"]
     static let forbidden = Set(#"\:*?"<>|#^[]"#)
     private static let separators = Set(" -–—_·,.")
-    private static let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    static let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     private static var placeholderPattern: Regex<(Substring, Substring)> { /\{([a-z]+)\}/ }
 
     /// nil when valid, else the problem in the settings-error style ("must …").
