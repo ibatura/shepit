@@ -135,4 +135,9 @@ struct MeetingPageTests {
         #expect(running(.detectingSpeakers)?.detail == "Detecting speakers…")
         #expect(running(.done(speakers: 2))?.id == 1) // no running row once it is done
     }
+
+    @Test func theFactsOfAMeeting() {
+        #expect(MeetingPage.facts(meeting(1, day(11, 10, 9, 5)), calendar: calendar) == ["Teams", "10 Nov 2026, 09:05", "48 min"])
+        #expect(MeetingPage.facts(meeting(1, day(11, 10), app: nil, duration: nil), calendar: calendar) == ["10 Nov 2026, 10:00"])
+    }
 }

@@ -28,11 +28,39 @@ extension AppHost {
     /// Puts a note in the meetings list (Meetings design §4); a failure is logged, the note itself is kept.
     func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil) {
         do {
-            _ = try meetings.add(note: note, you: you, start: start, duration: duration)
+            _ = try meetingStore.add(note: note, you: you, start: start, duration: duration)
         } catch {
             NSLog("Shepit meetings list: %@", String(describing: error))
         }
+        mainWindow.meetingsChanged()
         refreshStatus()
+    }
+
+    /// Add notes… (Meetings design §4): notes made before the meetings list, or kept elsewhere.
+    func addMeetingNotes() {
+        NSApp.activate()
+        let chooser = NSOpenPanel()
+        chooser.message = "Choose meeting notes to add to the list"
+        chooser.prompt = "Add"
+        chooser.allowedContentTypes = [.init(filenameExtension: "md")!]
+        chooser.allowsMultipleSelection = true
+        let folder = settings.meetingsFolderURL(home: Paths.home)
+        if FileManager.default.fileExists(atPath: folder.path) { chooser.directoryURL = folder }
+        guard chooser.runModal() == .OK else { return }
+        let you = settings.myName()
+        // Already listed (nil) or not a transcript (throws): skipped.
+        let added = chooser.urls.filter { url in ((try? meetingStore.add(note: url, you: you)) ?? nil) != nil }.count
+        let skipped = chooser.urls.count - added
+        panel.message(added == 1 ? "1 note added" : "\(added) notes added",
+                      detail: skipped == 0 ? "" : "\(skipped) skipped: already in the list or not a transcript")
+        mainWindow.meetingsChanged()
+    }
+
+    /// The running transcript for the window, from the session's memory; nil when none runs.
+    func liveMeeting() -> LiveMeeting? {
+        guard let session = meeting, session.state.isActive else { return nil }
+        return LiveMeeting(state: session.state, title: session.title, app: session.app, words: session.wordCount, muted: meetingMuted,
+                           entries: session.liveEntries, note: session.config.noteFile.path)
     }
 
     /// The meeting hotkey: what the menu's Start or Stop does at this moment.
@@ -160,7 +188,11 @@ extension AppHost {
         meeting = session
         meetingTimer = TimerBox(repeating: 1) { [weak session] in session?.tick() }
         let recorder = recorder
-        meetingMute = MuteWatch(muteButton) { [weak session] muted in session?.micMuted(muted, at: recorder.streamPosition) }
+        meetingMuted = nil
+        meetingMute = MuteWatch(muteButton) { [weak self, weak session] muted in
+            session?.micMuted(muted, at: recorder.streamPosition)
+            self?.meetingMuted = muted
+        }
         panel.message("⏺ Meeting transcript started", detail: startNotices.items.joined(separator: " "))
         refreshStatus()
         callEvent(.sessionStarted(byPanel: fromCall))

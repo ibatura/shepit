@@ -13,7 +13,7 @@ final class AppHost: ControllerHost {
     let dictionaryStore = DictionaryStore(file: Paths.dictionaryFile)
     let recorder = AudioRecorder()
     let stats = StatsDatabase(file: Paths.dataDir.appending(path: "stats.sqlite"))
-    let meetings = MeetingStore(file: Paths.dataDir.appending(path: "meetings.sqlite"))
+    let meetingStore = MeetingStore(file: Paths.dataDir.appending(path: "meetings.sqlite"))
     lazy var models = ModelHost(factory: EngineFactory.make, onLoad: { [weak self] choice, seconds in
         Task { @MainActor in self?.recordLoad(choice, seconds) }
     })
@@ -27,6 +27,8 @@ final class AppHost: ControllerHost {
     var meeting: MeetingSession?
     var meetingTimer: TimerBox?
     var meetingMute: MuteWatch?
+    /// What `meetingMute` read last; nil until it has read the call app's button.
+    var meetingMuted: Bool?
     /// `meeting-names.json` as it was before this session added its name; nil when it added none.
     var meetingNamesBefore: [MeetingNames.Entry]?
     /// The call offer (AppHost+Calls.swift).
@@ -53,8 +55,10 @@ final class AppHost: ControllerHost {
         statistics: { [unowned self] in (try? self.stats.dictations(in: $0)) ?? [] },
         meetingStatistics: { [unowned self] in (try? self.stats.meetings(in: $0)) ?? [] },
         languageNote: { choice, language in await Self.languageNote(choice, language) },
+        addMeetingNotes: { [unowned self] in self.addMeetingNotes() },
         downloads: downloads)
     lazy var mainWindow = MainWindow(model: settingsModel, actions: windowActions,
+                                     meetings: MeetingsModel(store: meetingStore, live: { [unowned self] in self.liveMeeting() }),
                                      home: { [unowned self] in HomeModel.build(self.snapshot()) })
     /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
     var lookups = Lookups()

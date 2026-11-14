@@ -184,12 +184,22 @@ public enum MeetingPage {
                 group = "\(fullMonths[(c.month ?? 1) - 1]) \(c.year ?? 0)"
                 when = "\(c.day ?? 0) \(months[(c.month ?? 1) - 1]), \(clock)"
             }
-            let parts = missing.contains(meeting.id) ? [when, "note not found"]
-                : [when, meeting.duration.map { "\(max(1, Int(($0 / 60).rounded()))) min" }, meeting.app].compactMap { $0 }
+            let parts = missing.contains(meeting.id) ? [when, "note not found"] : [when, minutes(meeting.duration), meeting.app].compactMap { $0 }
             let row = ListRow(id: meeting.id, title: title(meeting.title, meeting.app), detail: parts.joined(separator: " · "))
             if groups.last?.title == group { groups[groups.count - 1].rows.append(row) } else { groups.append(ListGroup(title: group, rows: [row])) }
         }
         return groups
+    }
+
+    /// The app, "10 Nov 2026, 10:00" and the duration, as the top of a meeting shows them.
+    public static func facts(_ meeting: MeetingStore.Meeting, calendar: Calendar = .current) -> [String] {
+        let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: meeting.start)
+        let when = String(format: "%d %@ %d, %02d:%02d", c.day ?? 0, months[(c.month ?? 1) - 1], c.year ?? 0, c.hour ?? 0, c.minute ?? 0)
+        return [meeting.app, when, minutes(meeting.duration)].compactMap { $0 }
+    }
+
+    private static func minutes(_ duration: TimeInterval?) -> String? {
+        duration.map { "\(max(1, Int(($0 / 60).rounded()))) min" }
     }
 
     /// The name, or "Teams call", or "Meeting".

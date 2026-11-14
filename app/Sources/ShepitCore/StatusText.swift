@@ -40,7 +40,7 @@ extension EngineChoice {
 }
 
 /// Pieces of text the menu and Home share.
-enum StatusText {
+public enum StatusText {
     static let maxLine = 90
 
     static func shorten(_ s: String, to max: Int = maxLine) -> String {
@@ -48,7 +48,7 @@ enum StatusText {
     }
 
     /// "0:09", "12:34", "1:02:03".
-    static func clock(_ seconds: TimeInterval) -> String {
+    public static func clock(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds))
         let (h, m, s) = (total / 3600, total / 60 % 60, total % 60)
         return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)

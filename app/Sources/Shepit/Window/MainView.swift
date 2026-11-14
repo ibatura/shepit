@@ -6,6 +6,7 @@ struct MainView: View {
     let model: SettingsModel
     let actions: WindowActions
     let live: WindowModel
+    let meetings: MeetingsModel
     @Bindable var navigation: WindowNavigation
 
     var body: some View {
@@ -16,7 +17,12 @@ struct MainView: View {
                 row(.settings)
             }
             // The card and Home read `live` themselves: the meeting clock then redraws them, not the whole window.
-            .safeAreaInset(edge: .top) { RecordingCard(live: live) { navigation.section = .home } }
+            .safeAreaInset(edge: .top) {
+                RecordingCard(live: live) {
+                    navigation.section = .meetings
+                    meetings.selection = .running
+                }
+            }
             .navigationSplitViewColumnWidth(190)
         } detail: {
             VStack(alignment: .leading, spacing: 0) {
@@ -37,7 +43,7 @@ struct MainView: View {
         case .home:
             HomeSection(model: model, actions: actions, live: live, navigation: navigation)
         case .meetings:
-            Placeholder(section: .meetings, text: "Meetings come in a later version. Until then they are in the menu.")
+            MeetingsView(model: meetings, actions: actions)
         case .dictations:
             Placeholder(section: .dictations, text: "The full history comes in a later version.", button: "Open history file") { actions.perform(.openHistory) }
         case .dictionary:
@@ -55,7 +61,7 @@ struct MainView: View {
     }
 }
 
-/// The running transcript, at the top of the sidebar; a click opens Home (the Meetings section later). Nothing without one.
+/// The running transcript, at the top of the sidebar; a click opens it in Meetings. Nothing without one.
 private struct RecordingCard: View {
     let live: WindowModel
     let open: () -> Void

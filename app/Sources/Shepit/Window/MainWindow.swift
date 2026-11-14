@@ -59,6 +59,7 @@ final class WindowModel {
 @MainActor
 final class MainWindow: NSObject, NSWindowDelegate {
     let navigation = WindowNavigation()
+    let meetings: MeetingsModel
     private let live = WindowModel()
     private let model: SettingsModel
     private let actions: WindowActions
@@ -66,9 +67,10 @@ final class MainWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
 
     /// `home` builds Home from the app's state; it is asked only while the window is open.
-    init(model: SettingsModel, actions: WindowActions, home: @escaping () -> Home) {
+    init(model: SettingsModel, actions: WindowActions, meetings: MeetingsModel, home: @escaping () -> Home) {
         self.model = model
         self.actions = actions
+        self.meetings = meetings
         self.home = home
     }
 
@@ -79,12 +81,20 @@ final class MainWindow: NSObject, NSWindowDelegate {
         guard isOpen else { return }
         let home = home()
         if home != live.home { live.home = home }
+        meetings.refreshLive()
+    }
+
+    /// A meeting was added or changed: the open Meetings section lists it.
+    func meetingsChanged() {
+        guard isOpen, navigation.section == .meetings else { return }
+        meetings.reload()
     }
 
     /// `section` nil: the section it had last.
     func show(_ section: WindowSection? = nil) {
         if let section { navigation.section = section }
         live.home = home()
+        meetings.refreshLive()
         let window = self.window ?? makeWindow()
         self.window = window
         NSApp.setActivationPolicy(.regular)
@@ -94,7 +104,8 @@ final class MainWindow: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        let controller = NSHostingController(rootView: MainView(model: model, actions: actions, live: live, navigation: navigation))
+        let controller = NSHostingController(rootView: MainView(model: model, actions: actions, live: live, meetings: meetings,
+                                                                navigation: navigation))
         controller.sizingOptions = [] // the window keeps its own size; SwiftUI's ideal size would shrink it
         let window = NSWindow(contentViewController: controller)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
@@ -105,6 +116,11 @@ final class MainWindow: NSObject, NSWindowDelegate {
         window.setFrameAutosaveName("ShepitMain") // after center(): a remembered frame wins
         window.delegate = self
         return window
+    }
+
+    /// Back from Obsidian or Finder: notes may have been edited, moved or deleted.
+    func windowDidBecomeKey(_ notification: Notification) {
+        meetingsChanged()
     }
 
     func windowWillClose(_ notification: Notification) {
