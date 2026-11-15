@@ -145,28 +145,16 @@ public enum MeetingPage {
         public var rows: [ListRow]
     }
 
-    public struct Running: Equatable, Sendable {
-        public var state: MeetingState
-        public var title: String?
-        public var app: String?
-
-        public init(state: MeetingState, title: String?, app: String?) {
-            self.state = state
-            self.title = title
-            self.app = app
-        }
-    }
-
     static let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     static let fullMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
                              "November", "December"]
 
     /// `meetings` newest first, as the store gives them; `missing`: ids whose note is not found.
-    public static func list(_ meetings: [MeetingStore.Meeting], missing: Set<Int>, running: Running?, now: Date,
+    public static func list(_ meetings: [MeetingStore.Meeting], missing: Set<Int>, running: LiveMeeting?, now: Date,
                             calendar: Calendar = .current) -> [ListGroup] {
         var groups: [ListGroup] = []
         if let running, let detail = detail(running) {
-            groups.append(ListGroup(title: "", rows: [ListRow(id: nil, title: title(running.title, running.app), detail: detail)]))
+            groups.append(ListGroup(title: "", rows: [ListRow(id: nil, title: title(running.title, running.app?.rawValue), detail: detail)]))
         }
         let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
         let lastWeek = calendar.date(byAdding: .day, value: -7, to: thisWeek) ?? thisWeek
@@ -204,9 +192,9 @@ public enum MeetingPage {
         title ?? app.map { "\($0) call" } ?? "Meeting"
     }
 
-    private static func detail(_ running: Running) -> String? {
+    private static func detail(_ running: LiveMeeting) -> String? {
         switch running.state {
-        case .recording(let elapsed, _): ["Recording", StatusText.clock(elapsed), running.app].compactMap { $0 }.joined(separator: " · ")
+        case .recording(let elapsed, _): ["Recording", StatusText.clock(elapsed), running.app?.rawValue].compactMap { $0 }.joined(separator: " · ")
         case .finishing(let left): "Finishing (\(left) left)"
         case .detectingSpeakers: "Detecting speakers…"
         case .idle, .done, .interrupted: nil

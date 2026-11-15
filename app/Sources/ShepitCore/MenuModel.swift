@@ -28,7 +28,7 @@ public enum MenuModel {
     static let recentLabelChars = 60
 
     public static func title(_ view: AppSnapshot) -> String {
-        view.meeting.isActive ? "⏺" + dictationTitle(view) : dictationTitle(view)
+        view.meeting?.state.isActive == true ? "⏺" + dictationTitle(view) : dictationTitle(view)
     }
 
     /// The meeting's line under the status line (window shell design §7); nil when no meeting runs.
@@ -46,7 +46,7 @@ public enum MenuModel {
 
     /// Start or Stop; the rest of the meeting items live in the window's Meetings section (Meetings design §9).
     private static func meetingItem(_ view: AppSnapshot) -> MenuItem {
-        switch MeetingControl(view.meeting, missing: view.meetingMissing) {
+        switch MeetingControl(view.meeting?.state ?? .idle, missing: view.meetingMissing) {
         case .stop: MenuItem(title: "Stop meeting transcript", action: .stopMeeting)
         case .busy: MenuItem(title: "Start meeting transcript", enabled: false)
         case .blocked(let missing): MenuItem(title: "Start meeting transcript (\(missing))", enabled: false)
@@ -67,7 +67,7 @@ public enum MenuModel {
     public static func build(_ view: AppSnapshot) -> [MenuItem] {
         let busy = view.state != .idle
         var items = [MenuItem(title: view.statusLine, enabled: false)]
-        if let line = meetingLine(view.meeting, title: view.meetingTitle) { items.append(MenuItem(title: line, enabled: false)) }
+        if let meeting = view.meeting, let line = meetingLine(meeting.state, title: meeting.title) { items.append(MenuItem(title: line, enabled: false)) }
         for error in view.configErrors {
             items.append(MenuItem(title: StatusText.shorten("⚠ \(error)"), enabled: false))
         }

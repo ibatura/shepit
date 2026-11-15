@@ -127,7 +127,7 @@ struct MeetingPageTests {
 
     @Test func theRunningTranscriptComesFirst() {
         let running = { (state: MeetingState) in
-            MeetingPage.list([meeting(1, day(11, 10))], missing: [], running: .init(state: state, title: "Weekly sync", app: "Teams"),
+            MeetingPage.list([meeting(1, day(11, 10))], missing: [], running: .init(state: state, title: "Weekly sync", app: .teams),
                              now: day(11, 12), calendar: calendar).first?.rows.first
         }
         #expect(running(.recording(elapsed: 754, waiting: 2)) == .init(id: nil, title: "Weekly sync", detail: "Recording · 12:34 · Teams"))

@@ -39,8 +39,7 @@ struct MeetingsView: View {
     }
 
     @ViewBuilder private var list: some View {
-        let running = model.live.map { MeetingPage.Running(state: $0.state, title: $0.title, app: $0.app?.rawValue) }
-        let groups = MeetingPage.list(model.meetings, missing: model.missing, running: running, now: Date())
+        let groups = MeetingPage.list(model.meetings, missing: model.missing, running: model.live, now: Date())
         if groups.isEmpty {
             ContentUnavailableView("No meetings yet", systemImage: "person.2.wave.2",
                                    description: Text("Every transcript is added here. For notes made before this version, use Add notes…"))

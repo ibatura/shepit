@@ -63,15 +63,15 @@ final class MainWindow: NSObject, NSWindowDelegate {
     private let live = WindowModel()
     private let model: SettingsModel
     private let actions: WindowActions
-    private let home: () -> Home
+    private let snapshot: () -> AppSnapshot
     private var window: NSWindow?
 
-    /// `home` builds Home from the app's state; it is asked only while the window is open.
-    init(model: SettingsModel, actions: WindowActions, meetings: MeetingsModel, home: @escaping () -> Home) {
+    /// `snapshot` gives the app's state; it is asked only while the window is open.
+    init(model: SettingsModel, actions: WindowActions, meetings: MeetingsModel, snapshot: @escaping () -> AppSnapshot) {
         self.model = model
         self.actions = actions
         self.meetings = meetings
-        self.home = home
+        self.snapshot = snapshot
     }
 
     var isOpen: Bool { window?.isVisible == true }
@@ -79,9 +79,20 @@ final class MainWindow: NSObject, NSWindowDelegate {
     /// After a change of state. Nothing is gathered for a closed window.
     func refresh() {
         guard isOpen else { return }
-        let home = home()
+        show(snapshot())
+    }
+
+    /// Home and the running transcript from one snapshot.
+    private func show(_ snapshot: AppSnapshot) {
+        let home = HomeModel.build(snapshot)
         if home != live.home { live.home = home }
-        meetings.refreshLive()
+        meetings.setLive(snapshot.meeting)
+    }
+
+    /// A meeting was added: chosen if its running transcript was, and listed in the open Meetings section.
+    func meetingAdded(_ id: Int) {
+        meetings.added(id)
+        meetingsChanged()
     }
 
     /// A meeting was added or changed: the open Meetings section lists it.
@@ -93,8 +104,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
     /// `section` nil: the section it had last.
     func show(_ section: WindowSection? = nil) {
         if let section { navigation.section = section }
-        live.home = home()
-        meetings.refreshLive()
+        show(snapshot())
         let window = self.window ?? makeWindow()
         self.window = window
         NSApp.setActivationPolicy(.regular)

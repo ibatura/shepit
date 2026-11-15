@@ -58,9 +58,8 @@ final class AppHost: ControllerHost {
         addMeetingNotes: { [unowned self] in self.addMeetingNotes() },
         downloads: downloads)
     lazy var mainWindow = MainWindow(model: settingsModel, actions: windowActions,
-                                     meetings: MeetingsModel(store: meetingStore, live: { [unowned self] in self.liveMeeting() },
-                                                             template: { [unowned self] in self.settings.meetingFileName }),
-                                     home: { [unowned self] in HomeModel.build(self.snapshot()) })
+                                     meetings: MeetingsModel(store: meetingStore, template: { [unowned self] in self.settings.meetingFileName }),
+                                     snapshot: { [unowned self] in self.snapshot() })
     /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
     var lookups = Lookups()
     private let downloads = ModelDownloads()
@@ -203,9 +202,7 @@ final class AppHost: ControllerHost {
         view.configErrors = configErrors
         view.hotkeyProblem = hotkeyProblem
         view.today = String(History.stamp(Date()).prefix(10))
-        view.meeting = meeting?.state ?? .idle
-        view.meetingTitle = meeting?.title
-        view.meetingApp = meeting?.app
+        view.meeting = liveMeeting()
         view.call = callOffer.current
         view.downloaded = lookups.downloaded
         view.microphones = lookups.microphones

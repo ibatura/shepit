@@ -28,11 +28,10 @@ extension AppHost {
     /// Puts a note in the meetings list (Meetings design §4); a failure is logged, the note itself is kept.
     func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil) {
         do {
-            _ = try meetingStore.add(note: note, you: you, start: start, duration: duration)
+            if let id = try meetingStore.add(note: note, you: you, start: start, duration: duration) { mainWindow.meetingAdded(id) }
         } catch {
             NSLog("Shepit meetings list: %@", String(describing: error))
         }
-        mainWindow.meetingsChanged()
         refreshStatus()
     }
 
@@ -60,7 +59,7 @@ extension AppHost {
     func liveMeeting() -> LiveMeeting? {
         guard let session = meeting, session.state.isActive else { return nil }
         return LiveMeeting(state: session.state, title: session.title, app: session.app, words: session.wordCount, muted: meetingMuted,
-                           entries: session.liveEntries, note: session.config.noteFile.path)
+                           entries: session.liveEntries)
     }
 
     /// The meeting hotkey: what the menu's Start or Stop does at this moment.

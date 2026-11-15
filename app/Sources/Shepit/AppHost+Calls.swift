@@ -94,8 +94,8 @@ extension AppHost {
         case .removeEmptyNote:
             removeEmptyMeeting()
         case .namePeople:
+            mainWindow.meetings.chooseLastAdded()
             showWindow(.meetings)
-            if let note = meeting?.config.noteFile.path { mainWindow.meetings.select(note: note) }
         case .record(let outcome, let app):
             guard settings.collectStats else { break }
             do {

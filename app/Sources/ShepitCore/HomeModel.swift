@@ -70,7 +70,7 @@ public enum HomeModel {
     public static func build(_ view: AppSnapshot) -> Home {
         Home(status: view.statusLine, dictating: view.state != .idle,
              microphones: Microphones.choices(connected: view.microphones, configured: view.settings.microphone),
-             microphoneEnabled: view.state == .idle && !view.meeting.isActive, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
+             microphoneEnabled: view.state == .idle && view.meeting?.state.isActive != true, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
              dictations: view.history.prefix(dictationCount).map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
     }
@@ -91,7 +91,7 @@ public enum HomeModel {
         let rows: [(EngineTask, String, String, Bool)] = [
             (.dictation, "Dictation", "The text that gets pasted", !dictating),
             (.preview, "Live draft", "The preview in the panel while you speak", !dictating),
-            (.meetings, "Meetings", "Meeting transcripts", !view.meeting.isActive),
+            (.meetings, "Meetings", "Meeting transcripts", view.meeting?.state.isActive != true),
         ]
         return rows.map { task, title, hint, enabled in
             let current = view.settings.engine(for: task)
@@ -105,20 +105,20 @@ public enum HomeModel {
 
     private static func card(_ view: AppSnapshot) -> Home.Card? {
         let headline: String
-        switch view.meeting {
+        switch view.meeting?.state ?? .idle {
         case .recording(let elapsed, _): headline = "Recording \(StatusText.clock(elapsed))"
         case .finishing: headline = "Finishing"
         case .detectingSpeakers: headline = "Detecting speakers"
         case .idle, .done, .interrupted: return nil
         }
-        return Home.Card(headline: headline, detail: [view.meetingTitle, view.meetingApp?.rawValue].compactMap { $0 }.joined(separator: " · "))
+        return Home.Card(headline: headline, detail: [view.meeting?.title, view.meeting?.app?.rawValue].compactMap { $0 }.joined(separator: " · "))
     }
 
     private static func meeting(_ view: AppSnapshot) -> Home.MeetingRow {
-        switch view.meeting {
+        switch view.meeting?.state ?? .idle {
         case .recording(let elapsed, let waiting):
-            let parts = [view.meetingApp?.rawValue, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
-            return Home.MeetingRow(recording: true, title: view.meetingTitle ?? "Meeting transcript",
+            let parts = [view.meeting?.app?.rawValue, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
+            return Home.MeetingRow(recording: true, title: view.meeting?.title ?? "Meeting transcript",
                                    hint: parts.compactMap { $0 }.joined(separator: " · "), button: Home.Button(title: "Stop", action: .stopMeeting))
         case .finishing(let left): return Home.MeetingRow(title: "Finishing the transcript (\(left) left)")
         case .detectingSpeakers: return Home.MeetingRow(title: "Detecting speakers…")

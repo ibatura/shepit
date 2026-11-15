@@ -120,7 +120,7 @@ struct MenuModelTests {
     }
 
     @Test func theMenuKeepsItsItemsDuringAMeeting() {
-        let items = MenuModel.build(view { $0.meeting = .recording(elapsed: 5, waiting: 0) })
+        let items = MenuModel.build(view { $0.meeting = .init(state: .recording(elapsed: 5, waiting: 0)) })
         for title in ["Add word…", "Mode", "Language", "Dictation engine"] { #expect(find(items, title)?.enabled == true) }
     }
 
@@ -156,10 +156,10 @@ struct MenuModelTests {
     // Meetings (spec §5.6)
 
     @Test func meetingMarkInTheTitleWhileASessionRuns() {
-        #expect(MenuModel.title(view { $0.meeting = .recording(elapsed: 5, waiting: 0) }) == "⏺🎙")
-        #expect(MenuModel.title(view { $0.meeting = .recording(elapsed: 5, waiting: 0); $0.state = .recording }) == "⏺🔴")
-        #expect(MenuModel.title(view { $0.meeting = .detectingSpeakers }) == "⏺🎙")
-        #expect(MenuModel.title(view { $0.meeting = .done(speakers: 2) }) == "🎙")
+        #expect(MenuModel.title(view { $0.meeting = .init(state: .recording(elapsed: 5, waiting: 0)) }) == "⏺🎙")
+        #expect(MenuModel.title(view { $0.meeting = .init(state: .recording(elapsed: 5, waiting: 0)); $0.state = .recording }) == "⏺🔴")
+        #expect(MenuModel.title(view { $0.meeting = .init(state: .detectingSpeakers) }) == "⏺🎙")
+        #expect(MenuModel.title(view { $0.meeting = .init(state: .done(speakers: 2)) }) == "🎙")
     }
 
     @Test func meetingStatusLines() {
@@ -171,9 +171,9 @@ struct MenuModelTests {
         #expect(MenuModel.meetingLine(.idle) == nil)
         let long = MenuModel.meetingLine(.recording(elapsed: 9, waiting: 0), title: String(repeating: "Quarterly planning ", count: 6)) ?? ""
         #expect(long.count < 70 && long.hasSuffix("… · 0:09"))
-        let items = MenuModel.build(view { $0.meeting = .finishing(left: 1) })
+        let items = MenuModel.build(view { $0.meeting = .init(state: .finishing(left: 1)) })
         #expect(items[1].title == "Meeting: finishing (1 left)" && !items[1].enabled)
-        let named = MenuModel.build(view { $0.meeting = .recording(elapsed: 9, waiting: 0); $0.meetingTitle = "Weekly sync" })
+        let named = MenuModel.build(view { $0.meeting = .init(state: .recording(elapsed: 9, waiting: 0)); $0.meeting?.title = "Weekly sync" })
         #expect(named[1].title == "⏺ Recording · Weekly sync · 0:09")
     }
 
@@ -183,11 +183,11 @@ struct MenuModelTests {
         for gone in ["Copy last meeting transcript", "Rename speakers…", "Rename speakers in another note…", "Open meetings folder"] {
             #expect(find(idle, gone) == nil, "\(gone)") // in the window's Meetings section now
         }
-        #expect(find(MenuModel.build(view { $0.meeting = .recording(elapsed: 1, waiting: 0) }), "Stop meeting transcript")?.action == .stopMeeting)
-        let finishing = find(MenuModel.build(view { $0.meeting = .finishing(left: 2) }), "Start meeting transcript")
+        #expect(find(MenuModel.build(view { $0.meeting = .init(state: .recording(elapsed: 1, waiting: 0)) }), "Stop meeting transcript")?.action == .stopMeeting)
+        let finishing = find(MenuModel.build(view { $0.meeting = .init(state: .finishing(left: 2)) }), "Start meeting transcript")
         #expect(finishing?.enabled == false)
         let missing = MenuModel.build(view { $0.meetingMissing = "download the model in Settings" })
         #expect(find(missing, "Start meeting transcript (download the model in Settings)")?.enabled == false)
-        #expect(find(MenuModel.build(view { $0.meeting = .done(speakers: 1) }), "Start meeting transcript")?.enabled == true)
+        #expect(find(MenuModel.build(view { $0.meeting = .init(state: .done(speakers: 1)) }), "Start meeting transcript")?.enabled == true)
     }
 }

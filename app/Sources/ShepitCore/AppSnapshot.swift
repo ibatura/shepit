@@ -35,11 +35,8 @@ public struct AppSnapshot: Sendable {
     public var microphones: [String] = []
     public var accessibilityGranted = true
     public var microphoneDenied = false
-    public var meeting: MeetingState = .idle
-    /// The running transcript's name; nil when it has none.
-    public var meetingTitle: String?
-    /// The app the running transcript was started for ("Teams"); nil when unknown.
-    public var meetingApp: CallApp?
+    /// The transcript being recorded or finished; nil when none runs.
+    public var meeting: LiveMeeting?
     /// A call that runs now and is not recorded.
     public var call: CallOffer.Current?
     /// The newest history entries, newest first: enough for Home and for Recent (`historyMenuItems`).
@@ -48,4 +45,29 @@ public struct AppSnapshot: Sendable {
     public var meetingMissing: String?
 
     public init() {}
+}
+
+/// The transcript being recorded, as the menu, Home and the Meetings section show it (Meetings design §7), from the session's memory.
+public struct LiveMeeting: Equatable, Sendable {
+    public var state: MeetingState
+    /// Its name; nil when it has none.
+    public var title: String?
+    /// The app it was started for; nil when unknown.
+    public var app: CallApp?
+    /// Words recognized so far on both sides.
+    public var words: Int
+    /// nil while the call app's mute button can't be read.
+    public var muted: Bool?
+    /// The entries written so far, with their live labels; `line` is the entry's index.
+    public var entries: [MeetingNote.Entry]
+
+    public init(state: MeetingState, title: String? = nil, app: CallApp? = nil, words: Int = 0, muted: Bool? = nil,
+                entries: [MeetingNote.Entry] = []) {
+        self.state = state
+        self.title = title
+        self.app = app
+        self.words = words
+        self.muted = muted
+        self.entries = entries
+    }
 }

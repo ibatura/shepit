@@ -24,7 +24,7 @@ struct HomeModelTests {
         #expect(!home().dictating && home().microphoneEnabled)
         let dictating = home { $0.state = .recording }
         #expect(dictating.dictating && !dictating.microphoneEnabled)
-        let meeting = home { $0.meeting = .recording(elapsed: 1, waiting: 0) }
+        let meeting = home { $0.meeting = .init(state: .recording(elapsed: 1, waiting: 0)) }
         #expect(!meeting.dictating && !meeting.microphoneEnabled)
     }
 
@@ -63,15 +63,15 @@ struct HomeModelTests {
 
     @Test func anEnginePickerIsOffWhileItsJobRuns() {
         #expect(home { $0.state = .transcribing }.engines.map(\.enabled) == [false, false, true])
-        #expect(home { $0.meeting = .recording(elapsed: 1, waiting: 0) }.engines.map(\.enabled) == [true, true, false])
-        #expect(home { $0.meeting = .finishing(left: 1) }.engines.map(\.enabled) == [true, true, false])
+        #expect(home { $0.meeting = .init(state: .recording(elapsed: 1, waiting: 0)) }.engines.map(\.enabled) == [true, true, false])
+        #expect(home { $0.meeting = .init(state: .finishing(left: 1)) }.engines.map(\.enabled) == [true, true, false])
     }
 
     @Test func meetingRowWithNoCall() {
         #expect(home().meeting == Home.MeetingRow(title: "No call right now", hint: "Shepit offers a transcript when a call starts",
                                                    button: .init(title: "Start transcript", action: .startMeeting)))
         #expect(home { $0.settings.callOffer = false }.meeting.hint == "Call offers are off")
-        #expect(home { $0.meeting = .done(speakers: 2) }.meeting.button?.action == .startMeeting)
+        #expect(home { $0.meeting = .init(state: .done(speakers: 2)) }.meeting.button?.action == .startMeeting)
     }
 
     @Test func meetingRowWithADetectedCall() {
@@ -83,24 +83,24 @@ struct HomeModelTests {
 
     @Test func meetingRowWhileATranscriptRuns() {
         let recording = home {
-            $0.meeting = .recording(elapsed: 754, waiting: 2); $0.meetingTitle = "Weekly sync"; $0.meetingApp = .teams
+            $0.meeting = .init(state: .recording(elapsed: 754, waiting: 2)); $0.meeting?.title = "Weekly sync"; $0.meeting?.app = .teams
             $0.call = CallOffer.Current(name: "Weekly sync", app: .teams)
         }.meeting
         #expect(recording == Home.MeetingRow(recording: true, title: "Weekly sync", hint: "Teams · 12:34 · 2 phrases waiting",
                                              button: .init(title: "Stop", action: .stopMeeting)))
-        let bare = home { $0.meeting = .recording(elapsed: 9, waiting: 0) }.meeting
+        let bare = home { $0.meeting = .init(state: .recording(elapsed: 9, waiting: 0)) }.meeting
         #expect(bare.title == "Meeting transcript" && bare.hint == "0:09")
-        #expect(home { $0.meeting = .finishing(left: 3) }.meeting == Home.MeetingRow(title: "Finishing the transcript (3 left)"))
-        #expect(home { $0.meeting = .detectingSpeakers }.meeting == Home.MeetingRow(title: "Detecting speakers…"))
+        #expect(home { $0.meeting = .init(state: .finishing(left: 3)) }.meeting == Home.MeetingRow(title: "Finishing the transcript (3 left)"))
+        #expect(home { $0.meeting = .init(state: .detectingSpeakers) }.meeting == Home.MeetingRow(title: "Detecting speakers…"))
     }
 
     @Test func theSidebarCardShowsOnlyWhileATranscriptRuns() {
         #expect(home().card == nil)
-        #expect(home { $0.meeting = .done(speakers: 2); $0.meetingTitle = "Weekly sync" }.card == nil)
-        let named = home { $0.meeting = .recording(elapsed: 754, waiting: 2); $0.meetingTitle = "Weekly sync"; $0.meetingApp = .teams }.card
+        #expect(home { $0.meeting = .init(state: .done(speakers: 2)); $0.meeting?.title = "Weekly sync" }.card == nil)
+        let named = home { $0.meeting = .init(state: .recording(elapsed: 754, waiting: 2)); $0.meeting?.title = "Weekly sync"; $0.meeting?.app = .teams }.card
         #expect(named == Home.Card(headline: "Recording 12:34", detail: "Weekly sync · Teams"))
-        #expect(home { $0.meeting = .finishing(left: 1) }.card == Home.Card(headline: "Finishing", detail: ""))
-        #expect(home { $0.meeting = .detectingSpeakers }.card?.headline == "Detecting speakers")
+        #expect(home { $0.meeting = .init(state: .finishing(left: 1)) }.card == Home.Card(headline: "Finishing", detail: ""))
+        #expect(home { $0.meeting = .init(state: .detectingSpeakers) }.card?.headline == "Detecting speakers")
     }
 
     @Test func withoutTheModelStartIsOffButTheCallIsStillNamed() {

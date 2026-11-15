@@ -30,7 +30,7 @@ struct MeetingsModelTests {
         let store = MeetingStore(file: dir.appending(path: "meetings.sqlite"))
         let id = try #require(try store.add(note: file, you: "Ivan"))
         let defaults = try #require(UserDefaults(suiteName: "meetings-model-\(UUID().uuidString)"))
-        let model = MeetingsModel(store: store, live: { nil }, template: { "{date} {time} {title}" }, defaults: defaults)
+        let model = MeetingsModel(store: store, template: { "{date} {time} {title}" }, defaults: defaults)
         model.reload()
         return (model, store, id, file, dir)
     }
@@ -111,5 +111,18 @@ struct MeetingsModelTests {
         #expect(try store.meetings().isEmpty)
         #expect(model.selection == nil)
         #expect(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    @Test func theFinishedTranscriptStaysChosenAndNamePeopleOpensIt() throws {
+        let (model, _, id, _, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        model.selection = .running
+        model.added(id)
+        #expect(model.selection == .meeting(id))
+        model.selection = nil
+        model.added(id + 1) // not chosen: nothing was running in the window
+        #expect(model.selection == nil)
+        model.chooseLastAdded()
+        #expect(model.selection == .meeting(id + 1))
     }
 }

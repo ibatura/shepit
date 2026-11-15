@@ -2,19 +2,6 @@ import AppKit
 import Observation
 import ShepitCore
 
-/// The transcript being recorded, as the Meetings section shows it (Meetings design §7). Built from the session's memory.
-struct LiveMeeting: Equatable {
-    var state: MeetingState
-    var title: String?
-    var app: CallApp?
-    var words: Int
-    /// nil while the call app's mute button can't be read.
-    var muted: Bool?
-    var entries: [MeetingNote.Entry]
-    /// The note's path, to choose the meeting once the transcript is ready.
-    var note: String
-}
-
 /// What the Meetings section shows (Meetings design §5–7). The list comes from the store and is read when the section
 /// appears, when the window becomes active and after a meeting is added; the chosen note is read off the main thread.
 @MainActor
@@ -58,17 +45,15 @@ final class MeetingsModel {
     }
 
     @ObservationIgnored let store: MeetingStore
-    @ObservationIgnored private let liveSource: () -> LiveMeeting?
     @ObservationIgnored private let template: () -> String
     @ObservationIgnored private let defaults: UserDefaults
-    /// The note of the transcript that was running, so it is chosen once it is in the list.
-    @ObservationIgnored private var finishedNote: String?
+    /// The meeting added last: Name people on the "Transcript ready" panel opens it.
+    @ObservationIgnored private var lastAdded: Int?
     @ObservationIgnored private var reading: Task<Void, Never>?
 
     /// `template`: `meetingFileName`, for renaming a note.
-    init(store: MeetingStore, live: @escaping () -> LiveMeeting?, template: @escaping () -> String, defaults: UserDefaults = .standard) {
+    init(store: MeetingStore, template: @escaping () -> String, defaults: UserDefaults = .standard) {
         self.store = store
-        liveSource = live
         self.template = template
         self.defaults = defaults
         let remembered = defaults.integer(forKey: "meetingSelection")
@@ -83,31 +68,23 @@ final class MeetingsModel {
             NSLog("Shepit meetings list: %@", String(describing: error))
         }
         missing = Set(meetings.filter { !FileManager.default.fileExists(atPath: $0.path) }.map(\.id))
-        followFinished()
         load()
     }
 
-    /// Every refresh of the open window: the running transcript from memory.
-    func refreshLive() {
-        let now = liveSource()
-        guard now != live else { return }
-        if now == nil, let live { finishedNote = live.note }
-        live = now
-        followFinished()
+    /// Every refresh of the open window: the running transcript from the snapshot.
+    func setLive(_ meeting: LiveMeeting?) {
+        if meeting != live { live = meeting }
     }
 
-    /// Chooses the meeting of this note (Name people on the "Transcript ready" panel).
-    func select(note: String) {
-        reload()
-        if let id = meetings.first(where: { $0.path == note })?.id { selection = .meeting(id) }
+    /// A meeting was added. When it is the running transcript that finished (chosen as `.running`), it stays chosen.
+    func added(_ id: Int) {
+        lastAdded = id
+        if selection == .running { selection = .meeting(id) }
     }
 
-    /// The running transcript turned into a finished meeting: it stays chosen.
-    private func followFinished() {
-        guard selection == .running, live == nil, let note = finishedNote,
-              let id = meetings.first(where: { $0.path == note })?.id else { return }
-        finishedNote = nil
-        selection = .meeting(id)
+    /// Name people on the "Transcript ready" panel: the meeting just added.
+    func chooseLastAdded() {
+        if let lastAdded { selection = .meeting(lastAdded) }
     }
 
     private func load() {
