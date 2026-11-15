@@ -112,6 +112,40 @@ public enum MeetingNote {
                       app: fields["app"].flatMap { $0.isEmpty ? nil : $0 }, entries: entries)
     }
 
+    /// Where an entry is in the note: its header's timestamp and its order among the headers of that second.
+    public struct Place: Hashable, Sendable {
+        public var timestamp: String
+        public var order: Int
+
+        public init(timestamp: String, order: Int) {
+            self.timestamp = timestamp
+            self.order = order
+        }
+    }
+
+    /// The place of each of these header timestamps, in note order.
+    public static func places(_ timestamps: [String]) -> [Place] {
+        var seen: [String: Int] = [:]
+        return timestamps.map { timestamp in
+            defer { seen[timestamp, default: 0] += 1 }
+            return Place(timestamp: timestamp, order: seen[timestamp, default: 0])
+        }
+    }
+
+    /// The item at each entry's place (Meetings design §8, meeting spec §5.5): the k-th header with timestamp T is the k-th
+    /// item with T. A second whose header count differs from its item count (entries added or deleted by hand) gets nothing,
+    /// and neither do ⚠ lines.
+    public static func pair<T>(_ entries: [Entry], _ items: [Place: T]) -> [T?] {
+        let headers = entries.filter { $0.label != nil }
+        let written = Dictionary(grouping: headers, by: \.timestamp).mapValues(\.count)
+        let known = Dictionary(grouping: items.keys, by: \.timestamp).mapValues(\.count)
+        var places = places(headers.map(\.timestamp)).makeIterator()
+        return entries.map { entry in
+            guard entry.label != nil, let place = places.next(), written[place.timestamp] == known[place.timestamp] else { return nil }
+            return items[place]
+        }
+    }
+
     /// `YYYY-MM-DD HH:MM` or `YYYY-MM-DD HH:MM:SS` in the calendar's time zone, as headers and the front matter write it.
     public static func date(_ text: String, calendar: Calendar = .current) -> Date? {
         guard let m = text.wholeMatch(of: /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?/) else { return nil }

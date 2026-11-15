@@ -1,5 +1,4 @@
 import Foundation
-import SQLite3
 
 /// stats.sqlite (`05-statistics.md` §1): one row per dictation attempt, per meeting, per call offer and per model load.
 /// Numbers and names only; nothing dictated is ever written here.
@@ -42,16 +41,15 @@ public final class StatsDatabase {
 
     /// Call offers in `range` (all of them when nil), oldest first.
     public func offers(in range: DateInterval?) throws -> [OfferRow] {
-        try rows("SELECT time, app, outcome FROM offers", in: range) { statement in
-            func text(_ i: Int32) -> String { sqlite3_column_text(statement, i).map { String(cString: $0) } ?? "" }
+        try rows("SELECT time, app, outcome FROM offers", in: range) { row in
             // A row with an app or outcome this version doesn't know is left out.
-            guard let app = CallApp(rawValue: text(1)), let outcome = CallOffer.Outcome(rawValue: text(2)) else { return nil }
-            return OfferRow(time: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), app: app, outcome: outcome)
+            guard let app = CallApp(rawValue: row.text(1) ?? ""), let outcome = CallOffer.Outcome(rawValue: row.text(2) ?? "") else { return nil }
+            return OfferRow(time: Date(timeIntervalSince1970: row.double(0)), app: app, outcome: outcome)
         }
     }
 
     /// The rows `select` gives with `time` in `range` (all of them when nil), oldest first; `read` returns nil to skip one.
-    private func rows<Row>(_ select: String, in range: DateInterval?, read: (OpaquePointer) -> Row?) throws -> [Row] {
+    private func rows<T>(_ select: String, in range: DateInterval?, read: (SQLiteFile.Row) -> T?) throws -> [T] {
         let start = range?.start.timeIntervalSince1970 ?? -.greatestFiniteMagnitude
         let end = range?.end.timeIntervalSince1970 ?? .greatestFiniteMagnitude
         return try sqlite.rows(select + " WHERE time >= ? AND time < ? ORDER BY time", [start, end], read: read)
@@ -62,16 +60,12 @@ public final class StatsDatabase {
         try rows("""
             SELECT time, duration_seconds, words_mine, words_call, speakers, engine, model, diarization_seconds, failed_chunks
             FROM meetings
-            """, in: range) { statement in
-            func text(_ i: Int32) -> String { sqlite3_column_text(statement, i).map { String(cString: $0) } ?? "" }
-            func optional<T>(_ i: Int32, _ read: (Int32) -> T) -> T? { sqlite3_column_type(statement, i) == SQLITE_NULL ? nil : read(i) }
-            return MeetingRecord(
-                start: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), duration: sqlite3_column_double(statement, 1),
-                wordsMine: Int(sqlite3_column_int64(statement, 2)), wordsCall: Int(sqlite3_column_int64(statement, 3)),
-                speakers: optional(4) { Int(sqlite3_column_int64(statement, $0)) },
-                engine: EngineChoice(engine: EngineID(rawValue: text(5)) ?? .whispercpp, model: text(6)),
-                diarizationSeconds: optional(7) { sqlite3_column_double(statement, $0) },
-                failedChunks: Int(sqlite3_column_int64(statement, 8)))
+            """, in: range) { row in
+            MeetingRecord(
+                start: Date(timeIntervalSince1970: row.double(0)), duration: row.double(1), wordsMine: row.int(2), wordsCall: row.int(3),
+                speakers: row.isNull(4) ? nil : row.int(4),
+                engine: EngineChoice(engine: EngineID(rawValue: row.text(5) ?? "") ?? .whispercpp, model: row.text(6) ?? ""),
+                diarizationSeconds: row.isNull(7) ? nil : row.double(7), failedChunks: row.int(8))
         }
     }
 
@@ -81,16 +75,14 @@ public final class StatsDatabase {
             SELECT time, tz_offset, outcome, audio_seconds, wait_seconds, words, characters, engine, model, language_requested,
               language_detected, app_bundle_id, app_name, replaced_terms, preview_requests
             FROM dictations
-            """, in: range) { statement in
-            func text(_ i: Int32) -> String? { sqlite3_column_text(statement, i).map { String(cString: $0) } }
-            let terms = text(13).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String] } ?? []
+            """, in: range) { row in
+            let terms = row.text(13).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String] } ?? []
             return DictationRow(
-                time: Date(timeIntervalSince1970: sqlite3_column_double(statement, 0)), tzOffset: Int(sqlite3_column_int64(statement, 1)),
-                outcome: DictationOutcome(rawValue: text(2) ?? "") ?? .failed, audioSeconds: sqlite3_column_double(statement, 3),
-                waitSeconds: sqlite3_column_double(statement, 4), words: Int(sqlite3_column_int64(statement, 5)),
-                characters: Int(sqlite3_column_int64(statement, 6)), engine: text(7) ?? "", model: text(8) ?? "",
-                languageRequested: text(9) ?? "", languageDetected: text(10), appBundleID: text(11), appName: text(12),
-                replacedTerms: terms, previewRequests: Int(sqlite3_column_int64(statement, 14)))
+                time: Date(timeIntervalSince1970: row.double(0)), tzOffset: row.int(1),
+                outcome: DictationOutcome(rawValue: row.text(2) ?? "") ?? .failed, audioSeconds: row.double(3),
+                waitSeconds: row.double(4), words: row.int(5), characters: row.int(6), engine: row.text(7) ?? "", model: row.text(8) ?? "",
+                languageRequested: row.text(9) ?? "", languageDetected: row.text(10), appBundleID: row.text(11), appName: row.text(12),
+                replacedTerms: terms, previewRequests: row.int(14))
         }
     }
 

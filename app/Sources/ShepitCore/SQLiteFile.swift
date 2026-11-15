@@ -30,14 +30,24 @@ final class SQLiteFile {
         guard sqlite3_step(statement) == SQLITE_DONE else { throw error(try open()) }
     }
 
+    /// One result row: its columns by index.
+    struct Row {
+        fileprivate let statement: OpaquePointer
+
+        func text(_ i: Int32) -> String? { sqlite3_column_text(statement, i).map { String(cString: $0) } }
+        func double(_ i: Int32) -> Double { sqlite3_column_double(statement, i) }
+        func int(_ i: Int32) -> Int { Int(sqlite3_column_int64(statement, i)) }
+        func isNull(_ i: Int32) -> Bool { sqlite3_column_type(statement, i) == SQLITE_NULL }
+    }
+
     /// The rows `sql` gives; `read` returns nil to skip one.
-    func rows<Row>(_ sql: String, _ values: [Any?] = [], read: (OpaquePointer) -> Row?) throws -> [Row] {
+    func rows<T>(_ sql: String, _ values: [Any?] = [], read: (Row) -> T?) throws -> [T] {
         let statement = try prepare(sql, values)
         defer { sqlite3_finalize(statement) }
-        var rows: [Row] = []
+        var rows: [T] = []
         var result = sqlite3_step(statement)
         while result == SQLITE_ROW {
-            if let row = read(statement) { rows.append(row) }
+            if let row = read(Row(statement: statement)) { rows.append(row) }
             result = sqlite3_step(statement)
         }
         guard result == SQLITE_DONE else { throw error(try open()) } // don't pass a truncated read off as complete

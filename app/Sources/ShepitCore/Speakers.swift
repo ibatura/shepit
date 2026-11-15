@@ -50,17 +50,13 @@ public enum Speakers {
     /// k-th entry with that timestamp; it changes only if it still reads exactly `[live] <timestamp>`.
     /// If the user deleted or added headers at a timestamp, the order can't be trusted and that second keeps its live labels.
     public static func relabel(_ note: String, live: String, entries: [(timestamp: String, label: String?)]) -> String {
-        var byTime: [String: [String?]] = [:]
-        for entry in entries { byTime[entry.timestamp, default: []].append(entry.label) }
-        var headers: [String: Int] = [:]
-        for line in lines(note) { if let (_, timestamp) = header(line) { headers[timestamp, default: 0] += 1 } }
-        var seen: [String: Int] = [:]
-        return mapHeaders(note) { label, timestamp in
-            let index = seen[timestamp, default: 0]
-            seen[timestamp] = index + 1
-            guard label == live, let labels = byTime[timestamp], labels.count == headers[timestamp], let new = labels[index] else { return nil }
-            return new
+        let written = Dictionary(uniqueKeysWithValues: zip(MeetingNote.places(entries.map(\.timestamp)), entries.map(\.label)))
+        let headers = MeetingNote.parse(note).entries
+        var labels: [Int: String] = [:]
+        for (header, new) in zip(headers, MeetingNote.pair(headers, written)) where header.label == live {
+            if let new = new ?? nil { labels[header.line] = new }
         }
+        return setLabels(note, labels)
     }
 
     /// Sets the labels of the header lines at the given line numbers (as `MeetingNote.parse` counts them).
@@ -73,14 +69,6 @@ public enum Speakers {
             lines[index] = "[\(name)] \(timestamp)" + (lines[index].hasSuffix("\r") ? "\r" : "")
         }
         return lines.joined(separator: "\n")
-    }
-
-    /// Rewrites header lines whose `change(label, timestamp)` returns a new label.
-    private static func mapHeaders(_ note: String, _ change: (String, String) -> String?) -> String {
-        lines(note).map { line in
-            guard let (label, timestamp) = header(line), let new = change(label, timestamp) else { return line }
-            return "[\(new)] \(timestamp)" + (line.hasSuffix("\r") ? "\r" : "")
-        }.joined(separator: "\n")
     }
 
     /// Lines split on "\n" only; with CRLF endings each line keeps its "\r" (String.split would treat "\r\n" as one character).

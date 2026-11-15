@@ -1,5 +1,4 @@
 import Foundation
-import SQLite3
 
 /// meetings.sqlite (Meetings design §4): the list of meetings, their people and who said each line.
 /// Names, paths and times only; the transcript's text stays in the note.
@@ -36,31 +35,18 @@ public final class MeetingStore {
         }
     }
 
-    /// Where a line is in the note: its header's timestamp and its place among the headers of that second.
-    public struct Place: Hashable, Sendable {
-        public var timestamp: String
-        public var order: Int
-
-        public init(timestamp: String, order: Int) {
-            self.timestamp = timestamp
-            self.order = order
-        }
-    }
+    public typealias Place = MeetingNote.Place
 
     public struct Line: Equatable, Sendable {
-        public var timestamp: String
-        public var order: Int
+        public var place: Place
         public var original: String
         public var current: String
 
-        public init(timestamp: String, order: Int, original: String, current: String) {
-            self.timestamp = timestamp
-            self.order = order
+        public init(place: Place, original: String, current: String) {
+            self.place = place
             self.original = original
             self.current = current
         }
-
-        public var place: Place { Place(timestamp: timestamp, order: order) }
     }
 
     private let sqlite: SQLiteFile
@@ -77,15 +63,12 @@ public final class MeetingStore {
             try sqlite.run("INSERT OR IGNORE INTO meetings (path, title, app, start, duration, you) VALUES (?, ?, ?, ?, ?, ?)",
                            [path, title, app, start.timeIntervalSince1970, duration, you])
             guard sqlite.changes == 1 else { return nil }
-            let id = try sqlite.rows("SELECT last_insert_rowid()") { Int(sqlite3_column_int64($0, 0)) }[0]
-            var orders: [String: Int] = [:]
-            for entry in entries {
-                guard let label = entry.label else { continue }
-                let order = orders[entry.timestamp, default: 0]
-                orders[entry.timestamp] = order + 1
-                try sqlite.run("INSERT OR IGNORE INTO people (meeting, key) VALUES (?, ?)", [id, label])
+            let id = try sqlite.rows("SELECT last_insert_rowid()") { $0.int(0) }[0]
+            let labelled = entries.filter { $0.label != nil }
+            for (entry, place) in zip(labelled, MeetingNote.places(labelled.map(\.timestamp))) {
+                try sqlite.run("INSERT OR IGNORE INTO people (meeting, key) VALUES (?, ?)", [id, entry.label])
                 try sqlite.run("INSERT INTO lines (meeting, timestamp, ord, original, current) VALUES (?, ?, ?, ?, ?)",
-                               [id, entry.timestamp, order, label, label])
+                               [id, place.timestamp, place.order, entry.label, entry.label])
             }
             return id
         }
@@ -111,25 +94,23 @@ public final class MeetingStore {
 
     /// Newest first.
     public func meetings() throws -> [Meeting] {
-        try sqlite.rows("SELECT id, path, title, app, start, duration, you FROM meetings ORDER BY start DESC, id DESC") { s in
-            Meeting(id: Int(sqlite3_column_int64(s, 0)), path: Self.text(s, 1) ?? "", title: Self.text(s, 2), app: Self.text(s, 3),
-                    start: Date(timeIntervalSince1970: sqlite3_column_double(s, 4)),
-                    duration: sqlite3_column_type(s, 5) == SQLITE_NULL ? nil : sqlite3_column_double(s, 5), you: Self.text(s, 6))
+        try sqlite.rows("SELECT id, path, title, app, start, duration, you FROM meetings ORDER BY start DESC, id DESC") { row in
+            Meeting(id: row.int(0), path: row.text(1) ?? "", title: row.text(2), app: row.text(3), start: Date(timeIntervalSince1970: row.double(4)),
+                    duration: row.isNull(5) ? nil : row.double(5), you: row.text(6))
         }
     }
 
     /// In the order they were added.
     public func people(_ meeting: Int) throws -> [Person] {
-        try sqlite.rows("SELECT key, name FROM people WHERE meeting = ? ORDER BY rowid", [meeting]) { s in
-            Person(key: Self.text(s, 0) ?? "", name: Self.text(s, 1))
+        try sqlite.rows("SELECT key, name FROM people WHERE meeting = ? ORDER BY rowid", [meeting]) { row in
+            Person(key: row.text(0) ?? "", name: row.text(1))
         }
     }
 
     /// In note order.
     public func lines(_ meeting: Int) throws -> [Line] {
-        try sqlite.rows("SELECT timestamp, ord, original, current FROM lines WHERE meeting = ? ORDER BY timestamp, ord", [meeting]) { s in
-            Line(timestamp: Self.text(s, 0) ?? "", order: Int(sqlite3_column_int64(s, 1)), original: Self.text(s, 2) ?? "",
-                 current: Self.text(s, 3) ?? "")
+        try sqlite.rows("SELECT timestamp, ord, original, current FROM lines WHERE meeting = ? ORDER BY timestamp, ord", [meeting]) { row in
+            Line(place: Place(timestamp: row.text(0) ?? "", order: row.int(1)), original: row.text(2) ?? "", current: row.text(3) ?? "")
         }
     }
 
@@ -182,7 +163,7 @@ public final class MeetingStore {
         let names = try sqlite.rows("""
             SELECT COALESCE(people.name, people.key) FROM people JOIN meetings ON meetings.id = people.meeting
             ORDER BY meetings.start DESC, people.rowid
-            """) { Self.text($0, 0) }
+            """) { $0.text(0) }
         var seen = Set<String>()
         return names.filter { name in
             !name.isEmpty && name != MeetingNote.callLabel && name.wholeMatch(of: /Person \d+/) == nil && seen.insert(name).inserted
@@ -218,10 +199,6 @@ public final class MeetingStore {
     /// Runs `body` as one change: all of it is kept, or none when it throws.
     public func transaction<T>(_ body: () throws -> T) throws -> T {
         try sqlite.transaction(body)
-    }
-
-    private static func text(_ statement: OpaquePointer, _ i: Int32) -> String? {
-        sqlite3_column_text(statement, i).map { String(cString: $0) }
     }
 
     // Later parts (voice prints, import) add tables with CREATE IF NOT EXISTS; schema_version marks the layout.

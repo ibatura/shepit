@@ -14,7 +14,7 @@ struct MeetingPageTests {
     private func stamp(_ second: Int) -> String { "2026-07-31 10:00:\(String(format: "%02d", second))" }
 
     private func line(_ second: Int, _ order: Int = 0, _ original: String, _ current: String? = nil) -> Line {
-        Line(timestamp: stamp(second), order: order, original: original, current: current ?? original)
+        Line(place: .init(timestamp: stamp(second), order: order), original: original, current: current ?? original)
     }
 
     // Pairing

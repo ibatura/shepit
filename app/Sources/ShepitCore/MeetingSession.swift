@@ -170,7 +170,8 @@ public final class MeetingSession {
     private var lastSpeech = Date.distantPast
     private var callHasSound = false
     private var warnedSilentCall = false
-    private var written: [(timestamp: String, stream: MeetingStream, offsets: Range<Double>)] = []
+    /// Every entry written to the note, with its live label; its stream and offsets for speaker detection.
+    private var written: [(entry: MeetingNote.Entry, stream: MeetingStream, offsets: Range<Double>)] = []
     private var words: [MeetingStream: Int] = [.mine: 0, .call: 0]
     private var leanings: [MeetingStream: LanguageLeaning] = [:]
     private var failedChunks = 0
@@ -392,8 +393,7 @@ public final class MeetingSession {
                 continue
             }
             let timestamp = MeetingNote.timestamp(entry.wallStart, calendar: config.calendar)
-            written.append((timestamp, entry.stream, entry.offsets))
-            liveEntries.append(MeetingNote.Entry(label: label, timestamp: timestamp, text: text, line: liveEntries.count))
+            written.append((MeetingNote.Entry(label: label, timestamp: timestamp, text: text, line: written.count), entry.stream, entry.offsets))
             if !entry.failed { words[entry.stream, default: 0] += text.split(whereSeparator: \.isWhitespace).count }
         }
     }
@@ -505,7 +505,7 @@ public final class MeetingSession {
         let callEntries = written.filter { $0.stream == .call }
         let labels = Speakers.assign(callEntries.map(\.offsets), turns: turns)
         var next = labels.makeIterator()
-        let entries = written.map { entry in (timestamp: entry.timestamp, label: entry.stream == .call ? next.next() ?? nil : nil) }
+        let entries = written.map { (timestamp: $0.entry.timestamp, label: $0.stream == .call ? next.next() ?? nil : nil) }
         guard FileManager.default.fileExists(atPath: config.noteFile.path) else { return Set(labels.compactMap { $0 }).count }
         let note = try String(contentsOf: config.noteFile, encoding: .utf8)
         let relabelled = Speakers.relabel(note, live: config.liveLabel, entries: entries)
@@ -517,7 +517,7 @@ public final class MeetingSession {
     public var entries: Int { written.count }
 
     /// The entries written so far with their live labels, for the window (Meetings design §7); `line` is the entry's index.
-    public private(set) var liveEntries: [MeetingNote.Entry] = []
+    public var liveEntries: [MeetingNote.Entry] { written.map(\.entry) }
 
     /// Words recognized so far on both sides.
     public var wordCount: Int { words.values.reduce(0, +) }

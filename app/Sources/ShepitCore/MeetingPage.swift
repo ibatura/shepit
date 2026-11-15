@@ -5,21 +5,9 @@ public enum MeetingPage {
     public typealias Line = MeetingStore.Line
     public typealias Person = MeetingStore.Person
 
-    // MARK: Pairing (§8)
-
-    /// The stored line each note entry is: the k-th header with timestamp T is the k-th line with T. A second whose
-    /// counts differ (entries added or deleted in Obsidian) is left unpaired, and so are ⚠ lines.
-    public static func pair(_ entries: [MeetingNote.Entry], _ lines: [Line]) -> [Line?] {
-        let stored = Dictionary(grouping: lines, by: \.timestamp)
-        let written = Dictionary(grouping: entries.filter { $0.label != nil }, by: \.timestamp).mapValues(\.count)
-        var seen: [String: Int] = [:]
-        return entries.map { entry in
-            guard entry.label != nil else { return nil }
-            let k = seen[entry.timestamp, default: 0]
-            seen[entry.timestamp] = k + 1
-            guard let same = stored[entry.timestamp], same.count == written[entry.timestamp] else { return nil }
-            return same.first { $0.order == k }
-        }
+    /// The stored line each note entry is (`MeetingNote.pair`).
+    static func pair(_ entries: [MeetingNote.Entry], _ lines: [Line]) -> [Line?] {
+        MeetingNote.pair(entries, Dictionary(uniqueKeysWithValues: lines.map { ($0.place, $0) }))
     }
 
     // MARK: One meeting (§6)
@@ -45,11 +33,11 @@ public enum MeetingPage {
         public var time: String
         public var text: String
         /// nil: not paired with the store, so it can't be given.
-        public var place: MeetingStore.Place?
+        public var place: MeetingNote.Place?
         /// The stored person it belongs to now.
         public var person: String?
 
-        public init(name: String?, time: String, text: String, place: MeetingStore.Place?, person: String?) {
+        public init(name: String?, time: String, text: String, place: MeetingNote.Place?, person: String?) {
             self.name = name
             self.time = time
             self.text = text

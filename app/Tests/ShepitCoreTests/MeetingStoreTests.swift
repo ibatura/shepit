@@ -28,10 +28,10 @@ struct MeetingStoreTests {
         #expect(try store.meetings() == [.init(id: id, path: "/notes/a.md", title: "Sync", app: "Teams", start: start, duration: 60, you: "Me")])
         #expect(try store.people(id) == [.init(key: "Me", name: nil), .init(key: "Person 1", name: nil), .init(key: "Person 2", name: nil)])
         #expect(try store.lines(id) == [
-            .init(timestamp: "2026-07-31 10:00:01", order: 0, original: "Me", current: "Me"),
-            .init(timestamp: "2026-07-31 10:00:03", order: 0, original: "Person 1", current: "Person 1"),
-            .init(timestamp: "2026-07-31 10:00:03", order: 1, original: "Person 2", current: "Person 2"),
-            .init(timestamp: "2026-07-31 10:00:05", order: 0, original: "Person 1", current: "Person 1"),
+            .init(place: .init(timestamp: "2026-07-31 10:00:01", order: 0), original: "Me", current: "Me"),
+            .init(place: .init(timestamp: "2026-07-31 10:00:03", order: 0), original: "Person 1", current: "Person 1"),
+            .init(place: .init(timestamp: "2026-07-31 10:00:03", order: 1), original: "Person 2", current: "Person 2"),
+            .init(place: .init(timestamp: "2026-07-31 10:00:05", order: 0), original: "Person 1", current: "Person 1"),
         ])
     }
 
