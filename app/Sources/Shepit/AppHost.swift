@@ -55,10 +55,9 @@ final class AppHost: ControllerHost {
         statistics: { [unowned self] in (try? self.stats.dictations(in: $0)) ?? [] },
         meetingStatistics: { [unowned self] in (try? self.stats.meetings(in: $0)) ?? [] },
         languageNote: { choice, language in await Self.languageNote(choice, language) },
-        addMeetingNotes: { [unowned self] in self.addMeetingNotes() },
         downloads: downloads)
     lazy var mainWindow = MainWindow(model: settingsModel, actions: windowActions,
-                                     meetings: MeetingsModel(store: meetingStore, template: { [unowned self] in self.settings.meetingFileName }),
+                                     meetings: MeetingsModel(store: meetingStore, settings: { [unowned self] in self.settings }),
                                      snapshot: { [unowned self] in self.snapshot() })
     /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
     var lookups = Lookups()

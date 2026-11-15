@@ -3,7 +3,7 @@ import Testing
 @testable import Shepit
 import ShepitCore
 
-// Meetings design §6, §8: changes in the window reach the store and the note's headers together.
+// Meetings design §6, §8: the questions, notices and choices of the Meetings section. The note and store changes themselves are tested in MeetingStoreTests.
 @MainActor
 struct MeetingsModelTests {
     private let note = """
@@ -30,25 +30,13 @@ struct MeetingsModelTests {
         let store = MeetingStore(file: dir.appending(path: "meetings.sqlite"))
         let id = try #require(try store.add(note: file, you: "Ivan"))
         let defaults = try #require(UserDefaults(suiteName: "meetings-model-\(UUID().uuidString)"))
-        let model = MeetingsModel(store: store, template: { "{date} {time} {title}" }, defaults: defaults)
+        let model = MeetingsModel(store: store, settings: { .defaults }, defaults: defaults)
         model.reload()
         return (model, store, id, file, dir)
     }
 
     private func headers(_ file: URL) throws -> [String] {
         try String(contentsOf: file, encoding: .utf8).components(separatedBy: "\n").filter { $0.hasPrefix("[") }
-    }
-
-    @Test func namingAPersonRewritesOnlyTheirHeaders() throws {
-        let (model, store, id, file, dir) = try rig()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        model.name(id, person: "Person 1", typed: " Olena  K. ")
-        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
-                                      "[Olena K.] 2026-07-31 10:00:07"])
-        #expect(try String(contentsOf: file, encoding: .utf8).contains("I said this in Obsidian, edited"))
-        #expect(try store.people(id).first { $0.key == "Person 1" }?.name == "Olena K.")
-        model.name(id, person: "Person 1", typed: "")
-        #expect(try headers(file)[1] == "[Person 1] 2026-07-31 10:00:03")
     }
 
     @Test func aNameAnotherPersonHasAsksToMergeFirst() throws {
@@ -68,20 +56,6 @@ struct MeetingsModelTests {
         #expect(try store.lines(id).map(\.current) == ["Ivan", "Person 1", "Person 1", "Person 1"])
     }
 
-    @Test func givingALineToANewPersonAndResetting() throws {
-        let (model, store, id, file, dir) = try rig()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        model.name(id, person: "Person 1", typed: "Olena")
-        model.giveToNewPerson(id, line: .init(timestamp: "2026-07-31 10:00:07", order: 0))
-        model.give(id, line: .init(timestamp: "2026-07-31 10:00:01", order: 0), to: "Person 2")
-        #expect(try headers(file) == ["[Person 2] 2026-07-31 10:00:01", "[Olena] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
-                                      "[Person 3] 2026-07-31 10:00:07"])
-        model.answer(.reset(meeting: id), yes: true)
-        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
-                                      "[Olena] 2026-07-31 10:00:07"])
-        #expect(try store.lines(id).allSatisfy { $0.current == $0.original })
-    }
-
     @Test func aNoteThatCannotBeWrittenChangesNothing() throws {
         let (model, store, id, file, dir) = try rig()
         defer {
@@ -97,7 +71,7 @@ struct MeetingsModelTests {
         model.reload()
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: notes.path) // no temp file, no rename
         model.name(id, person: "Person 1", typed: "Olena")
-        #expect(model.problem?.hasPrefix("Can't change n.md") == true)
+        #expect(model.notice?.title == "Can't change n.md")
         #expect(try store.people(id).first { $0.key == "Person 1" }?.name == nil)
         #expect(try headers(locked)[1] == "[Person 1] 2026-07-31 10:00:03")
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)

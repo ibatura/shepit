@@ -170,6 +170,29 @@ public final class MeetingStore {
         }
     }
 
+    /// A change to a meeting's people or lines made by `body` (Meetings design §8): the store and the note's headers together,
+    /// or neither. The note is read right before writing, so edits made in Obsidian meanwhile stay; only the headers whose
+    /// shown name changed are rewritten.
+    public func change(_ meeting: Meeting, _ body: () throws -> Void) throws {
+        let note = URL(fileURLWithPath: meeting.path)
+        try transaction {
+            let before = (people: try people(meeting.id), lines: try lines(meeting.id))
+            try body()
+            let after = (people: try people(meeting.id), lines: try lines(meeting.id))
+            let text = try String(contentsOf: note, encoding: .utf8)
+            let changed = MeetingPage.relabelled(text, before: before, after: after)
+            if changed != text { try Data(changed.utf8).write(to: note, options: .atomic) }
+        }
+    }
+
+    /// Remove note from list (the note stays), or with `trash` Move file to Trash: the row and the file go together.
+    public func remove(_ meeting: Meeting, trash: Bool) throws {
+        try transaction {
+            try remove(meeting.id)
+            if trash { try FileManager.default.trashItem(at: URL(fileURLWithPath: meeting.path), resultingItemURL: nil) }
+        }
+    }
+
     /// Renames a meeting (Meetings design §8): the store, the note's `title` line and file name, and `meeting-names.json`.
     /// The store and the note change together or not at all; a missing note changes only the store and the names file.
     public func rename(_ meeting: Meeting, to title: String?, template: String, namesFile: URL, calendar: Calendar = .current) throws {

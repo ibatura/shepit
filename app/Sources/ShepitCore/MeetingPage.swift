@@ -16,8 +16,8 @@ public enum MeetingPage {
         public var key: String
         /// The name given, or the label.
         public var name: String
-        /// The name is a real one (given in the window, or "you"), not a "Person N" label.
-        public var named: Bool
+        /// What the name field shows: the name given, or your label for "you"; nil while it shows only the label.
+        public var given: String?
         public var initials: String
         public var isYou: Bool
         /// Share of the meeting's words, 0...1.
@@ -63,10 +63,9 @@ public enum MeetingPage {
         var order: [String] = []
         for line in lines where !order.contains(line.current) { order.append(line.current) }
         let rows = order.map { key in
-            let name = people.first { $0.key == key }?.name
-            return PersonRow(key: key, name: names[key] ?? key, named: name != nil || key == you, initials: initials(names[key] ?? key),
-                             isYou: key == you, share: Double(words[key] ?? 0) / Double(total),
-                             mergeTargets: key == you ? [] : order.filter { $0 != key })
+            PersonRow(key: key, name: names[key] ?? key, given: people.first { $0.key == key }?.name ?? (key == you ? key : nil),
+                      initials: initials(names[key] ?? key), isYou: key == you, share: Double(words[key] ?? 0) / Double(total),
+                      mergeTargets: key == you ? [] : order.filter { $0 != key })
         }
         let transcript = zip(entries, paired).map { entry, line in
             Row(name: line.map { names[$0.current] ?? $0.current } ?? entry.label, time: String(entry.timestamp.suffix(8)),
@@ -145,10 +144,6 @@ public enum MeetingPage {
         public var rows: [ListRow]
     }
 
-    static let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    static let fullMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-                             "November", "December"]
-
     /// `meetings` newest first, as the store gives them; `missing`: ids whose note is not found.
     public static func list(_ meetings: [MeetingStore.Meeting], missing: Set<Int>, running: LiveMeeting?, now: Date,
                             calendar: Calendar = .current) -> [ListGroup] {
@@ -158,17 +153,11 @@ public enum MeetingPage {
         }
         let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
         let lastWeek = calendar.date(byAdding: .day, value: -7, to: thisWeek) ?? thisWeek
+        let weekday = formatter("EEE HH:mm", calendar), day = formatter("d MMM, HH:mm", calendar), month = formatter("LLLL yyyy", calendar)
         for meeting in meetings {
-            let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: meeting.start)
-            let clock = String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
-            let group: String, when: String
-            if meeting.start >= lastWeek {
-                group = meeting.start >= thisWeek ? "This week" : "Last week"
-                when = "\(MeetingFileName.weekdays[((c.weekday ?? 1) - 1) % 7]) \(clock)"
-            } else {
-                group = "\(fullMonths[(c.month ?? 1) - 1]) \(c.year ?? 0)"
-                when = "\(c.day ?? 0) \(months[(c.month ?? 1) - 1]), \(clock)"
-            }
+            let recent = meeting.start >= lastWeek
+            let group = recent ? (meeting.start >= thisWeek ? "This week" : "Last week") : month.string(from: meeting.start)
+            let when = (recent ? weekday : day).string(from: meeting.start)
             let parts = missing.contains(meeting.id) ? [when, "note not found"] : [when, minutes(meeting.duration), meeting.app].compactMap { $0 }
             let row = ListRow(id: meeting.id, title: title(meeting.title, meeting.app), detail: parts.joined(separator: " · "))
             if groups.last?.title == group { groups[groups.count - 1].rows.append(row) } else { groups.append(ListGroup(title: group, rows: [row])) }
@@ -178,9 +167,17 @@ public enum MeetingPage {
 
     /// The app, "10 Nov 2026, 10:00" and the duration, as the top of a meeting shows them.
     public static func facts(_ meeting: MeetingStore.Meeting, calendar: Calendar = .current) -> [String] {
-        let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: meeting.start)
-        let when = String(format: "%d %@ %d, %02d:%02d", c.day ?? 0, months[(c.month ?? 1) - 1], c.year ?? 0, c.hour ?? 0, c.minute ?? 0)
-        return [meeting.app, when, minutes(meeting.duration)].compactMap { $0 }
+        [meeting.app, formatter("d MMM yyyy, HH:mm", calendar).string(from: meeting.start), minutes(meeting.duration)].compactMap { $0 }
+    }
+
+    /// English dates in the calendar's time zone, whatever the Mac's language (labels are English).
+    private static func formatter(_ format: String, _ calendar: Calendar) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = format
+        return formatter
     }
 
     private static func minutes(_ duration: TimeInterval?) -> String? {

@@ -175,4 +175,80 @@ struct MeetingStoreTests {
         #expect(throws: MeetingStore.NotATranscript.self) { try store.add(note: note, you: nil) }
         #expect(try store.meetings().isEmpty)
     }
+
+    // Changes with the note (§8)
+
+    private let note = """
+    ---
+    date: 2026-07-31
+    time: "10:00"
+    ---
+    [Ivan] 2026-07-31 10:00:01
+    hi
+    [Person 1] 2026-07-31 10:00:03
+    yes
+    [Person 2] 2026-07-31 10:00:05
+    I said this in Obsidian, edited
+    [Person 1] 2026-07-31 10:00:07
+    ok
+
+    """
+
+    /// A store with the note above in `notes/n.md`.
+    private func withNote() throws -> (MeetingStore, MeetingStore.Meeting, URL, URL) {
+        let (store, dir) = store()
+        let notes = dir.appending(path: "notes")
+        try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
+        let file = notes.appending(path: "n.md")
+        try Data(note.utf8).write(to: file)
+        _ = try store.add(note: file, you: "Ivan")
+        return (store, try #require(try store.meetings().first), file, dir)
+    }
+
+    private func headers(_ file: URL) throws -> [String] {
+        try String(contentsOf: file, encoding: .utf8).components(separatedBy: "\n").filter { $0.hasPrefix("[") }
+    }
+
+    @Test func aChangeRewritesOnlyTheHeadersWhoseNameChanged() throws {
+        let (store, meeting, file, dir) = try withNote()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try store.change(meeting) { try store.setName(meeting.id, person: "Person 1", to: "Olena K.") }
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
+                                      "[Olena K.] 2026-07-31 10:00:07"])
+        #expect(try String(contentsOf: file, encoding: .utf8).contains("I said this in Obsidian, edited"))
+        try store.change(meeting) {
+            try store.give(meeting.id, line: .init(timestamp: "2026-07-31 10:00:07", order: 0), to: try store.newPerson(meeting.id))
+            try store.give(meeting.id, line: .init(timestamp: "2026-07-31 10:00:01", order: 0), to: "Person 2")
+        }
+        #expect(try headers(file) == ["[Person 2] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
+                                      "[Person 3] 2026-07-31 10:00:07"])
+        try store.change(meeting) { try store.reset(meeting.id) }
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
+                                      "[Olena K.] 2026-07-31 10:00:07"])
+    }
+
+    @Test func aNoteThatCannotBeWrittenChangesNothing() throws {
+        let (store, meeting, file, dir) = try withNote()
+        let notes = file.deletingLastPathComponent()
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)
+            try? FileManager.default.removeItem(at: dir)
+        }
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: notes.path) // no temp file, no rename
+        #expect(throws: (any Error).self) { try store.change(meeting) { try store.setName(meeting.id, person: "Person 1", to: "Olena") } }
+        #expect(try store.people(meeting.id).first { $0.key == "Person 1" }?.name == nil)
+        #expect(try headers(file)[1] == "[Person 1] 2026-07-31 10:00:03")
+    }
+
+    @Test func removingKeepsTheNoteAndAFailedTrashKeepsTheRow() throws {
+        let (store, meeting, file, dir) = try withNote()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let gone = MeetingStore.Meeting(id: meeting.id, path: dir.appending(path: "gone.md").path, title: nil, app: nil,
+                                        start: meeting.start, duration: nil, you: nil)
+        #expect(throws: (any Error).self) { try store.remove(gone, trash: true) } // no file to trash: the row stays
+        #expect(try store.meetings().count == 1)
+        try store.remove(meeting, trash: false)
+        #expect(try store.meetings().isEmpty)
+        #expect(FileManager.default.fileExists(atPath: file.path))
+    }
 }

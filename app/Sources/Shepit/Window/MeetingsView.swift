@@ -13,7 +13,7 @@ struct MeetingsView: View {
                 list
                 Divider()
                 HStack {
-                    Button("Add notes…", action: actions.addMeetingNotes)
+                    Button("Add notes…", action: model.addNotes)
                     Spacer()
                     Button("Open meetings folder") { actions.perform(.openMeetingsFolder) }
                 }
@@ -24,17 +24,18 @@ struct MeetingsView: View {
             detail.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear { model.reload() }
-        .alert(title(model.question), isPresented: Binding(get: { model.question != nil }, set: { if !$0, let q = model.question { model.answer(q, yes: false) } }),
+        .alert(model.question.map { text($0).title } ?? "",
+               isPresented: Binding(get: { model.question != nil }, set: { if !$0, let q = model.question { model.answer(q, yes: false) } }),
                presenting: model.question) { question in
-            Button(button(question), role: question.destructive ? .destructive : nil) { model.answer(question, yes: true) }
+            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { model.answer(question, yes: true) }
             Button("Cancel", role: .cancel) { model.answer(question, yes: false) }
         } message: { question in
-            Text(message(question))
+            Text(text(question).message)
         }
-        .alert("Can't do that", isPresented: Binding(get: { model.problem != nil }, set: { if !$0 { model.problem = nil } })) {
-            Button("OK") { model.problem = nil }
+        .alert(model.notice?.title ?? "", isPresented: Binding(get: { model.notice != nil }, set: { if !$0 { model.notice = nil } })) {
+            Button("OK") { model.notice = nil }
         } message: {
-            Text(model.problem ?? "")
+            Text(model.notice?.message ?? "")
         }
     }
 
@@ -85,7 +86,7 @@ struct MeetingsView: View {
             }
         case .meeting(let id)?:
             if let open = model.open, open.meeting.id == id {
-                FinishedMeeting(model: model, open: open, missing: model.missing.contains(id), actions: actions).id(id)
+                FinishedMeeting(model: model, open: open, actions: actions).id(id)
             } else {
                 choose
             }
@@ -98,43 +99,22 @@ struct MeetingsView: View {
         ContentUnavailableView("Choose a meeting", systemImage: "person.2.wave.2")
     }
 
-    // The questions of §6 and §8.
-
-    private func title(_ question: MeetingsModel.Question?) -> String {
-        switch question {
-        case .merge(_, _, _, let name)?: "\(name) is already in this meeting"
-        case .reset?: "Reset people?"
-        case .remove(let meeting)?: "Remove “\(MeetingPage.title(meeting.title, meeting.app))” from the list?"
-        case .trash(let meeting)?: "Move “\(URL(fileURLWithPath: meeting.path).lastPathComponent)” to the Trash?"
-        case nil: ""
-        }
-    }
-
-    private func message(_ question: MeetingsModel.Question) -> String {
+    /// The texts of a question of §6 and §8.
+    private func text(_ question: MeetingsModel.Question) -> (title: String, message: String, button: String, destructive: Bool) {
         switch question {
         case .merge(_, let person, _, let name):
-            "Merge \(model.open?.page?.people.first { $0.key == person }?.name ?? person) into \(name)?"
-        case .reset: "Every line goes back to the person speaker detection gave it. Names given to people stay."
-        case .remove: "The note stays. Names given here and Reset people are lost; Add notes… adds the note again with the labels it has."
-        case .trash: "The meeting is removed from the list too."
-        }
-    }
-
-    private func button(_ question: MeetingsModel.Question) -> String {
-        switch question {
-        case .merge: "Merge"
-        case .reset: "Reset"
-        case .remove: "Remove"
-        case .trash: "Move to Trash"
-        }
-    }
-}
-
-private extension MeetingsModel.Question {
-    var destructive: Bool {
-        switch self {
-        case .remove, .trash: true
-        case .merge, .reset: false
+            let shown: String
+            if case .page(let page) = model.open?.content { shown = page.people.first { $0.key == person }?.name ?? person } else { shown = person }
+            return ("\(name) is already in this meeting", "Merge \(shown) into \(name)?", "Merge", false)
+        case .reset:
+            return ("Reset people?", "Every line goes back to the person speaker detection gave it. Names given to people stay.", "Reset", false)
+        case .remove(let meeting):
+            return ("Remove “\(MeetingPage.title(meeting.title, meeting.app))” from the list?",
+                    "The note stays. Names given here and Reset people are lost; Add notes… adds the note again with the labels it has.",
+                    "Remove", true)
+        case .trash(let meeting):
+            return ("Move “\(URL(fileURLWithPath: meeting.path).lastPathComponent)” to the Trash?", "The meeting is removed from the list too.",
+                    "Move to Trash", true)
         }
     }
 }
@@ -189,7 +169,6 @@ private struct EntryRow: View {
 private struct FinishedMeeting: View {
     let model: MeetingsModel
     let open: MeetingsModel.Open
-    let missing: Bool
     let actions: WindowActions
     @State private var title = ""
     @FocusState private var editingTitle: Bool
@@ -198,6 +177,7 @@ private struct FinishedMeeting: View {
 
     private static let colors: [Color] = [.green, .purple, .orange, .cyan, .pink, .blue, .yellow, .indigo, .mint, .brown]
     private var meeting: MeetingStore.Meeting { open.meeting }
+    private var missing: Bool { open.content == .missing }
     private var note: URL { URL(fileURLWithPath: meeting.path) }
 
     var body: some View {
@@ -222,14 +202,15 @@ private struct FinishedMeeting: View {
                     }
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 }
-                if missing {
+                switch open.content {
+                case .missing:
                     Text("The note was moved, renamed or deleted:").padding(.top, 12)
                     Text(meeting.path).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
                     HStack {
                         Button("Locate note…", action: model.locate)
                         Button("Remove note from list…") { model.question = .remove(meeting) }
                     }
-                } else if let page = open.page {
+                case .page(let page):
                     people(page)
                     Caption("Transcript (read only) · click a line to give it to another person")
                     LazyVStack(alignment: .leading, spacing: 4) {
@@ -237,7 +218,7 @@ private struct FinishedMeeting: View {
                             transcriptRow(row, index: index, people: page.people)
                         }
                     }
-                } else {
+                case .reading:
                     ProgressView().frame(maxWidth: .infinity).padding(.top, 40)
                 }
             }
@@ -277,7 +258,7 @@ private struct FinishedMeeting: View {
         HStack(spacing: 10) {
             Text(person.initials).font(.caption2).fontWeight(.bold).foregroundStyle(.white)
                 .frame(width: 26, height: 26).background(color, in: Circle())
-            NameField(text: person.named ? person.name : "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
+            NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
                 model.name(meeting.id, person: person.key, typed: $0)
             }
             .frame(width: 230)

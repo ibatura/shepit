@@ -35,26 +35,6 @@ extension AppHost {
         refreshStatus()
     }
 
-    /// Add notes… (Meetings design §4): notes made before the meetings list, or kept elsewhere.
-    func addMeetingNotes() {
-        NSApp.activate()
-        let chooser = NSOpenPanel()
-        chooser.message = "Choose meeting notes to add to the list"
-        chooser.prompt = "Add"
-        chooser.allowedContentTypes = [.init(filenameExtension: "md")!]
-        chooser.allowsMultipleSelection = true
-        let folder = settings.meetingsFolderURL(home: Paths.home)
-        if FileManager.default.fileExists(atPath: folder.path) { chooser.directoryURL = folder }
-        guard chooser.runModal() == .OK else { return }
-        let you = settings.myName()
-        // Already listed (nil) or not a transcript (throws): skipped.
-        let added = chooser.urls.filter { url in ((try? meetingStore.add(note: url, you: you)) ?? nil) != nil }.count
-        let skipped = chooser.urls.count - added
-        panel.message(added == 1 ? "1 note added" : "\(added) notes added",
-                      detail: skipped == 0 ? "" : "\(skipped) skipped: already in the list, not a transcript, or can't be read")
-        mainWindow.meetingsChanged()
-    }
-
     /// The running transcript for the window, from the session's memory; nil when none runs.
     func liveMeeting() -> LiveMeeting? {
         guard let session = meeting, session.state.isActive else { return nil }

@@ -24,7 +24,5 @@ struct WindowActions {
     var meetingStatistics: (DateInterval?) -> [MeetingRecord]
     /// Why this engine can't do the configured language, or nil when it can.
     var languageNote: (EngineChoice, String) async -> String?
-    /// Add notes… in the Meetings section: a file chooser, then a message with how many were added.
-    var addMeetingNotes: () -> Void
     var downloads: ModelDownloads
 }

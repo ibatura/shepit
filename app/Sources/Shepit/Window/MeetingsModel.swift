@@ -2,8 +2,9 @@ import AppKit
 import Observation
 import ShepitCore
 
-/// What the Meetings section shows (Meetings design §5–7). The list comes from the store and is read when the section
+/// What the Meetings section shows (Meetings design §5–8). The list comes from the store and is read when the section
 /// appears, when the window becomes active and after a meeting is added; the chosen note is read off the main thread.
+/// Changes go through `MeetingStore`, which keeps the store and the note together.
 @MainActor
 @Observable
 final class MeetingsModel {
@@ -12,9 +13,12 @@ final class MeetingsModel {
     }
 
     struct Open: Equatable {
+        enum Content: Equatable {
+            case reading, missing, page(MeetingPage.Page)
+        }
+
         var meeting: MeetingStore.Meeting
-        /// nil while the note is being read.
-        var page: MeetingPage.Page?
+        var content: Content
         /// Every real name Shepit knows, for the name fields.
         var suggestions: [String] = []
     }
@@ -27,15 +31,20 @@ final class MeetingsModel {
         case trash(MeetingStore.Meeting)
     }
 
+    /// A message for an alert: a change that could not be made, or what Add notes… did.
+    struct Notice: Equatable {
+        var title: String
+        var message: String
+    }
+
     private(set) var meetings: [MeetingStore.Meeting] = []
     private(set) var missing: Set<Int> = []
     private(set) var live: LiveMeeting?
     private(set) var open: Open?
     var question: Question?
+    var notice: Notice?
     /// Counts Cancels of a merge question: a name field that is still being edited then drops what was typed.
     private(set) var cancels = 0
-    /// A change that could not be made, for an alert.
-    var problem: String?
     var selection: Selection? {
         didSet {
             guard selection != oldValue else { return }
@@ -45,16 +54,16 @@ final class MeetingsModel {
     }
 
     @ObservationIgnored let store: MeetingStore
-    @ObservationIgnored private let template: () -> String
+    @ObservationIgnored private let settings: () -> ShepitCore.Settings
     @ObservationIgnored private let defaults: UserDefaults
     /// The meeting added last: Name people on the "Transcript ready" panel opens it.
     @ObservationIgnored private var lastAdded: Int?
     @ObservationIgnored private var reading: Task<Void, Never>?
 
-    /// `template`: `meetingFileName`, for renaming a note.
-    init(store: MeetingStore, template: @escaping () -> String, defaults: UserDefaults = .standard) {
+    /// `settings`: the meetings folder, `meetingFileName` and your name, as they are now.
+    init(store: MeetingStore, settings: @escaping () -> ShepitCore.Settings, defaults: UserDefaults = .standard) {
         self.store = store
-        self.template = template
+        self.settings = settings
         self.defaults = defaults
         let remembered = defaults.integer(forKey: "meetingSelection")
         selection = remembered == 0 ? nil : .meeting(remembered)
@@ -94,10 +103,10 @@ final class MeetingsModel {
             return
         }
         guard !missing.contains(id) else {
-            open = Open(meeting: meeting, page: nil)
+            open = Open(meeting: meeting, content: .missing)
             return
         }
-        if open?.meeting.id != id { open = Open(meeting: meeting, page: nil) } // keeps the old page on a re-read: no flicker
+        if open?.meeting.id != id { open = Open(meeting: meeting, content: .reading) } // a re-read keeps the old page: no flicker
         let people = (try? store.people(id)) ?? [], lines = (try? store.lines(id)) ?? []
         let suggestions = (try? store.knownNames()) ?? []
         let url = URL(fileURLWithPath: meeting.path)
@@ -107,11 +116,11 @@ final class MeetingsModel {
             guard !Task.isCancelled, selection == .meeting(id) else { return }
             guard let text else {
                 missing.insert(id)
-                open = Open(meeting: meeting, page: nil)
+                open = Open(meeting: meeting, content: .missing)
                 return
             }
-            open = Open(meeting: meeting, page: MeetingPage.page(people: people, lines: lines, you: meeting.you,
-                                                                  entries: MeetingNote.parse(text).entries), suggestions: suggestions)
+            let page = MeetingPage.page(people: people, lines: lines, you: meeting.you, entries: MeetingNote.parse(text).entries)
+            open = Open(meeting: meeting, content: .page(page), suggestions: suggestions)
         }
     }
 
@@ -122,26 +131,26 @@ final class MeetingsModel {
     /// A name typed for a person: saved, or a merge question when another person of the meeting has it.
     func name(_ meeting: Int, person: String, typed: String) {
         let people = (try? store.people(meeting)) ?? []
-        let stored = people.first { $0.key == person }?.name
         let name = MeetingPage.name(typed)
-        guard name != stored, !(stored == nil && name == person) else { return } // unchanged: the label shows when there's no name
+        // Unchanged when it shows the same: a person without a name shows its label.
+        guard (name ?? person) != (people.first { $0.key == person }?.name ?? person) else { return }
         if let name, let other = MeetingPage.clash(people: people, lines: (try? store.lines(meeting)) ?? [], person: person, name: name) {
             question = .merge(meeting: meeting, person: person, into: other, name: name)
             return
         }
-        change(meeting) { try $0.setName($1, person: person, to: name) }
+        change(meeting) { try store.setName(meeting, person: person, to: name) }
     }
 
     func merge(_ meeting: Int, person: String, into: String) {
-        change(meeting) { try $0.merge($1, person: person, into: into) }
+        change(meeting) { try store.merge(meeting, person: person, into: into) }
     }
 
-    func give(_ meeting: Int, line: MeetingStore.Place, to person: String) {
-        change(meeting) { try $0.give($1, line: line, to: person) }
+    func give(_ meeting: Int, line: MeetingNote.Place, to person: String) {
+        change(meeting) { try store.give(meeting, line: line, to: person) }
     }
 
-    func giveToNewPerson(_ meeting: Int, line: MeetingStore.Place) {
-        change(meeting) { store, id in try store.give(id, line: line, to: try store.newPerson(id)) }
+    func giveToNewPerson(_ meeting: Int, line: MeetingNote.Place) {
+        change(meeting) { try store.give(meeting, line: line, to: try store.newPerson(meeting)) }
     }
 
     /// The meeting's name (§8): the store, the note's title and file name, `meeting-names.json`. False when it failed.
@@ -149,39 +158,47 @@ final class MeetingsModel {
         let title = MeetingPage.name(typed)
         guard title != meeting.title else { return true }
         do {
-            try store.rename(meeting, to: title, template: template(), namesFile: Paths.dataDir.appending(path: MeetingNames.fileName))
+            try store.rename(meeting, to: title, template: settings().meetingFileName,
+                             namesFile: Paths.dataDir.appending(path: MeetingNames.fileName))
         } catch {
-            problem = "Can't rename \(URL(fileURLWithPath: meeting.path).lastPathComponent): \(error.localizedDescription)"
+            failed("Can't rename", meeting.path, error)
             return false
         }
         reload()
         return true
     }
 
+    /// Add notes… (§4): notes made before the meetings list, or kept elsewhere.
+    func addNotes() {
+        let settings = settings()
+        guard let notes = choose(message: "Choose meeting notes to add to the list", prompt: "Add", several: true,
+                                 in: settings.meetingsFolderURL(home: Paths.home)) else { return }
+        // Already listed (nil), not a transcript or unreadable (throws): skipped.
+        let added = notes.filter { (try? store.add(note: $0, you: settings.myName())) != nil }.count
+        let skipped = notes.count - added
+        notice = Notice(title: added == 1 ? "1 note added" : "\(added) notes added",
+                        message: skipped == 0 ? "" : "\(skipped) skipped: already in the list, not a transcript, or can't be read.")
+        reload()
+    }
+
     /// Locate note…: another file becomes this meeting's note; its entries are paired again.
     func locate() {
-        guard let meeting = open?.meeting else { return }
-        NSApp.activate()
-        let chooser = NSOpenPanel()
-        chooser.message = "Where is the note of “\(MeetingPage.title(meeting.title, meeting.app))”?"
-        chooser.prompt = "Use this note"
-        chooser.allowedContentTypes = [.init(filenameExtension: "md")!]
-        let folder = URL(fileURLWithPath: meeting.path).deletingLastPathComponent()
-        if FileManager.default.fileExists(atPath: folder.path) { chooser.directoryURL = folder }
-        guard chooser.runModal() == .OK, let url = chooser.url else { return }
+        guard let meeting = open?.meeting,
+              let url = choose(message: "Where is the note of “\(MeetingPage.title(meeting.title, meeting.app))”?", prompt: "Use this note",
+                               several: false, in: URL(fileURLWithPath: meeting.path).deletingLastPathComponent())?.first else { return }
         if let other = meetings.first(where: { $0.path == url.path && $0.id != meeting.id }) {
-            problem = "This note is already in the list as “\(MeetingPage.title(other.title, other.app))”."
+            notice = Notice(title: "Can't use this note", message: "It is already in the list as “\(MeetingPage.title(other.title, other.app))”.")
             return
         }
         do {
             try store.relink(meeting.id, path: url.path)
         } catch {
-            problem = "Can't use \(url.lastPathComponent): \(error.localizedDescription)"
+            failed("Can't use", url.path, error)
         }
         reload()
     }
 
-    /// The answer to `question`; nil = Cancel.
+    /// The answer to `question`.
     func answer(_ question: Question, yes: Bool) {
         self.question = nil
         guard yes else {
@@ -190,7 +207,7 @@ final class MeetingsModel {
         }
         switch question {
         case .merge(let meeting, let person, let into, _): merge(meeting, person: person, into: into)
-        case .reset(let meeting): change(meeting) { try $0.reset($1) }
+        case .reset(let meeting): change(meeting) { try store.reset(meeting) }
         case .remove(let meeting): remove(meeting, trash: false)
         case .trash(let meeting): remove(meeting, trash: true)
         }
@@ -198,34 +215,37 @@ final class MeetingsModel {
 
     private func remove(_ meeting: MeetingStore.Meeting, trash: Bool) {
         do {
-            try store.transaction { // the note goes to the Trash only with its row, and the row only with the note
-                try store.remove(meeting.id)
-                if trash { try FileManager.default.trashItem(at: URL(fileURLWithPath: meeting.path), resultingItemURL: nil) }
-            }
+            try store.remove(meeting, trash: trash)
         } catch {
-            problem = "Can't remove \(URL(fileURLWithPath: meeting.path).lastPathComponent): \(error.localizedDescription)"
+            failed("Can't remove", meeting.path, error)
         }
         if selection == .meeting(meeting.id) { selection = nil }
         reload()
     }
 
-    /// A change to people or lines: the store and the note's headers together, or neither (§8). The note is read
-    /// again right before writing, so edits made in Obsidian meanwhile stay.
-    private func change(_ id: Int, _ body: (MeetingStore, Int) throws -> Void) {
+    private func change(_ id: Int, _ body: () throws -> Void) {
         guard let meeting = meetings.first(where: { $0.id == id }), !missing.contains(id) else { return }
-        let note = URL(fileURLWithPath: meeting.path)
         do {
-            try store.transaction {
-                let before = (people: try store.people(id), lines: try store.lines(id))
-                try body(store, id)
-                let after = (people: try store.people(id), lines: try store.lines(id))
-                let text = try String(contentsOf: note, encoding: .utf8)
-                let changed = MeetingPage.relabelled(text, before: before, after: after)
-                if changed != text { try Data(changed.utf8).write(to: note, options: .atomic) }
-            }
+            try store.change(meeting, body)
         } catch {
-            problem = "Can't change \(note.lastPathComponent): \(error.localizedDescription)"
+            failed("Can't change", meeting.path, error)
         }
         load()
+    }
+
+    private func failed(_ what: String, _ path: String, _ error: Error) {
+        notice = Notice(title: "\(what) \(URL(fileURLWithPath: path).lastPathComponent)", message: error.localizedDescription)
+    }
+
+    /// A file chooser for `.md` notes, opening in `folder` when it exists; nil when cancelled.
+    private func choose(message: String, prompt: String, several: Bool, in folder: URL) -> [URL]? {
+        NSApp.activate()
+        let chooser = NSOpenPanel()
+        chooser.message = message
+        chooser.prompt = prompt
+        chooser.allowedContentTypes = [.init(filenameExtension: "md")!]
+        chooser.allowsMultipleSelection = several
+        if FileManager.default.fileExists(atPath: folder.path) { chooser.directoryURL = folder }
+        return chooser.runModal() == .OK ? chooser.urls : nil
     }
 }

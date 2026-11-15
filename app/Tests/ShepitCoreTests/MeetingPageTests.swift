@@ -43,7 +43,7 @@ struct MeetingPageTests {
         let page = MeetingPage.page(people: people, lines: lines, you: "Me", entries: note)
         #expect(page.people.map(\.key) == ["Me", "Person 2", "Person 1"]) // Person 3 has no lines left
         #expect(page.people.map(\.name) == ["Me", "Person 2", "Olena K."])
-        #expect(page.people.map(\.named) == [true, false, true])
+        #expect(page.people.map(\.given) == ["Me", nil, "Olena K."])
         #expect(page.people.map(\.initials) == ["M", "P2", "OK"])
         #expect(page.people.map(\.isYou) == [true, false, false])
         #expect(page.people.map(\.share) == [0.3, 0.1, 0.6])
