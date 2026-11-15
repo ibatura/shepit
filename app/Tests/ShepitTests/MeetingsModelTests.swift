@@ -59,6 +59,7 @@ struct MeetingsModelTests {
         #expect(model.question == .merge(meeting: id, person: "Person 2", into: "Person 1", name: "olena"))
         #expect(try store.people(id).first { $0.key == "Person 2" }?.name == nil) // nothing yet
         model.answer(model.question!, yes: false)
+        #expect(model.cancels == 1) // the name fields drop the typed name
         #expect(try headers(file)[2] == "[Person 2] 2026-07-31 10:00:05")
         model.name(id, person: "Person 2", typed: "Olena")
         model.answer(model.question!, yes: true)

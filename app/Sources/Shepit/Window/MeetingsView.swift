@@ -278,7 +278,7 @@ private struct FinishedMeeting: View {
         HStack(spacing: 10) {
             Text(person.initials).font(.caption2).fontWeight(.bold).foregroundStyle(.white)
                 .frame(width: 26, height: 26).background(color, in: Circle())
-            NameField(text: person.named ? person.name : "", placeholder: person.key, suggestions: open.suggestions) {
+            NameField(text: person.named ? person.name : "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
                 model.name(meeting.id, person: person.key, typed: $0)
             }
             .frame(width: 230)
@@ -335,6 +335,8 @@ private struct NameField: NSViewRepresentable {
     let text: String
     let placeholder: String
     let suggestions: [String]
+    /// A change here drops what is being typed and shows `text` again (Cancel on the merge question).
+    let cancels: Int
     let commit: (String) -> Void
 
     func makeNSView(context: Context) -> NSComboBox {
@@ -348,6 +350,10 @@ private struct NameField: NSViewRepresentable {
         context.coordinator.commit = commit
         context.coordinator.names = suggestions
         box.placeholderString = placeholder
+        if context.coordinator.cancels != cancels {
+            context.coordinator.cancels = cancels
+            box.abortEditing() // no second save of the dropped name when the field loses focus
+        }
         guard box.currentEditor() == nil else { return } // not while typing: the list then shows the matches
         if box.stringValue != text { box.stringValue = text }
         if box.objectValues as? [String] != suggestions {
@@ -356,15 +362,17 @@ private struct NameField: NSViewRepresentable {
         }
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(commit: commit) }
+    func makeCoordinator() -> Coordinator { Coordinator(commit: commit, cancels: cancels) }
 
     @MainActor
     final class Coordinator: NSObject, NSComboBoxDelegate {
         var commit: (String) -> Void
         var names: [String] = []
+        var cancels: Int
 
-        init(commit: @escaping (String) -> Void) {
+        init(commit: @escaping (String) -> Void, cancels: Int) {
             self.commit = commit
+            self.cancels = cancels
         }
 
         func controlTextDidChange(_ notification: Notification) {

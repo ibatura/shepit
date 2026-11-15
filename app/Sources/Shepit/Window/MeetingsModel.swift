@@ -45,6 +45,8 @@ final class MeetingsModel {
     private(set) var live: LiveMeeting?
     private(set) var open: Open?
     var question: Question?
+    /// Counts Cancels of a merge question: a name field that is still being edited then drops what was typed.
+    private(set) var cancels = 0
     /// A change that could not be made, for an alert.
     var problem: String?
     var selection: Selection? {
@@ -206,7 +208,7 @@ final class MeetingsModel {
     func answer(_ question: Question, yes: Bool) {
         self.question = nil
         guard yes else {
-            load() // a name field that asked to merge shows the old name again
+            if case .merge = question { cancels += 1 }
             return
         }
         switch question {
