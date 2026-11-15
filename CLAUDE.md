@@ -25,7 +25,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
   - `ShepitCore`: pure logic with tests (settings, dictionary, meeting session and notes, meeting names, language choice).
   - `ShepitEngines`: whisper.cpp, WhisperKit, Parakeet, Apple Speech.
   - `Shepit`: the app (menu, hotkeys, overlay, audio, call tap, Accessibility scan of meeting apps in `MeetingApps.swift`).
-- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (486 Swift tests on 2026-11-14).
+- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (523 Swift tests on 2026-11-16).
 - `scripts/`: build, sign, install, uninstall, model downloads (pinned SHA-256 in `scripts/models/`).
 
 ## Docs
@@ -34,7 +34,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 - `docs/superpowers/specs/`: designs. `docs/superpowers/plans/`: implementation plans of phases 1–3.
 - `docs/manual-test-checklist.md`: manual checks on a real Mac and real calls.
 
-## Where things stand (2026-11-14)
+## Where things stand (2026-11-16)
 
 - Phases 1–3 are done: dictation, settings, statistics, meeting transcripts.
 - Meeting names: Teams window title, Meet tab title or page bar, remembered names for repeats (`meeting-names.json`). Zoom shows no topic. Mute state is read from all three apps. Checked on real calls in each app.
@@ -42,8 +42,10 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 - The offer to record when a call starts is done and merged into `main` (2026-11-13): a floating panel with the call's name and a Start button (`CallWatch` polls which app holds the microphone, `CallOffer` in `ShepitCore` decides, `CallPanel` shows it, `AppHost+Calls.swift` wires them); it starts on its own only with `callAutoStart` on. `Shepit call-watch` and `Shepit panel-test` are its debug commands. Manual checks C1–C10 and the author's three end-of-branch reviews are done (2026-11-13). What the reviews left open is in `docs/future-ideas.md` under "Call offer: left open"; the mute check in Zoom and Meet is the first of them.
 - The main window shell is done and merged into `main` (2026-11-14): one window with a sidebar (Home, Dictionary, Statistics, Settings; Meetings, Dictations and People are placeholders), a Dock icon only while it is open, the menu cut to quick actions, the meeting hotkey, theme and accent colour. Spec `docs/superpowers/specs/2026-11-13-window-shell-design.md`, plan `docs/superpowers/plans/2026-11-13-window-shell.md`. The three end-of-branch reviews are done and their findings fixed; the author clicked through the window on the installed app (W1–W10 not checked one by one). What is left open is in `docs/future-ideas.md` under "Window shell: left open".
   - How it fits together: `AppHost.snapshot()` builds an `AppSnapshot` (ShepitCore) from live state plus cached `Lookups` (devices, downloads, history, permissions; gathered when the menu or window opens and by the 2-s poll). `MenuModel` builds the menu and `HomeModel` builds Home from it; `MainWindow` pulls Home through a closure. Actions are `AppAction`. Window code: `app/Sources/Shepit/Window/` and `AppHost+Window.swift`.
+- The Meetings section is done and merged into `main` (2026-11-16): every transcript is listed in `~/.local/share/dictation/meetings.sqlite` (meetings, their people and who said each line, no transcript text); the window names a meeting (its note's `title` and file name too) and its people (names suggested from all meetings), merges people, gives a line to another person, resets, removes a meeting from the list or its file to the Trash, and adds older notes with Add notes…. The menu keeps only Start and Stop for meetings. Spec `docs/superpowers/specs/2026-11-14-meetings-design.md`, plan `docs/superpowers/plans/2026-11-14-meetings.md`. The three end-of-branch reviews are done and their findings fixed; manual checks are L1–L13. What is left open is in `docs/future-ideas.md` under "Meetings: left open".
+  - How it fits together: `MeetingNote` reads notes and pairs headers with stored lines by `Place` (timestamp and order in that second); `MeetingStore` (ShepitCore) changes the store and the note's headers together (`change`, `rename`, `remove`, `add(note:)`); `MeetingPage` turns them into list rows, people and transcript rows. In the app, `MeetingsModel` is the section's state and `MeetingsView` draws it; the running transcript is `AppSnapshot.meeting` (`LiveMeeting`), and `AppHost.addToMeetings` lists a finished one.
 - Next, in this order unless the author says otherwise:
-  1. The main window's next part: **Meetings** (database, names, merge people, give a line to another person). A spec and a plan first, then the build. After it: Dictations and Dictionary; Statistics; voice prints; import names. The current UI was rejected; don't polish it piece by piece. A plan for each part first.
+  1. The main window's next part: **Dictations and Dictionary**. A spec and a plan first, then the build. After it: Statistics; voice prints; import names. The current UI was rejected; don't polish it piece by piece. A plan for each part first.
   The look and the screens are fixed in `docs/superpowers/specs/2026-11-11-visual-style/` (spec and `mockups.html`).
   Decisions and the build order are in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy with full history is on GitLab (`local-dictation-tool`); it is no longer updated.

@@ -9,7 +9,7 @@ Build order agreed on 2026-11-11:
 1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
 2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Merged into `main` on 2026-11-13. Left: the list under "Call offer: left open" below.
 3. **Window shell** with Home and Settings: built on branch `window-shell`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-14. Left: the list under "Window shell: left open" below.
-4. **Meetings**: the database, names, merging people, giving a line to another person.
+4. **Meetings**: the database, names, merging people, giving a line to another person. Built on branch `meetings`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-16. Left: the list under "Meetings: left open" below.
 5. **Dictations and Dictionary.**
 6. **Statistics**, with the new numbers.
 7. **Voices**: voice prints and the People section.
@@ -29,7 +29,7 @@ Found by the reviews of the branch and not changed; none blocks the merge except
 - "Transcript ready" and "Call ended" panels also show with `callOffer` off.
 - Whether the panel's buttons take a click while a dialog is open was not tried (its countdown runs).
 - Speech in the first seconds after Start on a pre-join screen: one test note had only the line said after Cancel; not looked into.
-- Structure, for the Meetings part: the call app is a `CallApp` in some places and a string in others (`MeetingTitle.detect`, `Settings.callApps`), with two browser lists; the menu's Start and the panel each have their own name lookup.
+- Structure: the call app is now a `CallApp` from window detection to the session (Meetings part, 2026-11-15); `Settings.callApps` keeps strings, there are still two browser lists, and the menu's Start and the panel each have their own name lookup.
 
 ### Window shell: left open (2026-11-14)
 
@@ -42,6 +42,18 @@ Not blockers; the reviews of the branch found them and they were left as they ar
 - Structure, for the next parts: the `engines` object is written in two places (`AppHost.perform(.setEngine)` and `SettingsModel.setEngine`); the job titles and hints are in `HomeModel` and `EnginesSection`, and differ; engine names are in three switches; the warnings list is in both `HomeModel` and `MenuModel`; `AppHost.Lookups` repeats six `AppSnapshot` fields; `Placeholder` has a separate optional button title and action; Settings → Dictation lists microphones from its own CoreAudio query in `body`, not from the lookups.
 - Home greys out Mode, Language, Microphone and the engine pickers while their job runs, but the same keys stay editable in Settings.
 - A minimized window shows its old Home for up to 2 s after it comes back.
+
+### Meetings: left open (2026-11-16)
+
+Found by the reviews of the branch and by the author's checks, and left as they are.
+
+- Manual checks: L1, L2, L11 and L12 pass (2026-11-16). L3 found the Cancel bug, fixed in commit 8211d5d, to look at again. L4–L10 the author will check in use. Not seen on screen: the name list opening while typing, Escape on it, the warning when a finished transcript can't be listed.
+- Notes edited by other tools: a `title` written as a multi-line YAML block, YAML escapes other than `\"` and `\\`, and a UTF-8 BOM before the front matter are not read as Shepit writes them.
+- A change to people or lines reads and writes the note on the main thread (opening a meeting reads it off the main thread). A note in iCloud Drive that macOS offloaded would hold the window, and dictation hotkeys, while it downloads.
+- Locate note… compares paths as written: the same note picked through a symlink or another letter case reaches the store, which refuses it with SQLite's own message.
+- Word shares count only entries paired with the store: a second edited in Obsidian drops out of every share.
+- `MeetingStore.add` uses `INSERT OR IGNORE`, so any constraint failure would read as "already listed".
+- The question alert may answer twice (Cancel from the binding, then the button); harmless today.
 
 ### New ideas (the author, 2026-11-15; not ordered yet)
 
