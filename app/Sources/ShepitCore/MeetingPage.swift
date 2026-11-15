@@ -91,20 +91,22 @@ public enum MeetingPage {
         return labels.isEmpty ? note : Speakers.setLabels(note, labels)
     }
 
-    /// Another person of the meeting (with lines) that already shows `name`, ignoring case; nil when none.
+    /// Another person of the meeting (with lines) that already shows `name`, ignoring case, accents and script; nil when none.
     public static func clash(people: [Person], lines: [Line], person: String, name: String) -> String? {
-        guard let name = self.name(name) else { return nil }
+        guard let name = self.name(name).map(folded) else { return nil }
         let names = shownNames(people)
-        return Set(lines.map(\.current)).sorted().first { $0 != person && (names[$0] ?? $0).caseInsensitiveCompare(name) == .orderedSame }
+        return Set(lines.map(\.current)).sorted().first { $0 != person && folded(names[$0] ?? $0) == name }
     }
 
     /// The names that contain what was typed, ignoring case, accents and script ("Іван" finds "Ivan Batura"); all for nothing typed.
     public static func matching(_ names: [String], typed: String) -> [String] {
-        func folded(_ text: String) -> String {
-            (text.applyingTransform(.toLatin, reverse: false) ?? text).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
-        }
         let typed = folded(typed.trimmingCharacters(in: .whitespaces))
         return typed.isEmpty ? names : names.filter { folded($0).contains(typed) }
+    }
+
+    /// A name in Latin letters, lower case, without accents: "Олена", "Oléna" and "olena" are the same.
+    private static func folded(_ text: String) -> String {
+        (text.applyingTransform(.toLatin, reverse: false) ?? text).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
     }
 
     /// A typed name as it is stored: one line, trimmed; nil when empty.

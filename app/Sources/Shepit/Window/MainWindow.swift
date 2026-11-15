@@ -104,13 +104,13 @@ final class MainWindow: NSObject, NSWindowDelegate {
     /// `section` nil: the section it had last.
     func show(_ section: WindowSection? = nil) {
         if let section { navigation.section = section }
-        show(snapshot())
         let window = self.window ?? makeWindow()
         self.window = window
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
         if window.isMiniaturized { window.deminiaturize(nil) }
         window.makeKeyAndOrderFront(nil)
+        show(snapshot()) // once visible: the snapshot then carries the live entries
     }
 
     private func makeWindow() -> NSWindow {

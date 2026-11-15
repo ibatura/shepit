@@ -20,26 +20,32 @@ extension AppHost {
 
     func recoverMeeting() {
         if let note = MeetingSession.recover(stateDir: Paths.dataDir, sessionsRoot: Self.meetingSessionsRoot, now: Date()) {
-            addToMeetings(note, you: settings.myName())
             panel.message("⚠ The last meeting transcript was interrupted: \(note.lastPathComponent)")
+            addToMeetings(note, you: settings.myName()) // after: a failure to list it is the message that stays
         }
     }
 
-    /// Puts a note in the meetings list (Meetings design §4); a failure is logged, the note itself is kept.
-    func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil) {
+    /// Puts a note in the meetings list (Meetings design §4). False, with a message, when it can't be listed; the note is kept.
+    @discardableResult func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil) -> Bool {
+        defer { refreshStatus() }
         do {
             if let id = try meetingStore.add(note: note, you: you, start: start, duration: duration) { mainWindow.meetingAdded(id) }
+            return true
         } catch {
             NSLog("Shepit meetings list: %@", String(describing: error))
+            mainWindow.meetings.added(nil) // Name people must not open the meeting before this one
+            panel.message("⚠ Transcript not added to the meetings list",
+                          detail: "\(note.lastPathComponent): \(error.localizedDescription). Add notes… in Meetings adds it.")
+            return false
         }
-        refreshStatus()
     }
 
     /// The running transcript for the window, from the session's memory; nil when none runs.
     func liveMeeting() -> LiveMeeting? {
         guard let session = meeting, session.state.isActive else { return nil }
+        // The menu-bar title asks every second; only the open window shows the entries.
         return LiveMeeting(state: session.state, title: session.title, app: session.app, words: session.wordCount, muted: meetingMuted,
-                           entries: session.liveEntries)
+                           entries: mainWindow.isOpen ? session.liveEntries : [], note: session.config.noteFile.path)
     }
 
     /// The meeting hotkey: what the menu's Start or Stop does at this moment.
@@ -149,8 +155,9 @@ extension AppHost {
             // An empty transcript of a call is removed and gets no statistics row.
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
             guard !effects.contains(.removeEmptyNote) else { return }
-            self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration)
+            let listed = self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration)
             self.recordMeeting(record)
+            guard listed else { return } // its warning stays on screen
             // The call panel says "Transcript ready", unless an offer or a stop countdown is in its place.
             if case .ready = self.callOffer.panel {} else { self.panel.message("Transcript ready", detail: detail) }
         }

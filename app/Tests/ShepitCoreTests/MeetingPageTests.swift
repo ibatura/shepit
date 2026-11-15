@@ -85,6 +85,8 @@ struct MeetingPageTests {
     @Test func aNameAnotherPersonHasIsAClash() {
         let lines = [line(1, 0, "Me"), line(3, 0, "Person 1"), line(5, 0, "Person 2")]
         #expect(MeetingPage.clash(people: people, lines: lines, person: "Person 2", name: " olena k. ") == "Person 1")
+        #expect(MeetingPage.clash(people: people, lines: lines, person: "Person 2", name: "Олена К.") == "Person 1") // another script
+        #expect(MeetingPage.clash(people: people, lines: lines, person: "Person 2", name: "Oléna K.") == "Person 1")
         #expect(MeetingPage.clash(people: people, lines: lines, person: "Person 1", name: "Person 2") == "Person 2")
         #expect(MeetingPage.clash(people: people, lines: lines, person: "Person 2", name: "Person 3") == nil) // no lines
         #expect(MeetingPage.clash(people: people, lines: lines, person: "Person 1", name: "Olena K.") == nil) // itself

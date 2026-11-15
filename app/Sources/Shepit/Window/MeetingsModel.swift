@@ -85,10 +85,11 @@ final class MeetingsModel {
         if meeting != live { live = meeting }
     }
 
-    /// A meeting was added. When it is the running transcript that finished (chosen as `.running`), it stays chosen.
-    func added(_ id: Int) {
+    /// A meeting was added (nil: one could not be). When it is the running transcript that finished (chosen as `.running`),
+    /// it stays chosen.
+    func added(_ id: Int?) {
         lastAdded = id
-        if selection == .running { selection = .meeting(id) }
+        if let id, selection == .running { selection = .meeting(id) }
     }
 
     /// Name people on the "Transcript ready" panel: the meeting just added.
@@ -173,11 +174,11 @@ final class MeetingsModel {
         let settings = settings()
         guard let notes = choose(message: "Choose meeting notes to add to the list", prompt: "Add", several: true,
                                  in: settings.meetingsFolderURL(home: Paths.home)) else { return }
-        // Already listed (nil), not a transcript or unreadable (throws): skipped.
-        let added = notes.filter { (try? store.add(note: $0, you: settings.myName())) != nil }.count
+        // The note being recorded is listed when it is finished. Already listed (nil), not a transcript or unreadable (throws): skipped.
+        let added = notes.filter { $0.path != live?.note && (try? store.add(note: $0, you: settings.myName())) != nil }.count
         let skipped = notes.count - added
         notice = Notice(title: added == 1 ? "1 note added" : "\(added) notes added",
-                        message: skipped == 0 ? "" : "\(skipped) skipped: already in the list, not a transcript, or can't be read.")
+                        message: skipped == 0 ? "" : "\(skipped) skipped: already in the list, being recorded, not a transcript, or can't be read.")
         reload()
     }
 
@@ -186,6 +187,10 @@ final class MeetingsModel {
         guard let meeting = open?.meeting,
               let url = choose(message: "Where is the note of “\(MeetingPage.title(meeting.title, meeting.app))”?", prompt: "Use this note",
                                several: false, in: URL(fileURLWithPath: meeting.path).deletingLastPathComponent())?.first else { return }
+        if url.path == live?.note {
+            notice = Notice(title: "Can't use this note", message: "It is the transcript being recorded now.")
+            return
+        }
         if let other = meetings.first(where: { $0.path == url.path && $0.id != meeting.id }) {
             notice = Notice(title: "Can't use this note", message: "It is already in the list as “\(MeetingPage.title(other.title, other.app))”.")
             return

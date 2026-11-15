@@ -58,16 +58,19 @@ public struct LiveMeeting: Equatable, Sendable {
     public var words: Int
     /// nil while the call app's mute button can't be read.
     public var muted: Bool?
-    /// The entries written so far, with their live labels; `line` is the entry's index.
+    /// The entries written so far, with their live labels; `line` is the entry's index. Empty unless the window shows them.
     public var entries: [MeetingNote.Entry]
+    /// The note being written: Add notes… and Locate note… leave it alone until it is finished.
+    public var note: String?
 
     public init(state: MeetingState, title: String? = nil, app: CallApp? = nil, words: Int = 0, muted: Bool? = nil,
-                entries: [MeetingNote.Entry] = []) {
+                entries: [MeetingNote.Entry] = [], note: String? = nil) {
         self.state = state
         self.title = title
         self.app = app
         self.words = words
         self.muted = muted
         self.entries = entries
+        self.note = note
     }
 }

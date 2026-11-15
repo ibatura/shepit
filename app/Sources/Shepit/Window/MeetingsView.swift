@@ -329,6 +329,7 @@ private struct NameField: NSViewRepresentable {
     func updateNSView(_ box: NSComboBox, context: Context) {
         context.coordinator.commit = commit
         context.coordinator.names = suggestions
+        context.coordinator.stored = text
         box.placeholderString = placeholder
         if context.coordinator.cancels != cancels {
             context.coordinator.cancels = cancels
@@ -349,6 +350,8 @@ private struct NameField: NSViewRepresentable {
         var commit: (String) -> Void
         var names: [String] = []
         var cancels: Int
+        /// The name the field shows when nothing is typed: Escape goes back to it.
+        var stored = ""
 
         init(commit: @escaping (String) -> Void, cancels: Int) {
             self.commit = commit
@@ -368,10 +371,19 @@ private struct NameField: NSViewRepresentable {
             if let box = notification.object as? NSComboBox { commit(box.stringValue) }
         }
 
-        /// A name picked with a click or Enter; moving through the list with the arrows doesn't save.
+        /// A name picked with a click or Enter; moving through the list with the arrows doesn't save, and Escape backs out.
         func comboBoxWillDismiss(_ notification: Notification) {
-            guard let box = notification.object as? NSComboBox, box.indexOfSelectedItem >= 0,
-                  let name = box.objectValueOfSelectedItem as? String else { return }
+            guard let box = notification.object as? NSComboBox else { return }
+            if let event = NSApp.currentEvent, event.type == .keyDown, event.keyCode == 53 { // Escape
+                let stored = stored
+                // After the list has closed: the arrows put the highlighted name in the field, which would be saved on leaving it.
+                DispatchQueue.main.async {
+                    box.abortEditing()
+                    box.stringValue = stored
+                }
+                return
+            }
+            guard box.indexOfSelectedItem >= 0, let name = box.objectValueOfSelectedItem as? String else { return }
             box.stringValue = name
             commit(name)
         }
