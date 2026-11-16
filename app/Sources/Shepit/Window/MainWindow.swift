@@ -60,6 +60,7 @@ final class WindowModel {
 final class MainWindow: NSObject, NSWindowDelegate {
     let navigation = WindowNavigation()
     let meetings: MeetingsModel
+    let dictations: DictationsModel
     private let live = WindowModel()
     private let model: SettingsModel
     private let actions: WindowActions
@@ -67,10 +68,12 @@ final class MainWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
 
     /// `snapshot` gives the app's state; it is asked only while the window is open.
-    init(model: SettingsModel, actions: WindowActions, meetings: MeetingsModel, snapshot: @escaping () -> AppSnapshot) {
+    init(model: SettingsModel, actions: WindowActions, meetings: MeetingsModel, dictations: DictationsModel,
+         snapshot: @escaping () -> AppSnapshot) {
         self.model = model
         self.actions = actions
         self.meetings = meetings
+        self.dictations = dictations
         self.snapshot = snapshot
     }
 
@@ -101,6 +104,12 @@ final class MainWindow: NSObject, NSWindowDelegate {
         meetings.reload()
     }
 
+    /// A dictation was kept or deleted, or the history cleared: the open Dictations section reads it again.
+    func dictationsChanged() {
+        guard isOpen, navigation.section == .dictations else { return }
+        dictations.reload()
+    }
+
     /// `section` nil: the section it had last.
     func show(_ section: WindowSection? = nil) {
         if let section { navigation.section = section }
@@ -117,7 +126,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
 
     private func makeWindow() -> NSWindow {
         let controller = NSHostingController(rootView: MainView(model: model, actions: actions, live: live, meetings: meetings,
-                                                                navigation: navigation))
+                                                                dictations: dictations, navigation: navigation))
         controller.sizingOptions = [] // the window keeps its own size; SwiftUI's ideal size would shrink it
         let window = NSWindow(contentViewController: controller)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]

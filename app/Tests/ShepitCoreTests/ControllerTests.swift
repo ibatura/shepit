@@ -31,6 +31,7 @@ private final class FakeHost: ControllerHost {
     var states: [ControllerState] = []
     var notes: [String] = []
     var pasted: [(String, AppRef?)] = []
+    var saved: [(String, AppRef?)] = []
     var overlayEvents: [String] = []
     var records: [DictationRecord] = []
     var startError: String?
@@ -92,7 +93,10 @@ private final class FakeHost: ControllerHost {
         (text.trimmingCharacters(in: .whitespaces), text.contains("кубер") ? ["Kubernetes"] : [])
     }
 
-    func appendHistory(_ text: String) { log.append("history \(text)") }
+    func appendHistory(_ text: String, app: AppRef?) {
+        log.append("history \(text)")
+        saved.append((text, app))
+    }
 
     func paste(_ text: String, into app: AppRef?) async -> PasteOutcome {
         log.append("paste \(text)")
@@ -156,6 +160,7 @@ struct ControllerTests {
         #expect(ctl.state == .idle)
         #expect(host.pasted.map(\.0) == ["Привіт"] && host.pasted.first?.1?.name == "Slack")
         #expect(host.has("history Привіт") && host.has("sound done"))
+        #expect(host.saved.map(\.0) == ["Привіт"] && host.saved.first?.1?.bundleID == "com.tinyspeck.slackmacgap")
         #expect(host.states == [.recording, .transcribing, .idle])
     }
 

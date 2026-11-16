@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import ShepitCore
 
@@ -14,6 +15,14 @@ private func view(_ change: (inout AppSnapshot) -> Void = { _ in }) -> AppSnapsh
 
 private func find(_ items: [MenuItem], _ title: String) -> MenuItem? {
     items.first { $0.title == title }
+}
+
+private func at(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
+    Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
+}
+
+private func entry(_ text: String, _ time: Date) -> DictationStore.Entry {
+    .init(id: 0, time: time, appName: "Slack", appBundleID: nil, text: text, words: 1)
 }
 
 // Ported from tests/test_menubar.lua, with the native menu changes from 03-dictation.md §7.
@@ -113,7 +122,7 @@ struct MenuModelTests {
         #expect(find(MenuModel.build(view()), "Copy last dictation")?.enabled == false)
         let items = MenuModel.build(view {
             $0.settings.historyMenuItems = 0
-            $0.history = [History.Entry(time: "2026-10-06 14:32:05", text: "new"), History.Entry(time: "2026-10-06 14:28:00", text: "old")]
+            $0.history = [entry("new", at(6, 14, 32)), entry("old", at(6, 14, 28))]
         })
         #expect(find(items, "Copy last dictation")?.enabled == true)
         #expect(find(items, "Copy last dictation")?.action == .copyText("new"))
@@ -126,17 +135,27 @@ struct MenuModelTests {
 
     @Test func recentSubmenuListsEntriesAndCopiesTheFullText() {
         let v = view {
-            $0.today = "2026-10-06"
-            $0.history = [
-                History.Entry(time: "2026-10-06 14:32:05", text: "Треба задеплоїти цей pull request"),
-                History.Entry(time: "2026-10-06 14:28:00", text: "Commit"),
-            ]
+            $0.now = at(6, 18, 0)
+            $0.history = [entry("Треба задеплоїти цей pull request", at(6, 14, 32)), entry("Вчора", at(5, 9, 1))]
         }
         let recent = find(MenuModel.build(v), "Recent")?.submenu ?? []
-        #expect(recent.count == 2)
-        #expect(recent[0].title == "14:32 · Треба задеплоїти цей pull request")
+        #expect(recent.map(\.title) == ["14:32 · Треба задеплоїти цей pull request", "05.10 09:01 · Вчора"])
         #expect(recent[0].tooltip == "Треба задеплоїти цей pull request")
         #expect(recent[0].action == .copyText("Треба задеплоїти цей pull request"))
+    }
+
+    @Test func recentShortensLongText() {
+        let long = String(repeating: "слово ", count: 20)
+        let title = find(MenuModel.build(view { $0.now = at(6, 18, 0); $0.history = [entry(long, at(6, 14, 32))] }), "Recent")?.submenu?.first?.title
+        #expect(title?.hasPrefix("14:32 · слово") == true)
+        #expect(title?.hasSuffix("слово…") == true)
+        #expect((title?.count ?? 0) < long.count)
+    }
+
+    @Test func recentKeepsALabelOnOneLineAndCopiesTheLineBreaks() {
+        let item = find(MenuModel.build(view { $0.now = at(6, 18, 0); $0.history = [entry("Перший рядок\n\nдругий", at(6, 14, 32))] }), "Recent")?.submenu?.first
+        #expect(item?.title == "14:32 · Перший рядок другий")
+        #expect(item?.action == .copyText("Перший рядок\n\nдругий"))
     }
 
     @Test func recentSubmenuShowsAPlaceholderWhenHistoryIsEmpty() {
@@ -148,7 +167,7 @@ struct MenuModelTests {
     }
 
     @Test func recentSubmenuListsAsManyAsTheSettingSays() {
-        let history = (0..<12).map { History.Entry(time: "2026-10-06 14:\(10 + $0):00", text: "\($0)") }
+        let history = (0..<12).map { entry("\($0)", at(6, 14, 10 + $0)) }
         let recent = find(MenuModel.build(view { $0.settings.historyMenuItems = 3; $0.history = history }), "Recent")?.submenu ?? []
         #expect(recent.map(\.tooltip) == ["0", "1", "2"])
     }

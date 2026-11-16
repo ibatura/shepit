@@ -120,40 +120,32 @@ struct SettingsModelTests {
         return (SettingsModel(store: store, dictionaryStore: dictionaryStore), dictionary)
     }
 
-    @Test func reorderingTermsWritesTheNewOrderAndKeepsTheRest() throws {
+    // What a change does to the dictionary is tested in DictionaryStoreTests.
+
+    @Test func aDictionaryChangeIsWrittenAndShown() throws {
         let (model, file) = try dictionaryModel(#"{"terms":["A","B","C"],"replace":{"x":"y"},"note":1}"#)
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
-        var terms = model.dictionary.terms
-        terms.move(fromOffsets: [2], toOffset: 0)
-        model.setTerms(terms)
+        model.changeDictionary { $0.move(term: "C", to: "A") }
         let raw = try json(file)
         #expect(raw["terms"] as? [String] == ["C", "A", "B"])
         #expect(raw["replace"] as? [String: String] == ["x": "y"] && raw["note"] as? Int == 1)
+        #expect(model.dictionary.terms == ["C", "A", "B"] && model.lastError == nil)
     }
 
-    @Test func anEmptyRuleIsRefusedAndTheFileIsUnchanged() throws {
+    @Test func aRefusedDictionaryChangeIsShownAndTheFileIsUnchanged() throws {
         let (model, file) = try dictionaryModel(#"{"replace":{"x":"y"}}"#)
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
         let before = try Data(contentsOf: file)
-        model.setRule(wrong: "кубер", right: "  ")
-        #expect(model.lastError != nil)
+        model.changeDictionary { try $0.setRule(heard: "кубер", written: "  ") }
+        #expect(model.lastError == "A replace rule needs both what was heard and the correct spelling")
         #expect(try Data(contentsOf: file) == before)
-    }
-
-    @Test func editingARuleReplacesItsOldSpelling() throws {
-        let (model, file) = try dictionaryModel(#"{"replace":{"кубер":"Kuber"}}"#)
-        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
-        model.setRule(wrong: "Кубернетіс", right: "Kubernetes", replacing: "кубер")
-        #expect(try json(file)["replace"] as? [String: String] == ["кубернетіс": "Kubernetes"])
-        model.removeRule("кубернетіс")
-        #expect(try json(file)["replace"] as? [String: String] == [:])
     }
 
     @Test func aBrokenDictionaryIsReadOnly() throws {
         let (model, file) = try dictionaryModel(#"{"terms":"oops"}"#)
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
         #expect(model.dictionaryIsReadOnly)
-        model.setTerms(["A"])
+        model.changeDictionary { $0.terms = ["A"] }
         #expect(String(data: try Data(contentsOf: file), encoding: .utf8) == #"{"terms":"oops"}"#)
     }
 

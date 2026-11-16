@@ -85,7 +85,7 @@ public enum MenuModel {
         items += [.separator, MenuItem(title: "Copy last dictation", enabled: !view.history.isEmpty, action: view.history.first.map { .copyText($0.text) })]
         if view.settings.historyMenuItems > 0 {
             let entries = view.history.prefix(view.settings.historyMenuItems).map {
-                MenuItem(title: History.label($0, today: view.today, maxChars: recentLabelChars), tooltip: $0.text, action: .copyText($0.text))
+                MenuItem(title: recentLabel($0, now: view.now), tooltip: $0.text, action: .copyText($0.text))
             }
             items.append(MenuItem(title: "Recent", submenu: entries.isEmpty ? [MenuItem(title: "No dictations yet", enabled: false)] : entries))
         }
@@ -104,6 +104,15 @@ public enum MenuModel {
             MenuItem(title: "Quit Shepit", keyEquivalent: "q", action: .quit),
         ]
         return items
+    }
+
+    /// "14:32 · text" on one line, the text cut to `recentLabelChars` with "…".
+    private static func recentLabel(_ entry: DictationStore.Entry, now: Date) -> String {
+        var text = entry.text.replacingOccurrences(of: #"\s*[\r\n]+\s*"#, with: " ", options: .regularExpression)
+        if text.count > recentLabelChars {
+            text = String(text.prefix(recentLabelChars - 1)).replacingOccurrences(of: #"\s+$"#, with: "", options: .regularExpression) + "…"
+        }
+        return "\(DictationPage.when(entry.time, now: now)) · \(text)"
     }
 
     /// Downloaded engine+model pairs for dictation; the configured one is shown even when missing.

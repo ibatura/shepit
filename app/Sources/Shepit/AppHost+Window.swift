@@ -24,11 +24,12 @@ extension AppHost {
         mainWindow.refresh()
     }
 
-    /// After history.log was written or cleared: the open window lists it at once.
+    /// After a dictation was kept or deleted, or the history cleared: the open window lists it at once.
     func refreshHistory() {
         guard mainWindow.isOpen else { return }
         lookups.history = recentHistory
         mainWindow.refresh()
+        mainWindow.dictationsChanged()
     }
 
     /// "system" follows macOS. The dictation overlay has its own colours.

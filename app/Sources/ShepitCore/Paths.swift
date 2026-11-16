@@ -8,7 +8,6 @@ public enum Paths {
         public let dictionaryFile: URL
         public let dataDir: URL
         public let modelsDir: URL
-        public let historyFile: URL
         public let failedDir: URL
     }
 
@@ -25,7 +24,6 @@ public enum Paths {
             dictionaryFile: configDir.appending(path: "dictionary.json"),
             dataDir: dataDir,
             modelsDir: dataDir.appending(path: "models", directoryHint: .isDirectory),
-            historyFile: dataDir.appending(path: "history.log"),
             failedDir: dataDir.appending(path: "failed", directoryHint: .isDirectory)
         )
     }
@@ -38,6 +36,5 @@ public enum Paths {
     public static var dictionaryFile: URL { current.dictionaryFile }
     public static var dataDir: URL { current.dataDir }
     public static var modelsDir: URL { current.modelsDir }
-    public static var historyFile: URL { current.historyFile }
     public static var failedDir: URL { current.failedDir }
 }

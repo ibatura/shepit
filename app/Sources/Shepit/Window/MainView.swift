@@ -7,6 +7,7 @@ struct MainView: View {
     let actions: WindowActions
     let live: WindowModel
     let meetings: MeetingsModel
+    let dictations: DictationsModel
     @Bindable var navigation: WindowNavigation
 
     var body: some View {
@@ -45,9 +46,9 @@ struct MainView: View {
         case .meetings:
             MeetingsView(model: meetings, actions: actions)
         case .dictations:
-            Placeholder(section: .dictations, text: "The full history comes in a later version.", button: "Open history file") { actions.perform(.openHistory) }
+            DictationsView(model: dictations, settings: model, actions: actions) { navigation.openSettings(.historyPrivacy) }
         case .dictionary:
-            Form { DictionarySection(model: model) }.formStyle(.grouped).disabled(model.dictionaryIsReadOnly)
+            DictionarySection(model: model, actions: actions)
         case .people:
             Placeholder(section: .people, text: "Saved voices come in a later version.")
         case .statistics:
@@ -96,17 +97,9 @@ private struct RecordingCard: View {
 private struct Placeholder: View {
     let section: WindowSection
     let text: String
-    var button: String?
-    var action: () -> Void = {}
 
     var body: some View {
-        ContentUnavailableView {
-            Label(section.rawValue, systemImage: section.symbol)
-        } description: {
-            Text(text)
-        } actions: {
-            if let button { Button(button, action: action) }
-        }
+        ContentUnavailableView(section.rawValue, systemImage: section.symbol, description: Text(text))
     }
 }
 

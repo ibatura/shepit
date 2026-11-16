@@ -13,6 +13,34 @@ public struct DictionaryFile: Equatable, Sendable {
         self.replace = replace
         self.dropPhrases = dropPhrases
     }
+
+    /// At the end; a term already there stays where it is.
+    public mutating func add(term: String) {
+        if !terms.contains(term) { terms.append(term) }
+    }
+
+    /// `term` takes `target`'s place (a chip dropped on another).
+    public mutating func move(term: String, to target: String) {
+        guard term != target, let from = terms.firstIndex(of: term), let to = terms.firstIndex(of: target) else { return }
+        terms.remove(at: from)
+        terms.insert(term, at: to)
+    }
+
+    public mutating func add(dropPhrase: String) {
+        if !dropPhrases.contains(dropPhrase) { dropPhrases.append(dropPhrase) }
+    }
+
+    /// `heard → written`, kept with `heard` in lower case. `previous` is the rule's heard phrase before an edit. Refuses
+    /// an empty side and a heard phrase another rule has (in any case), so a change never drops another rule.
+    public mutating func setRule(heard: String, written: String, replacing previous: String? = nil) throws {
+        let heard = heard.trimmed, written = written.trimmed
+        guard !heard.isEmpty, !written.isEmpty else { throw DictionaryStoreError.emptyRule }
+        var replace = replace
+        if let previous { replace[previous] = nil }
+        guard !replace.keys.contains(where: { $0.lowercased() == heard.lowercased() }) else { throw DictionaryStoreError.ruleExists(heard) }
+        replace[heard.lowercased()] = written
+        self.replace = replace
+    }
 }
 
 /// Prompt building and transcript post-processing (port of src/dictation/dictionary.lua).
@@ -34,19 +62,24 @@ public enum DictionaryRules {
         }
     }
 
-    public static func buildPrompt(style: String, terms: [String], maxTokens: Double) -> String {
-        var used = estimateTokens(style)
-        var picked: [String] = []
-        for term in terms {
-            let cost = estimateTokens(term)
-            if used + cost > maxTokens { break }
-            used += cost
-            picked.append(term)
-        }
-        let list = picked.joined(separator: ", ")
+    /// About how many tokens of style prompt and terms the engine reads.
+    public static let promptTokens = 200.0
+
+    public static func buildPrompt(style: String, terms: [String], maxTokens: Double = promptTokens) -> String {
+        let list = terms.prefix(fittingTerms(style: style, terms: terms, maxTokens: maxTokens)).joined(separator: ", ")
         if style.isEmpty { return list }
         if list.isEmpty { return style }
         return "\(style) \(list)"
+    }
+
+    /// How many of the first terms fit the prompt after `style`; the count stops at the first term that does not fit.
+    public static func fittingTerms(style: String, terms: [String], maxTokens: Double = promptTokens) -> Int {
+        var used = estimateTokens(style)
+        for (index, term) in terms.enumerated() {
+            used += estimateTokens(term)
+            if used > maxTokens { return index }
+        }
+        return terms.count
     }
 
     /// Replaces whole-word, case-insensitive matches; the longest key wins at a position and

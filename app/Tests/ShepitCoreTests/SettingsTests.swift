@@ -352,6 +352,15 @@ struct SettingsTests {
         ])
     }
 
+    @Test func databasesFolderIsTheDataFolderUnlessSet() {
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        let settings = validateSettings([:]).0
+        #expect(settings?.databasesFolder == "~/.local/share/dictation")
+        #expect(settings?.databasesFolderURL(home: home).path == "/Users/me/.local/share/dictation")
+        #expect(validateSettings(["databasesFolder": "/Volumes/Data/Shepit"]).0?.databasesFolderURL(home: home).path == "/Volumes/Data/Shepit")
+        #expect(validateSettings(["databasesFolder": "Data"]).1 == [#"settings.json: "databasesFolder" must be an absolute path or start with ~/"#])
+    }
+
     @Test func meetingsFolderExpandsTildeAndMyNameFallsBackToTheAccountName() {
         var settings = Settings.defaults
         let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)

@@ -10,6 +10,8 @@ struct WindowActions {
     var hotkeyProblem: () -> String?
     var openSettingsFile: () -> Void
     var openDictionaryFile: () -> Void
+    /// The Add word dialog with nothing selected.
+    var addWord: () -> Void
     var openDataFolder: () -> Void
     var clearStatistics: () -> Void
     var setLaunchAtLogin: (Bool) -> String?

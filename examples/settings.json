@@ -28,6 +28,7 @@
   "saveHistory": true,
   "historyDays": 0,
   "failedAudioHours": 24,
+  "databasesFolder": "~/.local/share/dictation",
   "meetingsFolder": "~/.local/share/dictation/meetings",
   "meetingFileName": "{date} {time} {title}",
   "meetingAskTitle": true,

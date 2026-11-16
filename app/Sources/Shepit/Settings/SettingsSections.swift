@@ -191,7 +191,7 @@ struct HistoryPrivacySection: View {
     var body: some View {
         Section("History") {
             Group {
-                Hinted(hint: "Save every result to history.log. With this off nothing new is written") {
+                Hinted(hint: "Keep every dictation in history, with the app it went to. With this off nothing new is kept") {
                     Toggle("Save history", isOn: model.binding("saveHistory", \.saveHistory))
                 }
                 Hinted(hint: "Delete history entries older than this many days. 0 = keep forever") {
@@ -211,10 +211,7 @@ struct HistoryPrivacySection: View {
                 }
             }
             .disabled(model.isReadOnly)
-            HStack {
-                Button("Open history") { actions.perform(.openHistory) }
-                Button("Clear history…") { actions.perform(.clearHistory) }
-            }
+            Button("Clear history…") { actions.perform(.clearHistory) }
         }
         Section("Statistics") {
             Group {
@@ -229,6 +226,11 @@ struct HistoryPrivacySection: View {
             }
             .disabled(model.isReadOnly)
             Button("Clear statistics…", action: actions.clearStatistics)
+        }
+        Section("Databases") {
+            FolderRow(model: model, key: "databasesFolder", path: \.databasesFolder, url: { $0.databasesFolderURL(home: Paths.home) },
+                      hint: "Where dictations, meetings and statistics are kept. Used from the next start of Shepit; files already there are not moved. A synced folder (iCloud) uploads them")
+                .disabled(model.isReadOnly)
         }
     }
 }

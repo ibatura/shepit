@@ -44,7 +44,8 @@ public struct Home: Equatable, Sendable {
     }
 
     public struct Dictation: Equatable, Sendable {
-        public var text, when: String
+        /// "14:02 · Slack".
+        public var text, detail: String
     }
 
     public var status: String
@@ -71,7 +72,9 @@ public enum HomeModel {
         Home(status: view.statusLine, dictating: view.state != .idle,
              microphones: Microphones.choices(connected: view.microphones, configured: view.settings.microphone),
              microphoneEnabled: view.state == .idle && view.meeting?.state.isActive != true, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
-             dictations: view.history.prefix(dictationCount).map { Home.Dictation(text: $0.text, when: History.when($0, today: view.today)) },
+             dictations: view.history.prefix(dictationCount).map {
+                 Home.Dictation(text: $0.text, detail: [DictationPage.when($0.time, now: view.now), $0.appName].compactMap { $0 }.joined(separator: " · "))
+             },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
     }
 

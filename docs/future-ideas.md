@@ -10,7 +10,7 @@ Build order agreed on 2026-11-11:
 2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Merged into `main` on 2026-11-13. Left: the list under "Call offer: left open" below.
 3. **Window shell** with Home and Settings: built on branch `window-shell`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-14. Left: the list under "Window shell: left open" below.
 4. **Meetings**: the database, names, merging people, giving a line to another person. Built on branch `meetings`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-16. Left: the list under "Meetings: left open" below.
-5. **Dictations and Dictionary.**
+5. **Dictations and Dictionary**: `dictations.sqlite` with the app of each dictation instead of `history.log`, the Dictations section with a period menu, the Dictionary section as in mockup 5, one `databasesFolder` setting. Built on branch `dictations-dictionary`; the three end-of-branch reviews are done and the author's picks fixed. Merged into `main` on 2026-11-17. Left: the list under "Dictations and Dictionary: left open" below.
 6. **Statistics**, with the new numbers.
 7. **Voices**: voice prints and the People section.
 8. **Import names** from a transcript; the Meet `.txt` format last.
@@ -55,6 +55,18 @@ Found by the reviews of the branch and by the author's checks, and left as they 
 - `MeetingStore.add` uses `INSERT OR IGNORE`, so any constraint failure would read as "already listed".
 - The question alert may answer twice (Cancel from the binding, then the button); harmless today.
 
+### Dictations and Dictionary: left open (2026-11-17)
+
+Found by the reviews of the branch and not changed: the author fixed points 1–4 of the thermo-nuclear review and went on.
+
+- Manual checks: D3 passes (2026-11-16, a test home with 5000 entries); D1, D2 and D4–D9 not checked one by one yet.
+- A new dictation, with the window open on Dictations, reloads every loaded entry and rebuilds every line before the text is pasted: with All history scrolled to 5000 entries that delays the paste. Each next page also rebuilds the lines of every loaded entry. Reading only the newer entries, or reloading after the paste, would keep a dictation at one INSERT.
+- "Today" and "Yesterday", and a period's start, are fixed when the list is built: a window left open over midnight shows them stale until the next change.
+- Dictionary section: a replace row saves on Enter or when its focus leaves; switching section or closing the window with an edit in a field may drop it. Terms are identified by their text, so a hand-edited file with a term twice gives one id to two chips and × removes both. Text dragged in from another app that equals a term moves that term. A chip's × is only transparent until hover, so Full Keyboard Access can reach and press it unseen (the plan's open question for Task 5).
+- A drag right after a hand edit of `dictionary.json` no longer loses the edit (fixed with point 2 of the review).
+- `history.log` from older versions is no longer read, pruned or deleted by Clear history…: its dictations stay on disk until the user deletes the file (the README says it can be deleted). Clear history… could delete it too.
+- Structure, from the thermo-nuclear review (points 5–10, not done): `addToDictionary(readSelection:)` is a boolean mode (the caller could read the selection); `FolderRow` takes the key, the key path and a URL closure for one setting; terms and drop phrases repeat the chip list code; `DateFormatter.english` lives at the end of `MeetingPage.swift` though three files use it; `DictationStore.Entry` splits `AppRef` into two optionals and `appBundleID` is never read; `period`'s didSet empties `entries` to steer `reload()`'s limit. Each window section's model is threaded by hand through `AppHost`, `MainWindow` and `MainView`.
+
 ### New ideas (the author, 2026-11-15; not ordered yet)
 
 Done 2026-11-16: Open Shepit brings an open window to the front (W11); Reveal in Finder and Copy path in a meeting's menus (L14). Other dialogs (Add word, the meeting name, Quit during a meeting) still call `NSApp.activate()`, which macOS 26.4 refuses while another app is active; no trouble reported with them so far.
@@ -62,7 +74,8 @@ Done 2026-11-16: Open Shepit brings an open window to the front (W11); Reveal in
 From a team call of 2026-11-13 (colleagues' questions, and how Shepit wrote that call: 283 entries), picked by the author on 2026-11-16:
 
 - **Screen sharing in the note.** When someone shares a screen during a call, take screenshots, or at least mark in the note what was shown and when.
-- **Automatic start per app.** "Start automatically" only for Teams, only for Zoom, and so on; today `callAutoStart` is one switch for every app, and `callApps` only picks where the panel appears.
+- **Automatic start per app.** "Start automatically" only for Teams, only for Zoom, and so on; today `callAutoStart` is one switch for every app, and `callApps` only picks where the panel appears. Asked for again by the author on 2026-11-16: for each of Teams, Zoom and Google Meet, choose whether a call starts a transcript on its own, offers one, or does nothing.
+- **Rules by meeting name** (the author, 2026-11-16). A list of meeting names with what to do for each: offer instead of starting on its own, or do nothing at all. It needs a name when the call starts, so it works for Teams and Meet, not for Zoom, which shows no topic (`meeting-names.json` already remembers names of repeating meetings).
 - **Statistics the colleagues asked about:** how many transcripts, how much you talked, who talked how much, the share of time in meetings, by app. Most of it is already in part 6 (Statistics); "who talked how much" by name needs part 7 (Voices).
 - **A build colleagues can install.** They asked for a link to try Shepit. Today it is built from source and signed with a local certificate; a downloadable build they can install would need its own signing story.
 - **Lines speaker detection could not place.** 23 call entries stayed `[Співрозмовники]` after Stop. Give them to the nearest voice, or show them in the window as an "Unknown" person that is easy to name.
@@ -70,6 +83,8 @@ From a team call of 2026-11-13 (colleagues' questions, and how Shepit wrote that
 - **Entries cut mid-sentence.** The end of a phrase lands in the next entry, sometimes under another person. Join short neighbouring entries of one person, or cut phrases at better places.
 - **The call panel should slide in finished.** Today the offer, stop and "Transcript ready" panels appear in pieces: the text and the card are drawn apart, and the card flies in from the top left before it lands in the top right. It should slide in from the right edge, already fully drawn. A likely cause: `CallPanel.show` orders the panel front at its old frame (`.zero` the first time) before SwiftUI has drawn the new state, and places it again on the next pass.
 - **A new look for the dictation overlay.** After the window's redesign the overlay (recording, transcribing, live draft) looks as if it came from another app. Redesign it in the style of the window and the call panel (`2026-11-11-visual-style/`), and make it better while at it.
+- **What each engine is for** (the author, 2026-11-16). Settings → Engines and models lists engines and models without saying why there is more than one: the author's Mac has two whisper.cpp models on disk (`large-v3` and `large-v3-turbo`) and three tasks that can each pick any of them. Say in the window what each engine and model is good at (speed, accuracy, memory, languages), which one is recommended for which task, and when a model on disk is not used by anything and can be deleted.
+- **Every setting reviewed** (the author, 2026-11-16). Go through all of Settings with the author: is each setting still valid and still needed, is its text clear, can it be better. Drop what nobody uses, merge what overlaps, and fix the hints. The two items above (auto-start per app, rules by meeting name) and "What each engine is for" fit into this pass. A spec first, as for the window's other parts.
 - **Every database query on an index.** Check each query of `meetings.sqlite` and `stats.sqlite` with `EXPLAIN QUERY PLAN`; where one scans a whole table, add the index it needs. Known at the time of writing (2026-11-15): in `meetings.sqlite`, `people` and `lines` are keyed by meeting first and `meetings.path` is unique, but the list sorts `meetings` by `start` with no index, and the name suggestions read all of `people` on purpose; in `stats.sqlite`, `dictations` and `meetings` have an index on `time`, `offers` and `model_events` none.
 
 ### The main window (decided 2026-11-11)
@@ -155,3 +170,9 @@ From the audit of 2026-10-06. The items about the old Lua tool (whisper-server, 
 - **Recent menu reads the last 64 KB of history** (`History.tailBytes`); one huge transcript can push older ones out of the menu.
 - **Pre-commit guard** against force-adding `tools/accuracy/recordings/`.
 - **Integration tests** for the running app (capture, engines, a long soak run): covered by unit tests and manual checks only.
+
+## Minor ideas
+
+Small things to come back to; none blocks the next part.
+
+- **A better look for the Dictations section.** The author has design remarks after trying it on 2026-11-16 (Task 4 of the Dictations and Dictionary plan) and wants the section to look better. To go through with the author; the section works as it is.

@@ -45,7 +45,7 @@ final class SettingsModel {
             case .calls: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"]
             case .engines: ["engines", "idleUnloadMinutes"]
             case .overlay: ["overlay", "livePreview", "overlayStyle"]
-            case .historyPrivacy: ["saveHistory", "historyDays", "historyMenuItems", "failedAudioHours", "collectStats", "typingSpeedWpm"]
+            case .historyPrivacy: ["saveHistory", "historyDays", "historyMenuItems", "failedAudioHours", "collectStats", "typingSpeedWpm", "databasesFolder"]
             case .appearance: ["theme", "accentColor"]
             }
         }
@@ -127,37 +127,10 @@ final class SettingsModel {
 
     var dictionaryIsReadOnly: Bool { !dictionaryErrors.isEmpty }
 
-    func setTerms(_ terms: [String]) {
-        setDictionary("terms", terms)
-    }
-
-    func setDropPhrases(_ phrases: [String]) {
-        setDictionary("dropPhrases", phrases)
-    }
-
-    /// Adds or edits a replace rule (`previous` is the rule's old spelling when editing).
-    func setRule(wrong: String, right: String, replacing previous: String? = nil) {
-        let wrong = wrong.trimmingCharacters(in: .whitespacesAndNewlines)
-        let right = right.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !wrong.isEmpty, !right.isEmpty else {
-            lastError = "A replace rule needs both what was heard and the correct spelling"
-            return
-        }
-        var replace = dictionary.replace
-        if let previous { replace[previous] = nil }
-        replace[wrong.lowercased()] = right
-        setDictionary("replace", replace)
-    }
-
-    func removeRule(_ wrong: String) {
-        var replace = dictionary.replace
-        replace[wrong] = nil
-        setDictionary("replace", replace)
-    }
-
-    private func setDictionary(_ key: String, _ value: Any) {
+    /// One change to dictionary.json, made on the file as it is now (`DictionaryStore.change`); a refused one is shown.
+    func changeDictionary(_ edit: (inout DictionaryFile) throws -> Void) {
         guard !dictionaryIsReadOnly else { return }
-        write { try dictionaryStore.update(key, value) }
+        write { try dictionaryStore.change(edit) }
     }
 
     /// One write to a file; a refused or failed one is shown at the top of the window. The app then applies it.

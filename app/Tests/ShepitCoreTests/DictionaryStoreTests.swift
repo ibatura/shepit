@@ -91,6 +91,50 @@ struct DictionaryStoreTests {
         #expect(String(data: try Data(contentsOf: file), encoding: .utf8) == "Unexpected token")
     }
 
+    // The window's changes (Dictations and Dictionary design §6).
+
+    @Test func aChangeWorksOnTheFileAsItIsNowAndWritesOnlyWhatChanged() throws {
+        let (store, file) = try makeStore(#"{"terms":["A"],"note":1}"#)
+        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+        store.load()
+        try #"{"terms":["A","B"],"note":1}"#.write(to: file, atomically: true, encoding: .utf8) // by hand, before the next poll
+        try store.change { $0.add(term: "C") }
+        let raw = try written(file)
+        #expect(raw["terms"] as? [String] == ["A", "B", "C"])
+        #expect(raw["note"] as? Int == 1 && raw["replace"] == nil && raw["dropPhrases"] == nil)
+        #expect(store.dictionary.terms == ["A", "B", "C"])
+    }
+
+    @Test func termsAndPhrasesAreAddedOnceAndATermMovesOntoAnother() throws {
+        var dictionary = DictionaryFile(terms: ["A", "B", "C"], replace: [:], dropPhrases: ["x"])
+        dictionary.add(term: "B")
+        dictionary.add(dropPhrase: "x")
+        dictionary.add(dropPhrase: "y")
+        #expect(dictionary.terms == ["A", "B", "C"] && dictionary.dropPhrases == ["x", "y"])
+        dictionary.move(term: "C", to: "A")
+        #expect(dictionary.terms == ["C", "A", "B"])
+        dictionary.move(term: "C", to: "B")
+        #expect(dictionary.terms == ["A", "B", "C"])
+        dictionary.move(term: "elsewhere", to: "A")
+        #expect(dictionary.terms == ["A", "B", "C"])
+    }
+
+    @Test func aRuleNeedsBothSidesAndAHeardPhraseNoOtherRuleHas() throws {
+        let (store, file) = try makeStore(#"{"replace":{"кубер":"Kuber","шепіт":"Shepit"}}"#)
+        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+        store.load()
+        let before = try Data(contentsOf: file)
+        #expect(throws: DictionaryStoreError.emptyRule) { try store.change { try $0.setRule(heard: "кубер", written: "  ", replacing: "кубер") } }
+        #expect(throws: DictionaryStoreError.ruleExists("Шепіт")) {
+            try store.change { try $0.setRule(heard: "Шепіт", written: "Kubernetes", replacing: "кубер") }
+        }
+        #expect(throws: DictionaryStoreError.ruleExists("шепіт")) { try store.change { try $0.setRule(heard: "шепіт", written: "x") } }
+        #expect(try Data(contentsOf: file) == before)
+        try store.change { try $0.setRule(heard: " Кубернетіс ", written: "Kubernetes", replacing: "кубер") }
+        try store.change { try $0.setRule(heard: "шепіт", written: "Shepit app", replacing: "шепіт") } // its own rule
+        #expect(try written(file)["replace"] as? [String: String] == ["кубернетіс": "Kubernetes", "шепіт": "Shepit app"])
+    }
+
     @Test func ruleForFindsAnExistingRuleCaseInsensitively() throws {
         let (store, file) = try makeStore(#"{"replace":{"кубернетіс":"Kubernetes"}}"#)
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }

@@ -156,6 +156,8 @@ public struct Settings: Equatable, Sendable {
     public var launchAtLogin: Bool
     public var typingSpeedWpm: Int
     public var collectStats: Bool
+    /// Where every SQLite database goes (dictations, meetings, statistics); read once at launch.
+    public var databasesFolder: String
     public var meetingsFolder: String
     public var meetingFileName: String
     public var meetingAskTitle: Bool
@@ -214,6 +216,7 @@ public struct Settings: Equatable, Sendable {
         launchAtLogin: Bool,
         typingSpeedWpm: Int,
         collectStats: Bool,
+        databasesFolder: String = "~/.local/share/dictation",
         meetingsFolder: String = "~/.local/share/dictation/meetings",
         meetingFileName: String = "{date} {time} {title}",
         meetingAskTitle: Bool = true,
@@ -256,6 +259,7 @@ public struct Settings: Equatable, Sendable {
         self.launchAtLogin = launchAtLogin
         self.typingSpeedWpm = typingSpeedWpm
         self.collectStats = collectStats
+        self.databasesFolder = databasesFolder
         self.meetingsFolder = meetingsFolder
         self.meetingFileName = meetingFileName
         self.meetingAskTitle = meetingAskTitle
@@ -290,9 +294,18 @@ public struct Settings: Equatable, Sendable {
 
     /// `meetingsFolder` with a leading `~/` expanded.
     public func meetingsFolderURL(home: URL) -> URL {
-        meetingsFolder.hasPrefix("~/")
-            ? home.appending(path: String(meetingsFolder.dropFirst(2)), directoryHint: .isDirectory)
-            : URL(fileURLWithPath: meetingsFolder, isDirectory: true)
+        Self.folder(meetingsFolder, home: home)
+    }
+
+    /// `databasesFolder` with a leading `~/` expanded.
+    public func databasesFolderURL(home: URL) -> URL {
+        Self.folder(databasesFolder, home: home)
+    }
+
+    private static func folder(_ path: String, home: URL) -> URL {
+        path.hasPrefix("~/")
+            ? home.appending(path: String(path.dropFirst(2)), directoryHint: .isDirectory)
+            : URL(fileURLWithPath: path, isDirectory: true)
     }
 
     /// Label for the microphone stream: `meetingMyName`, else the macOS account full name.

@@ -59,7 +59,7 @@ While you speak, a small panel shows **🔴 Слухаю**, a timer, a frequency
 - **⌃⌥D** adds the selected word to the dictionary (see [Dictionary](#dictionary)).
 - The draft text comes from the draft engine; the pasted text from the dictation engine, so they may differ slightly.
 - Your clipboard is restored about a second after pasting (some apps read it late).
-- Every result is saved to `~/.local/share/dictation/history.log` before it's pasted, so text is never lost.
+- Every result is saved to the history (`dictations.sqlite`) before it's pasted, so text is never lost. The window's **Dictations** section shows it.
 
 ### The 🎙 menu
 
@@ -89,12 +89,21 @@ Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open 
 |---|---|
 | Home | Dictation status, Mode, Language, Microphone, **Reload settings** (re-reads both files now; normally automatic within 2 s) and **Reload model** (if an engine got stuck); the engine for each job; the meeting transcript with Start and Stop; your last 10 dictations with Copy |
 | Meetings | Every meeting transcript: name the meeting and its people, merge people, give a line to another person (see [Meetings in the window](#meetings-in-the-window)) |
-| Dictionary | Terms, replace rules and drop phrases (see [Dictionary](#dictionary)) |
+| Dictations | Your kept dictations by day, newest first, with the app each went to and Copy (see [Dictations in the window](#dictations-in-the-window)) |
+| Dictionary | Terms, replace rules and drop phrases, and **Add word** (see [Dictionary](#dictionary)) |
 | Statistics | Numbers about your dictations and meetings, kept on this Mac |
 | Settings | All settings (see [Settings](#settings)) |
-| Dictations, People | Not built yet. Dictations has **Open history file** |
+| People | Not built yet |
 
 While a meeting transcript runs, a card at the top of the sidebar shows its time and name; a click opens it in Meetings.
+
+### Dictations in the window
+
+- **Show** at the top picks how far back the list goes: Today, Last 7 days, Last month (the default), Last 3, 6 or 9 months, Last year, All history. The list loads more as you scroll.
+- A long dictation shows two lines; a click opens the whole text, another closes it. **Copy** always takes the whole text.
+- Right-click → **Delete…** removes one dictation (after a question) from Dictations, Home and Recent.
+- The bar at the bottom says how long history is kept (a click opens Settings → History and privacy) and has **Clear history…**.
+- Dictations from before this version (`history.log`) are not shown; see [Where things are](#where-things-are).
 
 ## Meeting transcripts
 
@@ -176,7 +185,7 @@ Yes, the release candidate is ready.
 
 ## Settings
 
-Everything is in the window's **Settings** section (**Settings…**, ⌘,): General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy, Appearance. Every change is saved at once. **History and privacy** has Open history and Clear history… (clearing also deletes kept audio of failed attempts, and asks first). **Hotkeys** can also record a shortcut that starts or stops a meeting transcript (`meetingHotkey`); a shortcut another Shepit hotkey already uses is refused. **Appearance** has the theme and the accent colour.
+Everything is in the window's **Settings** section (**Settings…**, ⌘,): General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy, Appearance. Every change is saved at once. **History and privacy** has Clear history… (clearing also deletes kept audio of failed attempts, and asks first). **Hotkeys** can also record a shortcut that starts or stops a meeting transcript (`meetingHotkey`); a shortcut another Shepit hotkey already uses is refused. **Appearance** has the theme and the accent colour.
 
 The window reads and writes `~/.config/dictation/settings.json`, which you can also edit by hand (**Settings → General → Open settings file**). Hand edits apply within 2 seconds. Only the fields you set are stored; anything missing uses the default. If the file has an error (wrong value or broken JSON), Shepit keeps working with the last good settings, and the menu and the window name the field and what's allowed — the window is read-only until the file is fixed.
 
@@ -215,12 +224,13 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `overlay` | `true` | `true`, `false` | Show the floating panel. With `false`, only short notices are shown |
 | `livePreview` | `true` | `true`, `false` | Show draft text while you speak; needs the draft engine downloaded |
 | `historyMenuItems` | `10` | 0–50 | How many recent dictations the Recent submenu shows. `0` hides it |
-| `saveHistory` | `true` | `true`, `false` | Save every result to `history.log` |
-| `historyDays` | `0` | 0–3650 | Delete history entries older than this many days. `0` = keep forever |
+| `saveHistory` | `true` | `true`, `false` | Keep every result in the history (Dictations) |
+| `historyDays` | `0` | 0–3650 | Delete dictations older than this many days, at launch. `0` = keep forever |
 | `failedAudioHours` | `24` | 0–720 | How long the audio of a failed transcription is kept in `~/.local/share/dictation/failed/` |
 | `launchAtLogin` | `true` | `true`, `false` | Start Shepit at login |
 | `collectStats` | `true` | `true`, `false` | Record usage statistics on this Mac (numbers only) |
 | `typingSpeedWpm` | `40` | 10–200 | Your typing speed, for "time saved" in Statistics |
+| `databasesFolder` | `"~/.local/share/dictation"` | absolute path or starting with `~/` | Where `dictations.sqlite`, `meetings.sqlite` and `stats.sqlite` are kept. Read at launch; files already there are not moved. A synced folder (iCloud) uploads them |
 | `overlayStyle` | see below | object | Look of the panel (Settings → Overlay) |
 | `meetingsFolder` | `"~/.local/share/dictation/meetings"` | absolute path or starting with `~/` | Where meeting notes go; created if missing. Point it at a folder in your Obsidian vault |
 | `meetingFileName` | `"{date} {time} {title}"` | 1–200 characters; see below | Note file name without `.md`; `/` makes subfolders |
@@ -268,7 +278,7 @@ Settings → Meetings shows a live example as you type.
 
 ## Dictionary
 
-`~/.config/dictation/dictionary.json`, also editable in the window's **Dictionary** section.
+`~/.config/dictation/dictionary.json`, also editable in the window's **Dictionary** section: terms and drop phrases are chips (**+ add**, × on hover to remove, drag a term to change the order; terms past the prompt limit are dimmed), replace rules are edited in place (saved on Enter or when you leave the row), and **Add word** opens the ⌃⌥D dialog.
 
 **Quick way:** select a word that came out wrong, in any app (e.g. «кубернетіс»), press **⌃⌥D**, type how it should be written (`Kubernetes`) and press Enter. This adds the rule `"кубернетіс": "Kubernetes"` to `replace` and `Kubernetes` to `terms`. With nothing selected, type `wrong = right` (e.g. `джира = Jira`) or just a word for `terms`.
 
@@ -293,7 +303,7 @@ Settings → Meetings shows a live example as you type.
 | Meeting note has only your voice | System Settings → Privacy & Security → Screen & System Audio Recording → turn on Shepit (Shepit says so after 2 min of your speech with a silent call) |
 | "Start meeting transcript (download the model in Settings)" | Settings → Meetings → Download voice detection, and the meetings engine in Engines and models |
 | Speakers stay `[Співрозмовники]` | Settings → Meetings → Download speaker detection; it applies to the next meeting |
-| Lost text | Everything is in the history file: Dictations → **Open history file**, or Settings → History and privacy → Open history. Audio of failed attempts is kept for 24 h in `~/.local/share/dictation/failed/` |
+| Lost text | Everything is in the window's **Dictations** section (with **Show** → All history for older ones). Audio of failed attempts is kept for 24 h in `~/.local/share/dictation/failed/` |
 
 ## Update
 
@@ -312,7 +322,7 @@ scripts/uninstall.sh            # removes Shepit and its login item; keeps setti
 scripts/uninstall.sh --purge    # also deletes all of those
 ```
 
-`--purge` deletes meeting notes kept in the default folder (`~/.local/share/dictation/meetings`). A custom `meetingsFolder` (your Obsidian vault) is never touched.
+`--purge` deletes meeting notes kept in the default folder (`~/.local/share/dictation/meetings`) and the databases (dictations, meetings list, statistics) in the default `databasesFolder`. A custom `meetingsFolder` (your Obsidian vault) or `databasesFolder` is never touched.
 
 cmake and the Shepit Local Signing certificate (Keychain Access → login) are left in place.
 
@@ -326,7 +336,7 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 
 | What | Where | How long |
 |---|---|---|
-| Text of every dictation | `~/.local/share/dictation/history.log` (plain text) | Forever by default — limit with `historyDays`, turn off with `saveHistory`, or Clear history… |
+| Text of every dictation | `dictations.sqlite` in `databasesFolder` (`~/.local/share/dictation` by default), with its time, app and word count | Forever by default — limit with `historyDays`, turn off with `saveHistory`, delete one in Dictations, or Clear history…, which deletes the file. A deleted dictation's text is overwritten in the file |
 | Audio of failed attempts | `~/.local/share/dictation/failed/` | `failedAudioHours` (24 h by default) |
 | Usage statistics | `~/.local/share/dictation/stats.sqlite` | Numbers, engine and app names, and which dictionary corrections fired — **never** what you dictated. Turn off with `collectStats`; Clear statistics… deletes it |
 | Clipboard | — | The dictated text passes through the clipboard for a moment; your previous clipboard is put back |
@@ -344,11 +354,12 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | `~/Applications/Shepit.app` | The app |
 | `~/.config/dictation/settings.json` | Your settings |
 | `~/.config/dictation/dictionary.json` | Your dictionary |
-| `~/.local/share/dictation/history.log` | Everything you dictated |
-| `~/.local/share/dictation/stats.sqlite` | Usage statistics |
+| `~/.local/share/dictation/dictations.sqlite` | Everything you dictated, with the app (in `databasesFolder`) |
+| `~/.local/share/dictation/history.log` | Dictations from older versions; no longer read or written, and can be deleted |
+| `~/.local/share/dictation/stats.sqlite` | Usage statistics (in `databasesFolder`) |
 | `~/.local/share/dictation/models/` | Model files |
 | `~/.local/share/dictation/meetings/` | Meeting notes (default `meetingsFolder`) |
-| `~/.local/share/dictation/meetings.sqlite` | The meetings list: names, people and who said each line |
+| `~/.local/share/dictation/meetings.sqlite` | The meetings list: names, people and who said each line (in `databasesFolder`) |
 | `~/.local/share/dictation/meeting-names.json` | Meeting names you used, for the name dialog |
 
 ## Development

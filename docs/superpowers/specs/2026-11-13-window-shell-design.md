@@ -56,8 +56,8 @@ Today Shepit has a Settings window and a long menu. This part turns the Settings
 | *Recording card* | While a meeting transcript runs (recording, finishing, detecting speakers): red dot, "Recording" and the time, the name and the app under it. A click opens Home (the Meetings section later). |
 | Home | §5 |
 | Meetings | Placeholder: the title and "Meetings come in a later version. Until then they are in the menu." |
-| Dictations | Placeholder: the title, "The full history comes in a later version." and Open history file. |
-| Dictionary | Today's Dictionary section, unchanged. |
+| Dictations | Placeholder: the title, "The full history comes in a later version." and Open history file. Built in part 3: `2026-11-16-dictations-dictionary-design.md`. |
+| Dictionary | Today's Dictionary section, unchanged. Its new look is in part 3: `2026-11-16-dictations-dictionary-design.md`. |
 | People | Placeholder: the title and "Saved voices come in a later version." |
 | Statistics | Today's Statistics section, unchanged. Its "Typing speed" link opens Settings → History and privacy. |
 | Settings | §6 |

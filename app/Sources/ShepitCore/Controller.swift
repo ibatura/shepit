@@ -71,7 +71,8 @@ public protocol ControllerHost: AnyObject {
     func cancelRecording()
     func transcribe(_ samples: [Float]) async throws -> Transcript
     func process(_ text: String) -> (text: String, fired: [String])
-    func appendHistory(_ text: String)
+    /// `app` is where the text goes; nil when unknown.
+    func appendHistory(_ text: String, app: AppRef?)
     func paste(_ text: String, into app: AppRef?) async -> PasteOutcome
     func keepFailed(_ samples: [Float]) -> URL?
     func setState(_ state: ControllerState)
@@ -248,7 +249,7 @@ public final class Controller {
             return setState(.idle)
         }
         let waitSeconds = host.now().timeIntervalSince(stoppedAt)
-        host.appendHistory(processed.text) // before pasting, so the text is never lost
+        host.appendHistory(processed.text, app: recording.app) // before pasting, so the text is never lost
         let outcome = await host.paste(processed.text, into: recording.app)
         host.overlay(.done(processed.text))
         host.sound(.done)
@@ -276,7 +277,7 @@ public final class Controller {
     ) {
         host.record(DictationRecord(
             outcome: outcome, startedAt: recording.startedAt, audioSeconds: audioSeconds, waitSeconds: waitSeconds,
-            words: text.split(whereSeparator: \.isWhitespace).count, characters: text.count,
+            words: DictationStore.words(text), characters: text.count,
             detectedLanguage: detectedLanguage, app: recording.app, firedTerms: fired))
     }
 

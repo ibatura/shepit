@@ -57,7 +57,7 @@ struct HomeSection: View {
                     HStack {
                         Text(dictation.text).lineLimit(2)
                         Spacer()
-                        Text(dictation.when).foregroundStyle(.secondary).monospacedDigit()
+                        Text(dictation.detail).foregroundStyle(.secondary).monospacedDigit()
                         Button("Copy") { actions.perform(.copyText(dictation.text)) }
                     }
                 }

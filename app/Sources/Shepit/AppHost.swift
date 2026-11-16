@@ -7,13 +7,15 @@ import ShepitEngines
 /// recorder, hotkeys, panel, live draft, menu — and is the controller's window to the system.
 @MainActor
 final class AppHost: ControllerHost {
-    static let promptTokens = 200.0
-
     let settingsStore = SettingsStore(file: Paths.settingsFile)
     let dictionaryStore = DictionaryStore(file: Paths.dictionaryFile)
     let recorder = AudioRecorder()
-    let stats = StatsDatabase(file: Paths.dataDir.appending(path: "stats.sqlite"))
-    let meetingStore = MeetingStore(file: Paths.dataDir.appending(path: "meetings.sqlite"))
+    /// `databasesFolder` as it was at launch: the stores are opened there and stay there until the next start.
+    /// First used after `start()` has read settings.json.
+    private(set) lazy var databasesFolder = settings.databasesFolderURL(home: Paths.home)
+    lazy var stats = StatsDatabase(file: databasesFolder.appending(path: "stats.sqlite"))
+    lazy var meetingStore = MeetingStore(file: databasesFolder.appending(path: "meetings.sqlite"))
+    lazy var dictations = DictationStore(file: databasesFolder.appending(path: "dictations.sqlite")) { [unowned self] in self.refreshHistory() }
     lazy var models = ModelHost(factory: EngineFactory.make, onLoad: { [weak self] choice, seconds in
         Task { @MainActor in self?.recordLoad(choice, seconds) }
     })
@@ -46,6 +48,7 @@ final class AppHost: ControllerHost {
         hotkeyProblem: { [unowned self] in self.hotkeyProblem },
         openSettingsFile: { [unowned self] in self.edit(Paths.settingsFile, empty: "{}") },
         openDictionaryFile: { [unowned self] in self.edit(Paths.dictionaryFile, empty: #"{"terms": [], "replace": {}, "dropPhrases": []}"#) },
+        addWord: { [unowned self] in Task { await self.addToDictionary(readSelection: false) } },
         openDataFolder: { NSWorkspace.shared.open(Paths.dataDir) },
         clearStatistics: { [unowned self] in self.clearStatistics() },
         setLaunchAtLogin: { Self.setLaunchAtLogin($0) },
@@ -58,6 +61,7 @@ final class AppHost: ControllerHost {
         downloads: downloads)
     lazy var mainWindow = MainWindow(model: settingsModel, actions: windowActions,
                                      meetings: MeetingsModel(store: meetingStore, settings: { [unowned self] in self.settings }),
+                                     dictations: DictationsModel(store: dictations),
                                      snapshot: { [unowned self] in self.snapshot() })
     /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
     var lookups = Lookups()
@@ -160,9 +164,9 @@ final class AppHost: ControllerHost {
         TranscriptionRequest(
             samples: samples,
             language: Language(rawValue: language ?? settings.language) ?? .uk,
-            prompt: DictionaryRules.buildPrompt(style: settings.stylePrompt, terms: dictionaryStore.dictionary.terms, maxTokens: Self.promptTokens),
+            prompt: DictionaryRules.buildPrompt(style: settings.stylePrompt, terms: dictionaryStore.dictionary.terms),
             wantSegments: segments,
-            englishPrompt: DictionaryRules.buildPrompt(style: "", terms: dictionaryStore.dictionary.terms, maxTokens: Self.promptTokens))
+            englishPrompt: DictionaryRules.buildPrompt(style: "", terms: dictionaryStore.dictionary.terms))
     }
 
     private func poll() {
@@ -180,7 +184,7 @@ final class AppHost: ControllerHost {
     /// Old history entries and old failed audio (retention settings).
     private func tidyUp() {
         if settings.historyDays > 0 {
-            History.prune(Paths.historyFile, before: Date().addingTimeInterval(-Double(settings.historyDays) * 86_400))
+            _ = try? dictations.prune(before: Date().addingTimeInterval(-Double(settings.historyDays) * 86_400))
         }
         FailedAudio.cleanup(Paths.failedDir, olderThanHours: settings.failedAudioHours, now: Date())
     }
@@ -200,7 +204,7 @@ final class AppHost: ControllerHost {
         view.settings = settings
         view.configErrors = configErrors
         view.hotkeyProblem = hotkeyProblem
-        view.today = String(History.stamp(Date()).prefix(10))
+        view.now = Date()
         view.meeting = liveMeeting()
         view.call = callOffer.current
         view.downloaded = lookups.downloaded
@@ -216,15 +220,15 @@ final class AppHost: ControllerHost {
     struct Lookups {
         var downloaded: [EngineChoice] = []
         var microphones: [String] = []
-        var history: [History.Entry] = []
+        var history: [DictationStore.Entry] = []
         var accessibilityGranted = true
         var microphoneDenied = false
         var meetingMissing: String?
     }
 
     /// Enough history for Home and for the menu's Recent.
-    var recentHistory: [History.Entry] {
-        History.recent(Paths.historyFile, count: max(HomeModel.dictationCount, settings.historyMenuItems))
+    var recentHistory: [DictationStore.Entry] {
+        (try? dictations.page(limit: max(HomeModel.dictationCount, settings.historyMenuItems))) ?? []
     }
 
     func gatherLookups() {
@@ -309,11 +313,6 @@ final class AppHost: ControllerHost {
                 await self.models.setChoices(engines)
                 await self.models.preload([.dictation, .preview])
             }
-        case .openHistory:
-            if !FileManager.default.fileExists(atPath: Paths.historyFile.path) {
-                try? History.append("(history started)", to: Paths.historyFile, at: Date())
-            }
-            openInTextEditor(Paths.historyFile)
         case .clearHistory: clearHistory()
         case .copyText(let text):
             NSPasteboard.general.clearContents()
@@ -345,20 +344,24 @@ final class AppHost: ControllerHost {
         NSApp.activate()
         let alert = NSAlert()
         alert.messageText = "Clear dictation history?"
-        alert.informativeText = "Deletes everything in history.log and the kept audio of failed attempts. This cannot be undone."
+        alert.informativeText = "Deletes every kept dictation and the kept audio of failed attempts. This cannot be undone."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Clear")
         alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        try? History.clear(Paths.historyFile)
+        do {
+            try dictations.clear()
+        } catch {
+            return panel.message("Could not clear history: \(error.localizedDescription)")
+        }
         FailedAudio.cleanup(Paths.failedDir, olderThanHours: 0, now: Date().addingTimeInterval(1))
-        refreshHistory()
         panel.message("🗑 History cleared")
     }
 
-    /// Selected text (or nothing) → dialog → rule in dictionary.json.
-    private func addToDictionary() async {
-        let selected = await Paster.readSelection()
+    /// Selected text (or nothing) → dialog → rule in dictionary.json. The window's Add word reads no selection: ⌘C
+    /// would go to Shepit itself.
+    private func addToDictionary(readSelection: Bool = true) async {
+        let selected = readSelection ? await Paster.readSelection() : ""
         let prompt = AddWord.prompt(selected: selected, existing: selected.isEmpty ? nil : dictionaryStore.ruleFor(selected))
         NSApp.activate() // the dialog needs Shepit in front to take keyboard input
         let alert = NSAlert()
@@ -377,6 +380,7 @@ final class AppHost: ControllerHost {
         case .rule(let wrong, let right):
             do {
                 try dictionaryStore.addRule(wrong: wrong, right: right)
+                settingsModel.refresh() // the open Dictionary section shows it at once
                 panel.message(wrong.isEmpty ? "📖 + \(right)" : "📖 \(wrong) → \(right)")
             } catch {
                 showAlert(error.localizedDescription)
@@ -425,11 +429,10 @@ final class AppHost: ControllerHost {
         DictionaryRules.process(text, dictionaryStore.dictionary)
     }
 
-    func appendHistory(_ text: String) {
+    func appendHistory(_ text: String, app: AppRef?) {
         guard settings.saveHistory else { return }
         do {
-            try History.append(text, to: Paths.historyFile, at: Date())
-            refreshHistory()
+            try dictations.add(text: text, app: app, at: Date())
         } catch {
             panel.message("Could not write history: \(error.localizedDescription)")
         }

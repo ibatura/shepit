@@ -3,6 +3,8 @@ import Foundation
 public enum DictionaryStoreError: Error, Equatable, LocalizedError {
     case brokenDictionary
     case emptyRight
+    case emptyRule
+    case ruleExists(String)
     case validation([String])
     case write(String)
 
@@ -12,6 +14,10 @@ public enum DictionaryStoreError: Error, Equatable, LocalizedError {
             "dictionary.json has errors; fix it first (Open Shepit → Open dictionary file)"
         case .emptyRight:
             "the correct spelling is empty"
+        case .emptyRule:
+            "A replace rule needs both what was heard and the correct spelling"
+        case .ruleExists(let heard):
+            "Another rule already replaces “\(heard)”"
         case .validation(let errors):
             errors.joined(separator: "\n")
         case .write(let message):
@@ -63,33 +69,32 @@ public final class DictionaryStore {
         return dictionary.replace.first { $0.key.lowercased() == key }?.value
     }
 
-    /// Replaces one key (`terms`, `replace`, `dropPhrases`), keeping the rest of the file; validated first.
-    public func update(_ key: String, _ value: Any) throws {
-        if FileManager.default.fileExists(atPath: file.path) { load() } // merge into the file as it is now, not as at the last poll
+    /// Changes the dictionary as the file is now, not as at the last poll, so a hand edit made since stays. Only the keys
+    /// that changed are written; the rest of the file is kept. An edit that throws writes nothing.
+    public func change(_ edit: (inout DictionaryFile) throws -> Void) throws {
+        if FileManager.default.fileExists(atPath: file.path) { load() }
         guard dictionaryIsValid else { throw DictionaryStoreError.brokenDictionary }
+        var changed = dictionary
+        try edit(&changed)
         var raw = rawDictionary
-        raw[key] = value
+        if changed.terms != dictionary.terms { raw["terms"] = changed.terms }
+        if changed.replace != dictionary.replace { raw["replace"] = changed.replace }
+        if changed.dropPhrases != dictionary.dropPhrases { raw["dropPhrases"] = changed.dropPhrases }
         try write(raw)
     }
 
-    /// Adds `wrong → right` to replace and `right` to terms. Empty `wrong` adds only the term.
+    /// Add word (⌃⌥D): `wrong → right` in replace, over any rule for `wrong` in any case, and `right` in terms. Empty
+    /// `wrong` adds only the term.
     public func addRule(wrong: String, right: String) throws {
-        if FileManager.default.fileExists(atPath: file.path) { load() }
-        guard dictionaryIsValid else { throw DictionaryStoreError.brokenDictionary }
-        let wrong = wrong.trimmed
         let right = right.trimmed
         guard !right.isEmpty else { throw DictionaryStoreError.emptyRight }
-        var raw = rawDictionary
-        if !wrong.isEmpty {
-            let key = wrong.lowercased()
-            var replace = (raw["replace"] as? [String: String] ?? [:]).filter { $0.key.lowercased() != key }
-            replace[key] = right
-            raw["replace"] = replace
+        try change { dictionary in
+            if !wrong.trimmed.isEmpty {
+                dictionary.replace = dictionary.replace.filter { $0.key.lowercased() != wrong.trimmed.lowercased() }
+                try dictionary.setRule(heard: wrong, written: right)
+            }
+            dictionary.add(term: right)
         }
-        var terms = raw["terms"] as? [String] ?? []
-        if !terms.contains(right) { terms.append(right) }
-        raw["terms"] = terms
-        try write(raw)
     }
 
     private func write(_ raw: [String: Any]) throws {

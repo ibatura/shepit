@@ -113,3 +113,21 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 | L14 | Reveal in Finder and Copy path from a meeting's right-click menu and its ⋯ menu; the same on a meeting whose note is not found | Finder shows the note's folder with the file selected; the path is on the clipboard with 📋 Скопійовано; Reveal in Finder is off for a note not found ||
 
 2026-11-16: the author looked through L4–L10 briefly without renaming or removing anything, and will check them in use.
+
+## Main window: Dictations and Dictionary
+
+Date: 2026-11-16
+
+Design: `docs/superpowers/specs/2026-11-16-dictations-dictionary-design.md`.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| D1 | Dictate into three apps; open Dictations and Home | The entries are at the top of Dictations with their app and word count; Home shows the app; a dictation made while the section is open appears at the top ||
+| D2 | A long dictation: click it, click again; Copy | Two lines with "…"; the click opens the whole text and closes it; Copy takes the whole text with 📋 Скопійовано ||
+| D3 | A test home with a few thousand entries (`DICTATION_HOME`, the installed Shepit quit): every period under Show; scroll to the end and back | Each period lists only its entries, Last month by default; the list loads as it scrolls, with no jump; the period is remembered after a relaunch || ✅ 2026-11-16 (scrolling through All history is slower; the author's design remarks are under "Minor ideas" in `docs/future-ideas.md`)
+| D4 | Right-click → Delete… on one entry; Cancel, then Delete | It asks first; Cancel keeps it; after Delete the entry is gone from Dictations, Home and Recent ||
+| D5 | Clear history…; `historyDays` 1 and a relaunch; `saveHistory` off and a dictation | Clear asks first and empties the list; the relaunch drops entries older than a day; with history off nothing is written and the section says "History is off" ||
+| D6 | Terms: + add, × on hover, drag a chip onto another | `dictionary.json` has the term at the end, without the removed one, and in the new order; terms past the limit are dimmed ||
+| D7 | Replace: change a rule and press Enter; change one and click away; give a rule the heard phrase another has; − on a rule; add one in the last row | Both changes are saved; the duplicate is refused (the reason in the banner) and the row shows the old rule; the removed rule is gone; the new one is sorted in ||
+| D8 | Drop phrases: + add and ×; Add word in the window; ⌃⌥D on a selected word in another app | The file follows; Add word opens the dialog with nothing selected; the section shows the new term and rule at once ||
+| D9 | Edit `dictionary.json` by hand with the window open on Dictionary | The section shows the edit within a few seconds ||

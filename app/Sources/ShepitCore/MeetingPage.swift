@@ -155,7 +155,8 @@ public enum MeetingPage {
         }
         let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
         let lastWeek = calendar.date(byAdding: .day, value: -7, to: thisWeek) ?? thisWeek
-        let weekday = formatter("EEE HH:mm", calendar), day = formatter("d MMM, HH:mm", calendar), month = formatter("LLLL yyyy", calendar)
+        let weekday = DateFormatter.english("EEE HH:mm", calendar), day = DateFormatter.english("d MMM, HH:mm", calendar)
+        let month = DateFormatter.english("LLLL yyyy", calendar)
         for meeting in meetings {
             let recent = meeting.start >= lastWeek
             let group = recent ? (meeting.start >= thisWeek ? "This week" : "Last week") : month.string(from: meeting.start)
@@ -169,17 +170,7 @@ public enum MeetingPage {
 
     /// The app, "10 Nov 2026, 10:00" and the duration, as the top of a meeting shows them.
     public static func facts(_ meeting: MeetingStore.Meeting, calendar: Calendar = .current) -> [String] {
-        [meeting.app, formatter("d MMM yyyy, HH:mm", calendar).string(from: meeting.start), minutes(meeting.duration)].compactMap { $0 }
-    }
-
-    /// English dates in the calendar's time zone, whatever the Mac's language (labels are English).
-    private static func formatter(_ format: String, _ calendar: Calendar) -> DateFormatter {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = format
-        return formatter
+        [meeting.app, DateFormatter.english("d MMM yyyy, HH:mm", calendar).string(from: meeting.start), minutes(meeting.duration)].compactMap { $0 }
     }
 
     private static func minutes(_ duration: TimeInterval?) -> String? {
@@ -198,5 +189,20 @@ public enum MeetingPage {
         case .detectingSpeakers: "Detecting speakers…"
         case .idle, .done, .interrupted: nil
         }
+    }
+}
+
+extension DateFormatter {
+    /// English dates in the calendar's time zone, whatever the Mac's language (labels are English).
+    static func english(_ format: String, _ calendar: Calendar) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        // Gregorian whatever the Mac's calendar, so a year is 2026, not 2569.
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        formatter.calendar = gregorian
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = format
+        return formatter
     }
 }

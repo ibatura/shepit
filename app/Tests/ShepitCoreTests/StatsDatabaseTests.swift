@@ -27,6 +27,16 @@ struct StatsDatabaseTests {
         #expect(try db.dictations(in: DateInterval(start: early.time, end: late.time)) == [early])
     }
 
+    @Test func clearedStatisticsStayDeletedWhileTheyAreOnlyRead() throws {
+        let (db, dir) = makeDatabase()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try db.insert(statsRow())
+        try db.clear()
+        #expect(try db.dictations(in: nil).isEmpty)
+        #expect(try db.meetings(in: nil).isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: db.file.path))
+    }
+
     @Test func clearDeletesTheDatabaseAndItCanBeUsedAgain() throws {
         let (db, dir) = makeDatabase()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -82,7 +92,7 @@ struct StatsDatabaseTests {
     @Test func meetingsTableHasNoTextColumnsBeyondTheEngine() throws {
         let (db, dir) = makeDatabase()
         defer { try? FileManager.default.removeItem(at: dir) }
-        _ = try db.meetings(in: nil)
+        try db.insert(statsRow()) // a write creates the file with every table
         var handle: OpaquePointer?
         #expect(sqlite3_open(db.file.path, &handle) == SQLITE_OK)
         defer { sqlite3_close(handle) }
@@ -102,7 +112,7 @@ struct StatsDatabaseTests {
     @Test func offersTableHasNoTextColumnsBeyondAppAndOutcome() throws {
         let (db, dir) = makeDatabase()
         defer { try? FileManager.default.removeItem(at: dir) }
-        _ = try db.offers(in: nil)
+        try db.insert(statsRow()) // a write creates the file with every table
         var handle: OpaquePointer?
         #expect(sqlite3_open(db.file.path, &handle) == SQLITE_OK)
         defer { sqlite3_close(handle) }

@@ -10,7 +10,6 @@ public enum AppAction: Equatable, Sendable {
     case openSettings
     case reloadConfig
     case reloadModels
-    case openHistory
     case clearHistory
     case copyText(String)
     case grantAccessibility
@@ -31,7 +30,7 @@ public struct AppSnapshot: Sendable {
     public var downloaded: [EngineChoice] = []
     public var configErrors: [String] = []
     public var hotkeyProblem: String?
-    public var today = ""
+    public var now = Date()
     public var microphones: [String] = []
     public var accessibilityGranted = true
     public var microphoneDenied = false
@@ -40,7 +39,7 @@ public struct AppSnapshot: Sendable {
     /// A call that runs now and is not recorded.
     public var call: CallOffer.Current?
     /// The newest history entries, newest first: enough for Home and for Recent (`historyMenuItems`).
-    public var history: [History.Entry] = []
+    public var history: [DictationStore.Entry] = []
     /// nil when a meeting can start; else what to download first.
     public var meetingMissing: String?
 

@@ -36,6 +36,19 @@ struct DictionaryTests {
         #expect(DictionaryRules.buildPrompt(style: "Слово", terms: ["one", "довгий термін", "x"], maxTokens: 6) == "Слово one")
     }
 
+    // The Dictionary section dims the terms past this count (Dictations and Dictionary design §6).
+    @Test func fittingTermsCountsWhatThePromptTakes() {
+        #expect(DictionaryRules.fittingTerms(style: "Слово", terms: ["one", "two", "three"], maxTokens: 6) == 2)
+        #expect(DictionaryRules.fittingTerms(style: "", terms: ["one", "two", "three"], maxTokens: 6) == 3)
+        #expect(DictionaryRules.fittingTerms(style: "", terms: [], maxTokens: 6) == 0)
+    }
+
+    @Test func aTermLongerThanTheWholeLimitStopsTheCount() {
+        #expect(DictionaryRules.fittingTerms(style: "", terms: ["one two three four five", "x"], maxTokens: 6) == 0)
+        #expect(DictionaryRules.buildPrompt(style: "", terms: ["one two three four five", "x"], maxTokens: 6) == "")
+        #expect(DictionaryRules.fittingTerms(style: "Слово", terms: ["one", "довгий термін", "x"], maxTokens: 6) == 1)
+    }
+
     // applyReplacements
 
     @Test func replacesCaseInsensitivelyCyrillicIncludedValueVerbatim() {

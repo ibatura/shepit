@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import ShepitCore
 
@@ -7,9 +8,17 @@ private let kit = EngineChoice(engine: .whisperkit, model: "large-v3")
 private func home(_ change: (inout AppSnapshot) -> Void = { _ in }) -> Home {
     var view = AppSnapshot()
     view.downloaded = [turbo]
-    view.today = "2026-10-06"
+    view.now = at(6, 18, 0)
     change(&view)
     return HomeModel.build(view)
+}
+
+private func at(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
+    Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
+}
+
+private func entry(_ text: String, _ time: Date, app: String? = nil) -> DictationStore.Entry {
+    .init(id: 0, time: time, appName: app, appBundleID: nil, text: text, words: 1)
 }
 
 // Window shell design §5.
@@ -113,15 +122,13 @@ struct HomeModelTests {
             == "Teams · To start a transcript, \(missing)")
     }
 
-    @Test func lastDictationsWithTheDateWhenNotToday() {
-        let rows = home {
-            $0.history = [History.Entry(time: "2026-10-06 14:32:05", text: "new"), History.Entry(time: "2026-10-05 09:01:00", text: "old")]
-        }.dictations
-        #expect(rows == [Home.Dictation(text: "new", when: "14:32"), Home.Dictation(text: "old", when: "05.10 09:01")])
+    @Test func lastDictationsWithTheirAppAndTheDateWhenNotToday() {
+        let rows = home { $0.history = [entry("new", at(6, 14, 32), app: "Slack"), entry("old", at(5, 9, 1))] }.dictations
+        #expect(rows == [Home.Dictation(text: "new", detail: "14:32 · Slack"), Home.Dictation(text: "old", detail: "05.10 09:01")])
     }
 
     @Test func homeListsTheLastTenWhateverWasRead() {
-        let history = (0..<12).map { History.Entry(time: "2026-10-06 14:\(10 + $0):00", text: "\($0)") }
+        let history = (0..<12).map { entry("\($0)", at(6, 14, 10 + $0)) }
         #expect(home { $0.history = history }.dictations.map(\.text) == (0..<10).map { "\($0)" })
     }
 

@@ -10,7 +10,8 @@ struct MeetingsSection: View {
 
     var body: some View {
         Section("Notes") {
-            FolderRow(model: model)
+            FolderRow(model: model, key: "meetingsFolder", path: \.meetingsFolder, url: { $0.meetingsFolderURL(home: Paths.home) },
+                      hint: "Where notes go; created if missing. Point it at a folder in your Obsidian vault. A synced folder (iCloud) uploads the notes")
             FileNameRow(model: model)
             Hinted(hint: "At Start, ask for the meeting name, prefilled with the one found in Teams, Zoom or Google Meet. Only when the file name uses {title}") {
                 Toggle("Ask for the meeting name", isOn: model.binding("meetingAskTitle", \.meetingAskTitle))
@@ -48,22 +49,26 @@ struct MeetingsSection: View {
     }
 }
 
-/// `meetingsFolder`: typed (saved on Enter) or chosen in a folder picker.
-private struct FolderRow: View {
+/// A folder setting (`meetingsFolder`, `databasesFolder`): typed (saved on Enter) or chosen in a folder picker.
+struct FolderRow: View {
     let model: SettingsModel
+    let key: String
+    let path: KeyPath<ShepitCore.Settings, String>
+    let url: (ShepitCore.Settings) -> URL
+    let hint: String
     @State private var draft = ""
 
     var body: some View {
-        Hinted(hint: "Where notes go; created if missing. Point it at a folder in your Obsidian vault. A synced folder (iCloud) uploads the notes") {
+        Hinted(hint: hint) {
             LabeledContent("Folder") {
                 HStack {
-                    TextField("Folder", text: $draft).labelsHidden().onSubmit { model.set("meetingsFolder", draft) }
+                    TextField("Folder", text: $draft).labelsHidden().onSubmit { model.set(key, draft) }
                     Button("Choose…", action: choose)
                 }
             }
         }
-        .onAppear { draft = model.settings.meetingsFolder }
-        .onChange(of: model.settings.meetingsFolder) { draft = $1 }
+        .onAppear { draft = model.settings[keyPath: path] }
+        .onChange(of: model.settings[keyPath: path]) { draft = $1 }
     }
 
     private func choose() {
@@ -72,11 +77,11 @@ private struct FolderRow: View {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.prompt = "Use this folder"
-        let current = model.settings.meetingsFolderURL(home: Paths.home)
+        let current = url(model.settings)
         if FileManager.default.fileExists(atPath: current.path) { panel.directoryURL = current }
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let home = Paths.home.path.hasSuffix("/") ? Paths.home.path : Paths.home.path + "/"
-        model.set("meetingsFolder", url.path.hasPrefix(home) ? "~/" + url.path.dropFirst(home.count) : url.path)
+        model.set(key, url.path.hasPrefix(home) ? "~/" + url.path.dropFirst(home.count) : url.path)
     }
 }
 

@@ -35,6 +35,7 @@ public func validateSettings(
         ("launchAtLogin", kindCheck("boolean")),
         ("typingSpeedWpm", integerCheck(10, 200)),
         ("collectStats", kindCheck("boolean")),
+        ("databasesFolder", folderCheck),
         ("meetingsFolder", folderCheck),
         ("meetingFileName", { value in
             guard let template = value as? String else { return "must be a string" }
@@ -324,6 +325,7 @@ private func assign(_ value: Any, to key: String, settings: inout Settings) {
     case "launchAtLogin": settings.launchAtLogin = value as! Bool
     case "typingSpeedWpm": settings.typingSpeedWpm = integerValue(value)!
     case "collectStats": settings.collectStats = value as! Bool
+    case "databasesFolder": settings.databasesFolder = value as! String
     case "meetingsFolder": settings.meetingsFolder = value as! String
     case "meetingFileName": settings.meetingFileName = value as! String
     case "meetingAskTitle": settings.meetingAskTitle = value as! Bool
