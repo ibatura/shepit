@@ -57,8 +57,7 @@ Found by the reviews of the branch and by the author's checks, and left as they 
 
 ### New ideas (the author, 2026-11-15; not ordered yet)
 
-- **Fix soon: Open Shepit doesn't bring an open window to the front** (2026-11-16). With the window open behind other apps, the menu's Open Shepit (or ⌘O) leaves it behind; only a click on the Dock icon brings it up. A likely cause: `MainWindow.show` uses `NSApp.activate()`, which since macOS 14 only asks to be activated and can be refused while another app is active.
-- **Reveal in Finder and Copy path for a meeting** (2026-11-16). The right-click menu of a meeting in the list (and its ⋯ menu) gets Reveal in Finder (the note's folder with the file selected) and Copy path.
+Done 2026-11-16: Open Shepit brings an open window to the front (W11); Reveal in Finder and Copy path in a meeting's menus (L14). Other dialogs (Add word, the meeting name, Quit during a meeting) still call `NSApp.activate()`, which macOS 26.4 refuses while another app is active; no trouble reported with them so far.
 
 From a team call of 2026-11-13 (colleagues' questions, and how Shepit wrote that call: 283 entries), picked by the author on 2026-11-16:
 

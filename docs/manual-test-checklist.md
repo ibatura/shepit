@@ -85,6 +85,7 @@ Date: ____
 | W8 | Dictate a short and a very long text with Home open; press Copy; press All dictations | Both appear at the top within a few seconds; the long one is cut to two lines; Copy gives the whole text; All dictations opens the placeholder with Open history file ||
 | W9 | Settings → Appearance: each theme and a few accent colours, without restarting Shepit; `Shepit panel-test`; open a dialog (Clear history…) | The window, the call panel and the dialog follow the theme and the colour || 2026-11-13 in part: the accent colour changes at once (it needed a restart before commit 8d46025); the theme, the call panel and a dialog not reported
 | W10 | Settings → Hotkeys: record a meeting hotkey; press it with no meeting, during one, and right after Stop; try to record the dictation hotkey's keys; Remove | Starts as the menu's Start; stops; "Transcript is finishing"; the clash is refused inline; after Remove the key is gone from `settings.json` and the shortcut does nothing ||
+| W11 | With the window open behind another app: Open Shepit from the 🎙 menu, then ⌘O in the open menu | The window comes to the front and takes typing, with no click on the Dock icon ||
 
 2026-11-14: after the review fixes the author clicked through the window on the installed app and found it working; the rows above were not checked one by one.
 
@@ -109,5 +110,6 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 | L11 | Name people on the "Transcript ready" panel; the recording card during a transcript | The window opens on that meeting; the card opens the running one || ✅ 2026-11-16
 | L12 | Quit Shepit during a transcript, start it again | The meeting is in the list; the note ends with "Запис перервано" || ✅ 2026-11-16
 | L13 | Open the 🎙 menu | No Copy last meeting transcript, Rename speakers or Open meetings folder; Start / Stop meeting transcript is there ||
+| L14 | Reveal in Finder and Copy path from a meeting's right-click menu and its ⋯ menu; the same on a meeting whose note is not found | Finder shows the note's folder with the file selected; the path is on the clipboard with 📋 Скопійовано; Reveal in Finder is off for a note not found ||
 
 2026-11-16: the author looked through L4–L10 briefly without renaming or removing anything, and will check them in use.
