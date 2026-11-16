@@ -107,7 +107,9 @@ final class MainWindow: NSObject, NSWindowDelegate {
         let window = self.window ?? makeWindow()
         self.window = window
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        // activate() is only a request since macOS 14 and is refused while another app is active (seen on 26.4).
+        // shortcut: Apple marks this call to be deprecated; if a later macOS ignores it, only the Dock icon works.
+        NSApp.activate(ignoringOtherApps: true)
         if window.isMiniaturized { window.deminiaturize(nil) }
         window.makeKeyAndOrderFront(nil)
         show(snapshot()) // once visible: the snapshot then carries the live entries
