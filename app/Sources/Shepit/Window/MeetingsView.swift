@@ -70,7 +70,8 @@ struct MeetingsView: View {
             .tag(row.id.map(MeetingsModel.Selection.meeting) ?? .running)
             .contextMenu {
                 if let meeting = model.meetings.first(where: { $0.id == row.id }) {
-                    MeetingMenu(model: model, meeting: meeting, missing: model.missing.contains(meeting.id), withOpen: true)
+                    MeetingMenu(model: model, actions: actions, meeting: meeting, missing: model.missing.contains(meeting.id),
+                                withOpen: true)
                 }
             }
         }
@@ -119,18 +120,23 @@ struct MeetingsView: View {
     }
 }
 
-/// Open note, Remove note from list…, Move file to Trash…: the ⋯ menu and a row's right-click menu.
+/// Open note, Reveal in Finder, Copy path, Remove note from list…, Move file to Trash…: the ⋯ menu and a row's
+/// right-click menu.
 private struct MeetingMenu: View {
     let model: MeetingsModel
+    let actions: WindowActions
     let meeting: MeetingStore.Meeting
     let missing: Bool
     var withOpen = false
 
     var body: some View {
+        let note = URL(fileURLWithPath: meeting.path)
         if withOpen {
-            Button("Open note") { NSWorkspace.shared.open(URL(fileURLWithPath: meeting.path)) }.disabled(missing)
-            Divider()
+            Button("Open note") { NSWorkspace.shared.open(note) }.disabled(missing)
         }
+        Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([note]) }.disabled(missing)
+        Button("Copy path") { actions.perform(.copyText(meeting.path)) }
+        Divider()
         Button("Remove note from list…") { model.question = .remove(meeting) }
         Button("Move file to Trash…") { model.question = .trash(meeting) }.disabled(missing)
     }
@@ -196,7 +202,7 @@ private struct FinishedMeeting: View {
                     Button("Copy", action: copy).disabled(missing)
                     Button("Open note") { NSWorkspace.shared.open(note) }.disabled(missing)
                     Menu {
-                        MeetingMenu(model: model, meeting: meeting, missing: missing)
+                        MeetingMenu(model: model, actions: actions, meeting: meeting, missing: missing)
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
