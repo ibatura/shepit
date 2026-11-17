@@ -14,7 +14,7 @@ struct DictationsView: View {
         VStack(spacing: 0) {
             HStack {
                 Picker("Show", selection: $model.period) {
-                    ForEach(DictationPage.Period.allCases, id: \.self) { Text($0.title).tag($0) }
+                    ForEach(Period.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.menu)
                 .fixedSize()

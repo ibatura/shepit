@@ -3,6 +3,18 @@ import Foundation
 /// Apps whose calls get an offer; the raw values are the names in `Settings.callApps`.
 public enum CallApp: String, Sendable, CaseIterable {
     case teams = "Teams", zoom = "Zoom", meet = "Meet"
+
+    /// The name shown on screen; `rawValue` is what settings, notes and databases keep.
+    public var title: String {
+        switch self {
+        case .teams: "Teams"
+        case .zoom: "Zoom"
+        case .meet: "Google Meet"
+        }
+    }
+
+    /// The title of a stored app name, or the name itself when this version doesn't know it.
+    public static func title(of stored: String) -> String { CallApp(rawValue: stored)?.title ?? stored }
 }
 
 /// What a process holding the microphone is (call offer design §5.1). A browser counts only with a Meet tab.
@@ -60,7 +72,7 @@ public struct CallOffer: Sendable {
         case ready(detail: String)
     }
 
-    public enum Outcome: String, Sendable { case started, startedAutomatically, dismissed, hidden }
+    public enum Outcome: String, Sendable, CaseIterable { case started, startedAutomatically, dismissed, hidden }
 
     public enum Effect: Equatable, Sendable {
         case lookForMeet, lookForName
@@ -299,7 +311,7 @@ public struct CallOffer: Sendable {
         func left(_ total: Int, _ since: Date) -> Int { max(0, Int((Double(total) - now.timeIntervalSince(since)).rounded(.up))) }
         if let since = session?.endingSince { return .ended(stopsIn: left(settings.callAutoStopSeconds, since)) }
         if let call, case .offered(let since) = call.phase, let app = call.app {
-            let title = call.name ?? "\(app.rawValue) call"
+            let title = call.name ?? "\(app.title) call"
             if settings.callAutoStart { return .autoStart(title: title, app: app, startsIn: left(settings.callAutoStartSeconds, since)) }
             return .offer(title: title, app: app, hidesIn: settings.callOfferSeconds == 0 ? nil : left(settings.callOfferSeconds, since))
         }
@@ -327,10 +339,10 @@ extension CallOffer.Panel {
     public var text: Text {
         switch self {
         case .offer(let title, let app, let hidesIn):
-            Text(title: title, status: hidesIn.map { "\(app.rawValue) · hides in \($0) s" } ?? app.rawValue, seconds: hidesIn,
+            Text(title: title, status: hidesIn.map { "\(app.title) · hides in \($0) s" } ?? app.title, seconds: hidesIn,
                  main: "Start transcript", other: "Not this call")
         case .autoStart(let title, let app, let startsIn):
-            Text(title: title, status: "\(app.rawValue) · transcript starts in \(startsIn) s", seconds: startsIn,
+            Text(title: title, status: "\(app.title) · transcript starts in \(startsIn) s", seconds: startsIn,
                  main: "Start now", other: "Don't record")
         case .ended(let stopsIn):
             Text(title: "Call ended", status: "Transcript stops in \(stopsIn) s", seconds: stopsIn,

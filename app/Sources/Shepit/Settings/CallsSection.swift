@@ -41,7 +41,7 @@ struct CallsSection: View {
         }
         Section {
             ForEach(CallApp.allCases, id: \.self) { app in
-                Toggle(Self.titles[app] ?? app.rawValue, isOn: Binding(
+                Toggle(app == .meet ? "\(app.title) (Chrome, Edge, Brave, Arc)" : app.title, isOn: Binding(
                     get: { settings.callApps.contains(app.rawValue) },
                     set: { model.set("callApps", SettingsModel.callApps(settings.callApps, app, on: $0)) }))
             }
@@ -54,8 +54,6 @@ struct CallsSection: View {
             }
         }
     }
-
-    private static let titles: [CallApp: String] = [.teams: "Microsoft Teams", .zoom: "Zoom", .meet: "Google Meet (Chrome, Edge, Brave, Arc)"]
 }
 
 extension SettingsModel {

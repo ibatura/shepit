@@ -29,7 +29,7 @@ extension AppHost {
         guard mainWindow.isOpen else { return }
         lookups.history = recentHistory
         mainWindow.refresh()
-        mainWindow.dictationsChanged()
+        mainWindow.reload(.dictations)
     }
 
     /// "system" follows macOS. The dictation overlay has its own colours.

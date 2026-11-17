@@ -91,7 +91,7 @@ Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open 
 | Meetings | Every meeting transcript: name the meeting and its people, merge people, give a line to another person (see [Meetings in the window](#meetings-in-the-window)) |
 | Dictations | Your kept dictations by day, newest first, with the app each went to and Copy (see [Dictations in the window](#dictations-in-the-window)) |
 | Dictionary | Terms, replace rules and drop phrases, and **Add word** (see [Dictionary](#dictionary)) |
-| Statistics | Numbers about your dictations and meetings, kept on this Mac |
+| Statistics | Numbers about your dictations and meetings, kept on this Mac (see [Statistics in the window](#statistics-in-the-window)) |
 | Settings | All settings (see [Settings](#settings)) |
 | People | Not built yet |
 
@@ -104,6 +104,19 @@ While a meeting transcript runs, a card at the top of the sidebar shows its time
 - Right-click → **Delete…** removes one dictation (after a question) from Dictations, Home and Recent.
 - The bar at the bottom says how long history is kept (a click opens Settings → History and privacy) and has **Clear history…**.
 - Dictations from before this version (`history.log`) are not shown; see [Where things are](#where-things-are).
+
+### Statistics in the window
+
+Shepit window → **Statistics** counts what `stats.sqlite` keeps while **Collect statistics** is on. At the top: **Overview · Dictation · Meetings**, and the period menu at the right. Shepit remembers both.
+
+- **The period:** Today, Last 7 days, Last month (the default), Last 3, 6 or 9 months, Last year, All history, as in Dictations; and **Custom…**: pick the first and the last day in two calendars and press **Show** (both days count).
+- **▲ / ▼ under a number** compares with as many days right before the period, up to the same time: Today against yesterday until now, Last 7 days against the 7 days before. None for All history.
+- **Overview:** dictations, words, meetings and hours, and time saved (at your typing speed; **at 40 wpm** opens the setting); words per hour, day, week or month, dictation and meetings stacked (hover a bar for its numbers).
+- **Dictation:** speed by engine and model, and over time (the 4 engines used most; a point needs 3 dictations of an engine); the apps text went to; when you dictate (weekday × hour); languages; dictionary fixes; cancelled, failed and nothing recognized.
+- **Meetings:** meetings and hours, your share of the words, people per meeting (the voices speaker detection told apart, and you); meetings by app (Teams, Zoom, Google Meet, and **Unknown** for meetings recorded before this version or started with no call window found); length; speaker detection; how the call panel's offers ended.
+- With Collect statistics off a note at the top says so; what was recorded before is still shown. **Clear statistics…** (Settings → History and privacy) deletes it all.
+
+Only meetings recorded while statistics were on count: notes added with **Add notes…** don't.
 
 ## Meeting transcripts
 
@@ -338,7 +351,7 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 |---|---|---|
 | Text of every dictation | `dictations.sqlite` in `databasesFolder` (`~/.local/share/dictation` by default), with its time, app and word count | Forever by default — limit with `historyDays`, turn off with `saveHistory`, delete one in Dictations, or Clear history…, which deletes the file. A deleted dictation's text is overwritten in the file |
 | Audio of failed attempts | `~/.local/share/dictation/failed/` | `failedAudioHours` (24 h by default) |
-| Usage statistics | `~/.local/share/dictation/stats.sqlite` | Numbers, engine and app names, and which dictionary corrections fired — **never** what you dictated. Turn off with `collectStats`; Clear statistics… deletes it |
+| Usage statistics | `~/.local/share/dictation/stats.sqlite` | Numbers, engine and app names (the app a dictation went to, the call app of a meeting), and which dictionary corrections fired — **never** what you dictated, a meeting's name or anyone's name. Turn off with `collectStats`; Clear statistics… deletes it |
 | Clipboard | — | The dictated text passes through the clipboard for a moment; your previous clipboard is put back |
 | Meeting notes | `meetingsFolder` (`~/.local/share/dictation/meetings` by default, local) | Until you delete them. A synced folder (iCloud Drive, an Obsidian vault in iCloud) uploads the notes to that service |
 | Meeting names | `~/.local/share/dictation/meeting-names.json` | The names you gave meetings, with app and start time, to suggest them again (last 300) |

@@ -208,7 +208,7 @@ struct MeetingSessionTests {
     }
 
     @Test func stopDetectsSpeakersRelabelsAndReportsTheMeeting() async throws {
-        let r = rig()
+        let r = rig(change: { $0.app = .teams })
         defer { try? FileManager.default.removeItem(at: r.root) }
         var record: MeetingRecord?
         r.session.onFinished = { record = $0 }
@@ -224,7 +224,7 @@ struct MeetingSessionTests {
         let got = try #require(record)
         #expect(got.wordsMine == 2 && got.wordsCall == 2 && got.speakers == 1 && got.failedChunks == 0)
         #expect(got.duration == 4)
-        #expect(got.engine == r.config.engine)
+        #expect(got.engine == r.config.engine && got.app == .teams)
         #expect(got.diarizationSeconds != nil)
     }
 
@@ -299,7 +299,7 @@ struct MeetingSessionTests {
         r.mic.push(seconds(3))
         await r.session.stop()
         #expect(r.body == "[Співрозмовники] 2026-07-31 18:22:30\n⚠ не вдалося розпізнати\n")
-        #expect(record?.failedChunks == 1)
+        #expect(record?.failedChunks == 1 && record?.app == nil)
         #expect(record?.wordsCall == 0)
     }
 

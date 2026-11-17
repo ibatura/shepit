@@ -114,13 +114,13 @@ public enum HomeModel {
         case .detectingSpeakers: headline = "Detecting speakers"
         case .idle, .done, .interrupted: return nil
         }
-        return Home.Card(headline: headline, detail: [view.meeting?.title, view.meeting?.app?.rawValue].compactMap { $0 }.joined(separator: " · "))
+        return Home.Card(headline: headline, detail: [view.meeting?.title, view.meeting?.app?.title].compactMap { $0 }.joined(separator: " · "))
     }
 
     private static func meeting(_ view: AppSnapshot) -> Home.MeetingRow {
         switch view.meeting?.state ?? .idle {
         case .recording(let elapsed, let waiting):
-            let parts = [view.meeting?.app?.rawValue, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
+            let parts = [view.meeting?.app?.title, StatusText.clock(elapsed), StatusText.phrasesWaiting(waiting)]
             return Home.MeetingRow(recording: true, title: view.meeting?.title ?? "Meeting transcript",
                                    hint: parts.compactMap { $0 }.joined(separator: " · "), button: Home.Button(title: "Stop", action: .stopMeeting))
         case .finishing(let left): return Home.MeetingRow(title: "Finishing the transcript (\(left) left)")
@@ -130,8 +130,8 @@ public enum HomeModel {
         // Without the model Start is off, but the row still names the call that runs (spec §10).
         let missing = view.meetingMissing.map { "To start a transcript, \($0)" }
         if let call = view.call {
-            let hint = [call.name == nil ? nil : call.app.rawValue, missing].compactMap { $0 }.joined(separator: " · ")
-            return Home.MeetingRow(title: call.name ?? "\(call.app.rawValue) call", hint: hint.isEmpty ? nil : hint,
+            let hint = [call.name == nil ? nil : call.app.title, missing].compactMap { $0 }.joined(separator: " · ")
+            return Home.MeetingRow(title: call.name ?? "\(call.app.title) call", hint: hint.isEmpty ? nil : hint,
                                    button: Home.Button(title: "Start transcript", action: missing == nil ? .startCall : nil))
         }
         return Home.MeetingRow(title: "No call right now",

@@ -66,8 +66,8 @@ struct StatsDatabaseTests {
     @Test func meetingsInsertAndReadBackWithRange() throws {
         let (db, dir) = makeDatabase()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let early = meetingRow("2026-10-20 10:00:00")
-        let late = meetingRow("2026-10-21 10:00:00", speakers: nil, diarization: nil, failed: 0) // no speaker step
+        let early = meetingRow("2026-10-20 10:00:00", app: .teams)
+        let late = meetingRow("2026-10-21 10:00:00", speakers: nil, diarization: nil, failed: 0) // no speaker step, no app
         try db.insertMeeting(early)
         try db.insertMeeting(late)
         #expect(try db.meetings(in: nil) == [early, late])
@@ -88,8 +88,34 @@ struct StatsDatabaseTests {
         #expect(try db.offers(in: nil).count == 1)
     }
 
-    /// No transcript text and no speaker names: the meetings table holds numbers and the engine only.
-    @Test func meetingsTableHasNoTextColumnsBeyondTheEngine() throws {
+    /// A file from before the meeting's app was kept: its meetings stay, with no app; new ones keep theirs.
+    @Test func aVersion1FileKeepsItsMeetingsAndGetsTheAppColumn() throws {
+        let (db, dir) = makeDatabase()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var handle: OpaquePointer?
+        #expect(sqlite3_open(db.file.path, &handle) == SQLITE_OK)
+        #expect(sqlite3_exec(handle, """
+            CREATE TABLE meetings (time REAL NOT NULL, duration_seconds REAL, words_mine INTEGER, words_call INTEGER, speakers INTEGER,
+              engine TEXT, model TEXT, diarization_seconds REAL, failed_chunks INTEGER);
+            INSERT INTO meetings VALUES (1000, 600, 10, 20, 2, 'whispercpp', 'large-v3-turbo', 1.5, 0);
+            INSERT INTO meetings VALUES (2000, 900, 30, 40, NULL, 'whispercpp', 'large-v3-turbo', NULL, 1);
+            CREATE TABLE schema_version (version INTEGER NOT NULL);
+            INSERT INTO schema_version VALUES (1);
+            """, nil, nil, nil) == SQLITE_OK)
+        sqlite3_close(handle)
+        let old = try db.meetings(in: nil)
+        #expect(old.map(\.wordsCall) == [20, 40] && old.allSatisfy { $0.app == nil })
+        let new = meetingRow(app: .meet)
+        try db.insertMeeting(new)
+        #expect(try db.meetings(in: nil).last == new)
+        try SQLiteFile(file: db.file, schema: []).run("UPDATE meetings SET app = 'Webex' WHERE time = 1000") // a later version's app
+        #expect(try db.meetings(in: nil).first?.app == nil)
+        #expect(try SQLiteFile(file: db.file, schema: []).rows("SELECT version FROM schema_version") { $0.int(0) } == [2])
+    }
+
+    /// No transcript text and no speaker names: the meetings table holds numbers, the engine and the app only.
+    @Test func meetingsTableHasNoTextColumnsBeyondTheEngineAndApp() throws {
         let (db, dir) = makeDatabase()
         defer { try? FileManager.default.removeItem(at: dir) }
         try db.insert(statsRow()) // a write creates the file with every table
@@ -103,8 +129,8 @@ struct StatsDatabaseTests {
         while sqlite3_step(statement) == SQLITE_ROW {
             columns[String(cString: sqlite3_column_text(statement, 0))] = String(cString: sqlite3_column_text(statement, 1))
         }
-        #expect(columns.filter { $0.value == "TEXT" }.keys.sorted() == ["engine", "model"])
-        #expect(columns.keys.sorted() == ["diarization_seconds", "duration_seconds", "engine", "failed_chunks", "model", "speakers",
+        #expect(columns.filter { $0.value == "TEXT" }.keys.sorted() == ["app", "engine", "model"])
+        #expect(columns.keys.sorted() == ["app", "diarization_seconds", "duration_seconds", "engine", "failed_chunks", "model", "speakers",
                                           "time", "words_call", "words_mine"])
     }
 

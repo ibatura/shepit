@@ -110,7 +110,7 @@ struct CallOfferTests {
         #expect(m.send(.tick, at: 13) == [])
         #expect(m.send(.tick, at: 13.5) == [.lookForMeet])
         #expect(m.send(.meetFound(true), at: 14) == [.lookForName])
-        #expect(m.panel == .offer(title: "Meet call", app: .meet, hidesIn: 15))
+        #expect(m.panel == .offer(title: "Google Meet call", app: .meet, hidesIn: 15))
     }
 
     @Test func offersOffOrAppOffGivesNothing() {
@@ -334,7 +334,7 @@ struct CallOfferTests {
         meet.send(.meetFound(true), at: 4)
         meet.send(.took(.app(.teams), pid: 1), at: 5)
         meet.send(.tick, at: 9)
-        #expect(meet.panel == .offer(title: "Meet call", app: .meet, hidesIn: 10))
+        #expect(meet.panel == .offer(title: "Google Meet call", app: .meet, hidesIn: 10))
     }
 
     @Test func aBreakRestartsTheThreeSeconds() {
@@ -446,7 +446,7 @@ struct CallOfferTests {
         #expect(CallOffer.Panel.offer(title: "Zoom call", app: .zoom, hidesIn: nil).text
             == Text(title: "Zoom call", status: "Zoom", seconds: nil, main: "Start transcript", other: "Not this call"))
         #expect(CallOffer.Panel.autoStart(title: "Meet call", app: .meet, startsIn: 4).text
-            == Text(title: "Meet call", status: "Meet · transcript starts in 4 s", seconds: 4, main: "Start now", other: "Don't record"))
+            == Text(title: "Meet call", status: "Google Meet · transcript starts in 4 s", seconds: 4, main: "Start now", other: "Don't record"))
         #expect(CallOffer.Panel.ended(stopsIn: 9).text
             == Text(title: "Call ended", status: "Transcript stops in 9 s", seconds: 9, main: "Keep recording", other: "Stop now"))
         #expect(CallOffer.Panel.ready(detail: "42 min · 3 people").text

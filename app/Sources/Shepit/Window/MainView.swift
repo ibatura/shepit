@@ -6,8 +6,7 @@ struct MainView: View {
     let model: SettingsModel
     let actions: WindowActions
     let live: WindowModel
-    let meetings: MeetingsModel
-    let dictations: DictationsModel
+    let sections: WindowSections
     @Bindable var navigation: WindowNavigation
 
     var body: some View {
@@ -21,7 +20,7 @@ struct MainView: View {
             .safeAreaInset(edge: .top) {
                 RecordingCard(live: live) {
                     navigation.section = .meetings
-                    meetings.selection = .running
+                    sections.meetings.selection = .running
                 }
             }
             .navigationSplitViewColumnWidth(190)
@@ -44,18 +43,15 @@ struct MainView: View {
         case .home:
             HomeSection(model: model, actions: actions, live: live, navigation: navigation)
         case .meetings:
-            MeetingsView(model: meetings, actions: actions)
+            MeetingsView(model: sections.meetings, actions: actions)
         case .dictations:
-            DictationsView(model: dictations, settings: model, actions: actions) { navigation.openSettings(.historyPrivacy) }
+            DictationsView(model: sections.dictations, settings: model, actions: actions) { navigation.openSettings(.historyPrivacy) }
         case .dictionary:
             DictionarySection(model: model, actions: actions)
         case .people:
             Placeholder(section: .people, text: "Saved voices come in a later version.")
         case .statistics:
-            Form {
-                StatisticsSection(model: model, actions: actions) { navigation.openSettings(.historyPrivacy) }
-            }
-            .formStyle(.grouped)
+            StatisticsView(model: sections.statistics, settings: model) { navigation.openSettings(.historyPrivacy) }
         case .settings:
             SettingsView(model: model, actions: actions, section: $navigation.settingsSection)
         }

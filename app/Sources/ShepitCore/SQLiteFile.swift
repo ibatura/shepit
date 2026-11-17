@@ -1,9 +1,10 @@
 import Foundation
 import SQLite3
 
-/// One SQLite file, opened on first use with its schema (`CREATE … IF NOT EXISTS`, so older files get new tables on open).
-/// Only `run` creates a missing file: reads find nothing in it and `runIfExists` leaves it missing, so a cleared store
-/// stays deleted until something is written. Shared by `StatsDatabase`, `MeetingStore` and `DictationStore`.
+/// One SQLite file, opened on first use with its schema (`CREATE … IF NOT EXISTS`, so older files get new tables on open)
+/// and its upgrades (changes to tables an older file already has). Only `run` creates a missing file: reads find nothing
+/// in it and `runIfExists` leaves it missing, so a cleared store stays deleted until something is written. Shared by
+/// `StatsDatabase`, `MeetingStore` and `DictationStore`.
 final class SQLiteFile {
     struct Failure: LocalizedError, CustomStringConvertible {
         let description: String
@@ -12,11 +13,17 @@ final class SQLiteFile {
 
     let file: URL
     private let schema: [String]
+    /// Upgrade 2, 3…: each runs once, after the schema, with the version it brings in the file's `schema_version` table
+    /// (version 1 when the file has none), all in one transaction. The schema stays version 1's layout, since it runs
+    /// first: a schema line can't use a column an upgrade adds. A failed upgrade changes nothing and fails the open, so
+    /// the file isn't used until it runs on a later use.
+    private let upgrades: [String]
     private var db: OpaquePointer?
 
-    init(file: URL, schema: [String]) {
+    init(file: URL, schema: [String], upgrades: [String] = []) {
         self.file = file
         self.schema = schema
+        self.upgrades = upgrades
     }
 
     deinit {
@@ -105,15 +112,46 @@ final class SQLiteFile {
             sqlite3_close(handle)
             throw Failure(description: "\(file.lastPathComponent): \(message)")
         }
-        for sql in schema {
-            guard sqlite3_exec(handle, sql, nil, nil, nil) == SQLITE_OK else {
-                let failure = error(handle)
-                sqlite3_close(handle) // not cached: the next call retries the schema
-                throw failure
-            }
+        do {
+            for sql in schema { try exec(handle, sql) }
+            try upgrade(handle)
+        } catch {
+            sqlite3_close(handle) // not cached: the next call retries the schema and the upgrades
+            throw error
         }
         db = handle
         return handle
+    }
+
+    private func upgrade(_ handle: OpaquePointer) throws {
+        guard !upgrades.isEmpty else { return }
+        try exec(handle, "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")
+        try exec(handle, "INSERT INTO schema_version (version) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_version)")
+        guard try version(handle) <= upgrades.count else { return }
+        try exec(handle, "BEGIN IMMEDIATE")
+        do {
+            // Read again under the write lock: another process opening the file may have upgraded it meanwhile.
+            let current = try version(handle)
+            for (index, sql) in upgrades.enumerated() where index + 2 > current {
+                try exec(handle, "\(sql); UPDATE schema_version SET version = \(index + 2)")
+            }
+            try exec(handle, "COMMIT")
+        } catch {
+            sqlite3_exec(handle, "ROLLBACK", nil, nil, nil)
+            throw error
+        }
+    }
+
+    private func version(_ handle: OpaquePointer) throws -> Int {
+        let statement = try prepare(handle, "SELECT max(version) FROM schema_version", [])
+        defer { sqlite3_finalize(statement) }
+        guard sqlite3_step(statement) == SQLITE_ROW else { throw error(handle) }
+        return Int(sqlite3_column_int64(statement, 0))
+    }
+
+    /// Runs `sql` as it is, several statements included (`execute` runs one, with values).
+    private func exec(_ handle: OpaquePointer, _ sql: String) throws {
+        guard sqlite3_exec(handle, sql, nil, nil, nil) == SQLITE_OK else { throw error(handle) }
     }
 
     private func execute(_ db: OpaquePointer, _ sql: String, _ values: [Any?]) throws {

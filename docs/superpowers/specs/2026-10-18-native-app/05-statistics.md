@@ -38,6 +38,8 @@ number of speakers detected, transcription engine, diarization seconds, failed c
 
 ## 2. Statistics screen
 
+Replaced by `../2026-11-17-statistics-design.md` (the section in the window, 2026-11-17); since then `meetings` also keeps the call app (upgrade 2).
+
 A period picker: **Day, Week, Month, Year, All**. Every figure and chart follows it.
 
 **Tiles** (with change vs the previous period of the same length):

@@ -7,7 +7,7 @@ public final class StatsDatabase {
     private let sqlite: SQLiteFile
 
     public init(file: URL) {
-        sqlite = SQLiteFile(file: file, schema: Self.schema)
+        sqlite = SQLiteFile(file: file, schema: Self.schema, upgrades: Self.upgrades)
     }
 
     public func insert(_ row: DictationRow) throws {
@@ -17,7 +17,7 @@ public final class StatsDatabase {
               language_requested, language_detected, app_bundle_id, app_name, replacements, replaced_terms, preview_requests)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [row.time.timeIntervalSince1970, row.tzOffset, row.outcome.rawValue, row.audioSeconds, row.waitSeconds, row.words,
-                  row.characters, row.engine, row.model, row.languageRequested, row.languageDetected, row.appBundleID, row.appName,
+                  row.characters, row.engine.engine.rawValue, row.engine.model, row.languageRequested, row.languageDetected, row.appBundleID, row.appName,
                   row.replacements, terms, row.previewRequests])
     }
 
@@ -28,10 +28,11 @@ public final class StatsDatabase {
 
     public func insertMeeting(_ record: MeetingRecord) throws {
         try run("""
-            INSERT INTO meetings (time, duration_seconds, words_mine, words_call, speakers, engine, model, diarization_seconds, failed_chunks)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO meetings (time, duration_seconds, words_mine, words_call, speakers, engine, model, diarization_seconds, failed_chunks,
+              app)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [record.start.timeIntervalSince1970, record.duration, record.wordsMine, record.wordsCall, record.speakers,
-                  record.engine.engine.rawValue, record.engine.model, record.diarizationSeconds, record.failedChunks])
+                  record.engine.engine.rawValue, record.engine.model, record.diarizationSeconds, record.failedChunks, record.app?.rawValue])
     }
 
     public func insertOffer(_ row: OfferRow) throws {
@@ -58,14 +59,15 @@ public final class StatsDatabase {
     /// Meetings that started in `range` (all of them when nil), oldest first.
     public func meetings(in range: DateInterval?) throws -> [MeetingRecord] {
         try rows("""
-            SELECT time, duration_seconds, words_mine, words_call, speakers, engine, model, diarization_seconds, failed_chunks
+            SELECT time, duration_seconds, words_mine, words_call, speakers, engine, model, diarization_seconds, failed_chunks, app
             FROM meetings
             """, in: range) { row in
             MeetingRecord(
                 start: Date(timeIntervalSince1970: row.double(0)), duration: row.double(1), wordsMine: row.int(2), wordsCall: row.int(3),
                 speakers: row.isNull(4) ? nil : row.int(4),
-                engine: EngineChoice(engine: EngineID(rawValue: row.text(5) ?? "") ?? .whispercpp, model: row.text(6) ?? ""),
-                diarizationSeconds: row.isNull(7) ? nil : row.double(7), failedChunks: row.int(8))
+                engine: Self.engine(row.text(5), row.text(6)),
+                diarizationSeconds: row.isNull(7) ? nil : row.double(7), failedChunks: row.int(8),
+                app: CallApp(rawValue: row.text(9) ?? "")) // nil for older meetings and for an app this version doesn't know
         }
     }
 
@@ -80,10 +82,16 @@ public final class StatsDatabase {
             return DictationRow(
                 time: Date(timeIntervalSince1970: row.double(0)), tzOffset: row.int(1),
                 outcome: DictationOutcome(rawValue: row.text(2) ?? "") ?? .failed, audioSeconds: row.double(3),
-                waitSeconds: row.double(4), words: row.int(5), characters: row.int(6), engine: row.text(7) ?? "", model: row.text(8) ?? "",
+                waitSeconds: row.double(4), words: row.int(5), characters: row.int(6), engine: Self.engine(row.text(7), row.text(8)),
                 languageRequested: row.text(9) ?? "", languageDetected: row.text(10), appBundleID: row.text(11), appName: row.text(12),
                 replacedTerms: terms, previewRequests: row.int(14))
         }
+    }
+
+    /// A stored engine and model. Engine IDs were never renamed; one this version doesn't know (a newer Shepit's) reads
+    /// as whisper.cpp with its model.
+    private static func engine(_ engine: String?, _ model: String?) -> EngineChoice {
+        EngineChoice(engine: EngineID(rawValue: engine ?? "") ?? .whispercpp, model: model ?? "")
     }
 
     /// Clear statistics…: deletes the database file.
@@ -91,7 +99,7 @@ public final class StatsDatabase {
         try sqlite.delete()
     }
 
-    // New columns or tables later are added with ALTER/CREATE IF NOT EXISTS; schema_version marks the layout.
+    // Version 1's layout; later tables come here with CREATE … IF NOT EXISTS, later columns in `upgrades`.
     private static let schema = [
         """
         CREATE TABLE IF NOT EXISTS dictations (
@@ -109,9 +117,13 @@ public final class StatsDatabase {
         "CREATE INDEX IF NOT EXISTS meetings_time ON meetings (time)",
         // Call offers; older databases get it on open. The app's name and how the offer ended: no call names.
         "CREATE TABLE IF NOT EXISTS offers (time REAL NOT NULL, app TEXT NOT NULL, outcome TEXT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS offers_time ON offers (time)",
         "CREATE TABLE IF NOT EXISTS model_events (time REAL NOT NULL, engine TEXT, model TEXT, load_seconds REAL, resident_mb REAL)",
-        "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)",
-        "INSERT INTO schema_version (version) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_version)",
+    ]
+
+    private static let upgrades = [
+        // 2 (statistics design §6): the meeting's app, CallApp's raw value ("Teams"); older meetings keep it empty.
+        "ALTER TABLE meetings ADD COLUMN app TEXT",
     ]
 
     private func run(_ sql: String, _ values: [Any?]) throws {

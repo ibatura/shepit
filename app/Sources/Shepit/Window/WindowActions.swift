@@ -20,10 +20,6 @@ struct WindowActions {
     var resumeHotkeys: () -> Void
     /// Shows the panel with sample text in the current style.
     var previewOverlay: () -> Void
-    /// Stored dictation attempts in a period (all of them for nil).
-    var statistics: (DateInterval?) -> [DictationRow]
-    /// Stored meetings that started in a period (all of them for nil).
-    var meetingStatistics: (DateInterval?) -> [MeetingRecord]
     /// Why this engine can't do the configured language, or nil when it can.
     var languageNote: (EngineChoice, String) async -> String?
     var downloads: ModelDownloads

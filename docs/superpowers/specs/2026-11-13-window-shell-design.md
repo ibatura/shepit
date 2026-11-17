@@ -59,7 +59,7 @@ Today Shepit has a Settings window and a long menu. This part turns the Settings
 | Dictations | Placeholder: the title, "The full history comes in a later version." and Open history file. Built in part 3: `2026-11-16-dictations-dictionary-design.md`. |
 | Dictionary | Today's Dictionary section, unchanged. Its new look is in part 3: `2026-11-16-dictations-dictionary-design.md`. |
 | People | Placeholder: the title and "Saved voices come in a later version." |
-| Statistics | Today's Statistics section, unchanged. Its "Typing speed" link opens Settings → History and privacy. |
+| Statistics | Today's Statistics section, unchanged. Its "Typing speed" link opens Settings → History and privacy. Rebuilt later: `2026-11-17-statistics-design.md`. |
 | Settings | §6 |
 
 A separator sits above Settings, as in the mockups. Icons are SF Symbols.

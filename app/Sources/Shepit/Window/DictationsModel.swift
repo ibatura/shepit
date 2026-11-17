@@ -15,7 +15,7 @@ final class DictationsModel {
     }
     private(set) var lines: [DictationPage.Line] = []
     /// How far back the list goes; remembered in the app's preferences, like the window's section.
-    var period: DictationPage.Period {
+    var period: Period {
         didSet {
             guard period != oldValue else { return }
             defaults.set(period.rawValue, forKey: "dictationsPeriod")
@@ -35,11 +35,11 @@ final class DictationsModel {
     @ObservationIgnored private let store: DictationStore
     @ObservationIgnored private let defaults: UserDefaults
 
-    /// The store tells the app of every change, and the app reloads the section (`MainWindow.dictationsChanged`).
+    /// The store tells the app of every change, and the app reloads the section (`MainWindow.reload`).
     init(store: DictationStore, defaults: UserDefaults = .standard) {
         self.store = store
         self.defaults = defaults
-        period = defaults.string(forKey: "dictationsPeriod").flatMap(DictationPage.Period.init) ?? .month
+        period = defaults.string(forKey: "dictationsPeriod").flatMap(Period.init) ?? .month
     }
 
     /// The newest entries again, as many as are loaded (at least a page): when the section appears, after a dictation

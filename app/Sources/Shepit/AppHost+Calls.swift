@@ -94,15 +94,10 @@ extension AppHost {
         case .removeEmptyNote:
             removeEmptyMeeting()
         case .namePeople:
-            mainWindow.meetings.chooseLastAdded()
+            mainWindow.sections.meetings.chooseLastAdded()
             showWindow(.meetings)
         case .record(let outcome, let app):
-            guard settings.collectStats else { break }
-            do {
-                try stats.insertOffer(OfferRow(time: Date(), app: app, outcome: outcome))
-            } catch {
-                NSLog("Shepit statistics: %@", String(describing: error))
-            }
+            recordStats { try $0.insertOffer(OfferRow(time: Date(), app: app, outcome: outcome)) }
         }
     }
 }

@@ -161,7 +161,7 @@ public enum MeetingPage {
             let recent = meeting.start >= lastWeek
             let group = recent ? (meeting.start >= thisWeek ? "This week" : "Last week") : month.string(from: meeting.start)
             let when = (recent ? weekday : day).string(from: meeting.start)
-            let parts = missing.contains(meeting.id) ? [when, "note not found"] : [when, minutes(meeting.duration), meeting.app].compactMap { $0 }
+            let parts = missing.contains(meeting.id) ? [when, "note not found"] : [when, minutes(meeting.duration), meeting.app.map(CallApp.title(of:))].compactMap { $0 }
             let row = ListRow(id: meeting.id, title: title(meeting.title, meeting.app), detail: parts.joined(separator: " · "))
             if groups.last?.title == group { groups[groups.count - 1].rows.append(row) } else { groups.append(ListGroup(title: group, rows: [row])) }
         }
@@ -170,39 +170,24 @@ public enum MeetingPage {
 
     /// The app, "10 Nov 2026, 10:00" and the duration, as the top of a meeting shows them.
     public static func facts(_ meeting: MeetingStore.Meeting, calendar: Calendar = .current) -> [String] {
-        [meeting.app, DateFormatter.english("d MMM yyyy, HH:mm", calendar).string(from: meeting.start), minutes(meeting.duration)].compactMap { $0 }
+        [meeting.app.map(CallApp.title(of:)), DateFormatter.english("d MMM yyyy, HH:mm", calendar).string(from: meeting.start), minutes(meeting.duration)].compactMap { $0 }
     }
 
     private static func minutes(_ duration: TimeInterval?) -> String? {
         duration.map { "\(max(1, Int(($0 / 60).rounded()))) min" }
     }
 
-    /// The name, or "Teams call", or "Meeting".
+    /// The name, or "Teams call" from the stored app, or "Meeting".
     public static func title(_ title: String?, _ app: String?) -> String {
-        title ?? app.map { "\($0) call" } ?? "Meeting"
+        title ?? app.map { "\(CallApp.title(of: $0)) call" } ?? "Meeting"
     }
 
     private static func detail(_ running: LiveMeeting) -> String? {
         switch running.state {
-        case .recording(let elapsed, _): ["Recording", StatusText.clock(elapsed), running.app?.rawValue].compactMap { $0 }.joined(separator: " · ")
+        case .recording(let elapsed, _): ["Recording", StatusText.clock(elapsed), running.app?.title].compactMap { $0 }.joined(separator: " · ")
         case .finishing(let left): "Finishing (\(left) left)"
         case .detectingSpeakers: "Detecting speakers…"
         case .idle, .done, .interrupted: nil
         }
-    }
-}
-
-extension DateFormatter {
-    /// English dates in the calendar's time zone, whatever the Mac's language (labels are English).
-    static func english(_ format: String, _ calendar: Calendar) -> DateFormatter {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        // Gregorian whatever the Mac's calendar, so a year is 2026, not 2569.
-        var gregorian = Calendar(identifier: .gregorian)
-        gregorian.timeZone = calendar.timeZone
-        formatter.calendar = gregorian
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = format
-        return formatter
     }
 }

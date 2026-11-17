@@ -63,15 +63,6 @@ struct DictationPageTests {
         #expect(shown(lines) == ["31 December 2025", "1"])
     }
 
-    @Test func aPeriodStartsAtTheBeginningOfADay() {
-        let now = at(11, 16, 18)
-        let since = DictationPage.Period.allCases.map { $0.since(now, calendar: calendar) }
-        #expect(since == [at(11, 16, 0), at(11, 10, 0), at(10, 16, 0), at(8, 16, 0), at(5, 16, 0), at(2, 16, 0),
-                          at(11, 16, 0, year: 2025), nil])
-        #expect(DictationPage.Period.allCases.map(\.title) == ["Today", "Last 7 days", "Last month", "Last 3 months", "Last 6 months",
-                                                               "Last 9 months", "Last year", "All history"])
-    }
-
     @Test func keptSaysHowLongHistoryStays() {
         #expect(DictationPage.kept(days: 0) == "Kept forever")
         #expect(DictationPage.kept(days: 1) == "Kept for 1 day")

@@ -33,7 +33,7 @@ extension AppHost {
             return true
         } catch {
             NSLog("Shepit meetings list: %@", String(describing: error))
-            mainWindow.meetings.added(nil) // Name people must not open the meeting before this one
+            mainWindow.sections.meetings.added(nil) // Name people must not open the meeting before this one
             panel.message("⚠ Transcript not added to the meetings list",
                           detail: "\(note.lastPathComponent): \(error.localizedDescription). Add notes… in Meetings adds it.")
             return false
@@ -206,12 +206,7 @@ extension AppHost {
 
     /// One stats row per meeting: numbers and the engine only (`05-statistics.md` §1).
     func recordMeeting(_ record: MeetingRecord) {
-        guard settings.collectStats else { return }
-        do {
-            try stats.insertMeeting(record)
-        } catch {
-            NSLog("Shepit statistics: %@", String(describing: error))
-        }
+        recordStats { try $0.insertMeeting(record) }
     }
 
     /// Recognition for meetings: the `meetings` engine, segment times, dictionary fixes on every segment.

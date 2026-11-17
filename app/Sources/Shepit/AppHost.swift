@@ -55,14 +55,14 @@ final class AppHost: ControllerHost {
         suspendHotkeys: { [unowned self] in self.hotkeys.suspend() },
         resumeHotkeys: { [unowned self] in self.hotkeys.apply(self.settings) },
         previewOverlay: { [unowned self] in self.previewOverlay() },
-        statistics: { [unowned self] in (try? self.stats.dictations(in: $0)) ?? [] },
-        meetingStatistics: { [unowned self] in (try? self.stats.meetings(in: $0)) ?? [] },
         languageNote: { choice, language in await Self.languageNote(choice, language) },
         downloads: downloads)
-    lazy var mainWindow = MainWindow(model: settingsModel, actions: windowActions,
-                                     meetings: MeetingsModel(store: meetingStore, settings: { [unowned self] in self.settings }),
-                                     dictations: DictationsModel(store: dictations),
-                                     snapshot: { [unowned self] in self.snapshot() })
+    lazy var mainWindow = MainWindow(
+        model: settingsModel, actions: windowActions,
+        sections: WindowSections(meetings: MeetingsModel(store: meetingStore, settings: { [unowned self] in self.settings }),
+                                 dictations: DictationsModel(store: dictations),
+                                 statistics: StatisticsModel(stats: stats, typingSpeed: { [unowned self] in self.settings.typingSpeedWpm })),
+        snapshot: { [unowned self] in self.snapshot() })
     /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
     var lookups = Lookups()
     private let downloads = ModelDownloads()
@@ -486,10 +486,16 @@ final class AppHost: ControllerHost {
     /// Numbers only — DictationRecord has no text field (`05-statistics.md` §1).
     func record(_ dictation: DictationRecord) {
         let used = finishedRecording ?? (settings.engines[.dictation], settings.language, preview.requests)
-        guard settings.collectStats, let engine = used.engine else { return }
-        let row = DictationRow(dictation, engine: engine, languageRequested: used.language, previewRequests: used.previews)
+        guard let engine = used.engine else { return }
+        recordStats { try $0.insert(DictationRow(dictation, engine: engine, languageRequested: used.language, previewRequests: used.previews)) }
+    }
+
+    /// A row of stats.sqlite (numbers and names only), while collecting is on; an open Statistics section shows it at once.
+    func recordStats(_ write: (StatsDatabase) throws -> Void) {
+        guard settings.collectStats else { return }
         do {
-            try stats.insert(row)
+            try write(stats)
+            mainWindow.reload(.statistics)
         } catch {
             NSLog("Shepit statistics: %@", String(describing: error))
         }

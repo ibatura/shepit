@@ -131,3 +131,20 @@ Design: `docs/superpowers/specs/2026-11-16-dictations-dictionary-design.md`.
 | D7 | Replace: change a rule and press Enter; change one and click away; give a rule the heard phrase another has; − on a rule; add one in the last row | Both changes are saved; the duplicate is refused (the reason in the banner) and the row shows the old rule; the removed rule is gone; the new one is sorted in ||
 | D8 | Drop phrases: + add and ×; Add word in the window; ⌃⌥D on a selected word in another app | The file follows; Add word opens the dialog with nothing selected; the section shows the new term and rule at once ||
 | D9 | Edit `dictionary.json` by hand with the window open on Dictionary | The section shows the edit within a few seconds ||
+
+## Main window: Statistics
+
+Date: 2026-11-17
+
+Design: `docs/superpowers/specs/2026-11-17-statistics-design.md`.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| S1 | Overview on a real history, Last 7 days; hover a bar; dictate in another app with the window open beside it | Dictations, words, meetings and hours, time saved, each with ▲ / ▼ and a percent; the bars add up to the words; the tooltip gives a day's dictation and meeting words; the new dictation is counted at once ||
+| S2 | Every period in the menu; Custom… over a few days and over one day; relaunch Shepit | Words per hour for Today and one day, per day up to Last month, per week up to 6 months, per month beyond; the menu reads "12 Nov – 16 Nov 2026" or "16 Nov 2026"; the end can't be before the start or after today; the view and the period are the same after the relaunch ||
+| S3 | Dictation view, with an Auto-detect dictation in both languages | The speed table and a line per engine (points only where an engine had 3 dictations); Pasted into, the heatmap, Languages with "Ukrainian + English", Dictionary, Failures with their counts ||
+| S4 | A meeting in Teams and one in Google Meet, then Meetings | Both under their app in By app, older meetings under Unknown; tiles, Length and Speaker detection follow ||
+| S5 | Call offers: start one from the panel, press Not this call on one, let one hide | Call offers counts each under its outcome and app ||
+| S6 | Collect statistics off; dictate once | "Statistics are off" with its button in every view, the old numbers under it; the dictation isn't counted ||
+| S7 | Clear statistics…, then open each view | Every view is empty; `stats.sqlite` stays deleted while Statistics is only looked at ||
+| S8 | Light and dark; a narrow and a wide window | Tiles, charts, legends and tooltips readable; nothing cut off ||

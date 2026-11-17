@@ -2,40 +2,6 @@ import Foundation
 
 /// What the Dictations section shows (Dictations and Dictionary design §5), built from store entries.
 public enum DictationPage {
-    /// How far back the section lists (the author, 2026-11-16): a long list scrolls badly, and all history is rarely wanted.
-    public enum Period: String, CaseIterable, Sendable {
-        case today, week, month, months3, months6, months9, year, all
-
-        public var title: String {
-            switch self {
-            case .today: "Today"
-            case .week: "Last 7 days"
-            case .month: "Last month"
-            case .months3: "Last 3 months"
-            case .months6: "Last 6 months"
-            case .months9: "Last 9 months"
-            case .year: "Last year"
-            case .all: "All history"
-            }
-        }
-
-        /// The oldest time listed, at the start of a day; nil for all history.
-        public func since(_ now: Date, calendar: Calendar = .current) -> Date? {
-            let today = calendar.startOfDay(for: now)
-            let back: (Calendar.Component, Int)? = switch self {
-            case .today: (.day, 0)
-            case .week: (.day, -6)
-            case .month: (.month, -1)
-            case .months3: (.month, -3)
-            case .months6: (.month, -6)
-            case .months9: (.month, -9)
-            case .year: (.year, -1)
-            case .all: nil
-            }
-            return back.flatMap { calendar.date(byAdding: $0.0, value: $0.1, to: today) }
-        }
-    }
-
     public struct Row: Equatable, Sendable {
         public var entry: DictationStore.Entry
         /// "14:02 · Slack · 7 words".

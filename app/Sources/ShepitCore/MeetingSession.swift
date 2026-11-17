@@ -108,9 +108,11 @@ public struct MeetingRecord: Equatable, Sendable {
     public var engine: EngineChoice
     public var diarizationSeconds: Double?
     public var failedChunks: Int
+    /// The app the call ran in; nil when Shepit couldn't tie the meeting to one (and for meetings stored before 2026-11-17).
+    public var app: CallApp?
 
     public init(start: Date, duration: TimeInterval, wordsMine: Int, wordsCall: Int, speakers: Int?, engine: EngineChoice,
-                diarizationSeconds: Double?, failedChunks: Int) {
+                diarizationSeconds: Double?, failedChunks: Int, app: CallApp?) {
         self.start = start
         self.duration = duration
         self.wordsMine = wordsMine
@@ -119,6 +121,7 @@ public struct MeetingRecord: Equatable, Sendable {
         self.engine = engine
         self.diarizationSeconds = diarizationSeconds
         self.failedChunks = failedChunks
+        self.app = app
     }
 }
 
@@ -495,7 +498,7 @@ public final class MeetingSession {
         cleanUpAudio()
         let record = MeetingRecord(start: startedAt, duration: now().timeIntervalSince(startedAt), wordsMine: words[.mine] ?? 0,
                                    wordsCall: words[.call] ?? 0, speakers: speakers, engine: config.engine,
-                                   diarizationSeconds: diarizationSeconds, failedChunks: failedChunks)
+                                   diarizationSeconds: diarizationSeconds, failedChunks: failedChunks, app: config.app)
         state = .done(speakers: speakers)
         onFinished?(record)
     }
