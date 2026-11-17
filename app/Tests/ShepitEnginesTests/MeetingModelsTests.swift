@@ -21,7 +21,7 @@ struct MeetingModelsTests {
         let paths = Paths.resolve(environment: ["DICTATION_HOME": home.path])
         #expect(throws: EngineError.modelMissing(MeetingModel.vad.folder(paths: paths).path)) { try SileroVAD(paths: paths) }
         await #expect(throws: EngineError.modelMissing(MeetingModel.diarization.folder(paths: paths).path)) {
-            try await Diarizer.turns([0], paths: paths)
+            try await Diarizer.run([0], windows: false, paths: paths)
         }
     }
 
@@ -52,8 +52,17 @@ struct SileroVADSmokeTests {
 struct DiarizerSmokeTests {
     @Test func twoVoicesGiveTwoSpeakers() async throws {
         let samples = try fixture("two-voices")
-        let turns = try await Diarizer.turns(samples)
+        let turns = try await Diarizer.run(samples, windows: false).turns
         #expect(Set(turns.map(\.speaker)).count == 2, "\(turns)")
         #expect(turns.allSatisfy { $0.start >= 0 && $0.end <= Double(samples.count) / 16_000 + 0.1 && $0.start < $0.end })
+    }
+
+    @Test func windowsCarryTheVoicesOfTheSameSpeakersOnlyWhenAskedFor() async throws {
+        let samples = try fixture("two-voices")
+        #expect(try await Diarizer.run(samples, windows: false).windows.isEmpty)
+        let diarization = try await Diarizer.run(samples, windows: true)
+        #expect(!diarization.windows.isEmpty)
+        #expect(Set(diarization.windows.map(\.speaker)) == Set(diarization.turns.map(\.speaker)))
+        #expect(diarization.windows.allSatisfy { $0.start < $0.end })
     }
 }

@@ -77,7 +77,7 @@ struct MeetingSessionTests {
         var body: String { MeetingNote.stripFrontMatter(note) }
     }
 
-    private func rig(speakers: (@Sendable ([Float]) async throws -> [SpeakerTurn])? = { _ in [SpeakerTurn(speaker: "S3", start: 0, end: 1000)] },
+    private func rig(speakers: (@Sendable ([Float]) async throws -> Diarization)? = { _ in Diarization(turns: [SpeakerTurn(speaker: "S3", start: 0, end: 1000)]) },
                      change: (inout MeetingConfig) -> Void = { _ in }) -> Rig {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         let start = calendar.date(from: DateComponents(year: 2026, month: 7, day: 31, hour: 18, minute: 22, second: 30))!
@@ -226,6 +226,26 @@ struct MeetingSessionTests {
         #expect(got.duration == 4)
         #expect(got.engine == r.config.engine && got.app == .teams)
         #expect(got.diarizationSeconds != nil)
+    }
+
+    @Test func callLinesGetVoiceSamplesOnlyWithWindowsAndEveryLineItsTalkTime() async throws {
+        var vector = [Float](repeating: 0, count: VoiceSample.size)
+        vector[7] = 1
+        let voice = try #require(VoiceSample(vector))
+        let windows = rig(speakers: { _ in Diarization(turns: [SpeakerTurn(speaker: "S3", start: 0, end: 1000)],
+                                                       windows: [VoiceWindow(speaker: "S3", start: 1.5, end: 3.5, sample: voice)]) })
+        let without = rig()
+        defer { for r in [windows, without] { try? FileManager.default.removeItem(at: r.root) } }
+        for r in [windows, without] {
+            try r.session.start()
+            talk(r)
+            r.clock.now += 4
+            await r.session.stop()
+        }
+        let mine = MeetingNote.Place(timestamp: "2026-07-31 18:22:30", order: 0), theirs = MeetingNote.Place(timestamp: "2026-07-31 18:22:31", order: 0)
+        #expect(windows.session.samples == [theirs: voice]) // the microphone's line has none
+        #expect(without.session.samples.isEmpty) // Remember voices off: no windows
+        #expect(Set(windows.session.talk.keys) == [mine, theirs] && windows.session.talk.values.allSatisfy { $0 > 0 })
     }
 
     @Test func failedSpeakerDetectionKeepsLiveLabelsAndStillDeletesAudio() async throws {

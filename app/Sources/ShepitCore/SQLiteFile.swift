@@ -55,6 +55,9 @@ final class SQLiteFile {
         func double(_ i: Int32) -> Double { sqlite3_column_double(statement, i) }
         func int(_ i: Int32) -> Int { Int(sqlite3_column_int64(statement, i)) }
         func isNull(_ i: Int32) -> Bool { sqlite3_column_type(statement, i) == SQLITE_NULL }
+        func blob(_ i: Int32) -> Data {
+            Data(bytes: sqlite3_column_blob(statement, i), count: Int(sqlite3_column_bytes(statement, i)))
+        }
     }
 
     /// The rows `sql` gives, none for a missing file; `read` returns nil to skip one.
@@ -191,6 +194,7 @@ final class SQLiteFile {
             case let v as Int: sqlite3_bind_int64(statement, i, Int64(v))
             case let v as Int64: sqlite3_bind_int64(statement, i, v)
             case let v as String: sqlite3_bind_text(statement, i, v, -1, transient)
+            case let v as Data: _ = v.withUnsafeBytes { sqlite3_bind_blob(statement, i, $0.baseAddress, Int32($0.count), transient) }
             default: sqlite3_bind_null(statement, i)
             }
         }

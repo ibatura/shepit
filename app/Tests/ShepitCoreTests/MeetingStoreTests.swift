@@ -151,6 +151,26 @@ struct MeetingStoreTests {
         #expect(try store.people(try store.meetings()[0].id)[1].person != olena)
     }
 
+    @Test func aMeetingKeepsEachLinesWordsTalkTimeAndVoiceSample() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var vector = [Float](repeating: 0, count: VoiceSample.size)
+        vector[3] = 1
+        let voice = try #require(VoiceSample(vector))
+        let second = MeetingNote.Place(timestamp: "2026-07-31 10:00:03", order: 1)
+        let id = try #require(try store.add(path: "/a.md", start: start, duration: 60, title: nil, app: nil, you: "Me",
+                                            entries: [.init(label: "Me", timestamp: "2026-07-31 10:00:01", text: "три слова тут", line: 0),
+                                                      .init(label: "Person 1", timestamp: "2026-07-31 10:00:03", text: "one", line: 2),
+                                                      .init(label: "Person 2", timestamp: "2026-07-31 10:00:03", text: "two words", line: 4)],
+                                            samples: [second: voice], seconds: [second: 1.5]))
+        let raw = SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: [])
+        #expect(try raw.rows("SELECT words, seconds FROM lines WHERE meeting = ? ORDER BY timestamp, ord", [id]) {
+            "\($0.int(0)) \($0.isNull(1) ? "-" : String($0.double(1)))"
+        } == ["3 -", "1 -", "2 1.5"])
+        #expect(try raw.rows("SELECT timestamp, ord, vector FROM samples") { ($0.text(0), $0.int(1), VoiceSample(blob: $0.blob(2))) }
+            .map { "\($0.0!) \($0.1) \($0.2 == voice)" } == ["2026-07-31 10:00:03 1 true"])
+    }
+
     @Test func removingAMeetingDeletesItsVoiceSamples() throws {
         let (store, dir) = store()
         defer { try? FileManager.default.removeItem(at: dir) }

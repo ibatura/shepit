@@ -25,11 +25,15 @@ extension AppHost {
         }
     }
 
-    /// Puts a note in the meetings list (Meetings design §4). False, with a message, when it can't be listed; the note is kept.
-    @discardableResult func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil) -> Bool {
+    /// Puts a note in the meetings list (Meetings design §4), with what `session` knows of its lines: talk time, and voice
+    /// samples while Remember voices is still on. False, with a message, when it can't be listed; the note is kept.
+    @discardableResult func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil,
+                                          session: MeetingSession? = nil) -> Bool {
         defer { refreshStatus() }
         do {
-            if let id = try meetingStore.add(note: note, you: you, start: start, duration: duration) { mainWindow.meetingAdded(id) }
+            let samples = settings.rememberVoices ? session?.samples ?? [:] : [:]
+            if let id = try meetingStore.add(note: note, you: you, start: start, duration: duration, samples: samples,
+                                             seconds: session?.talk ?? [:]) { mainWindow.meetingAdded(id) }
             return true
         } catch {
             NSLog("Shepit meetings list: %@", String(describing: error))
@@ -155,7 +159,7 @@ extension AppHost {
             // An empty transcript of a call is removed and gets no statistics row.
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
             guard !effects.contains(.removeEmptyNote) else { return }
-            let listed = self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration)
+            let listed = self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration, session: session)
             self.recordMeeting(record)
             guard listed else { return } // its warning stays on screen
             // The call panel says "Transcript ready", unless an offer or a stop countdown is in its place.
@@ -215,8 +219,9 @@ extension AppHost {
         let models = models
         let template = request([], language: language, segments: true)
         let dictionary = dictionaryStore.dictionary
-        let speakers: (@Sendable ([Float]) async throws -> [SpeakerTurn])? =
-            MeetingModel.diarization.isDownloaded() ? { @Sendable samples in try await Diarizer.turns(samples) } : nil
+        let windows = settings.rememberVoices // voices are kept only while it is on (voices design §4)
+        let speakers: (@Sendable ([Float]) async throws -> Diarization)? =
+            MeetingModel.diarization.isDownloaded() ? { @Sendable samples in try await Diarizer.run(samples, windows: windows) } : nil
         return MeetingServices(
             makeVAD: { SileroDetector(vad: try SileroVAD()) },
             transcribe: { samples, leaning in
@@ -295,7 +300,7 @@ extension AppHost {
         if let session = meeting, session.state.isActive {
             session.interrupt()
             addToMeetings(session.config.noteFile, you: session.config.myName, start: session.startedAt,
-                          duration: Date().timeIntervalSince(session.startedAt))
+                          duration: Date().timeIntervalSince(session.startedAt), session: session)
         }
         meetingTimer?.cancel()
         meetingTimer = nil

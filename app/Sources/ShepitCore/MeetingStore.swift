@@ -58,10 +58,11 @@ public final class MeetingStore {
         sqlite = SQLiteFile(file: file, schema: Self.schema, upgrades: Self.upgrades, functions: ["name_key": Names.key])
     }
 
-    /// Adds a meeting with a person per distinct label (in order of first line) and a line per labelled entry.
+    /// Adds a meeting with a person per distinct label (in order of first line) and a line per labelled entry, with its
+    /// words, and its talk time and voice sample when the session knows them (voices design §4, §7).
     /// nil when a meeting with this path is already listed.
     public func add(path: String, start: Date, duration: TimeInterval?, title: String?, app: String?, you: String?,
-                    entries: [MeetingNote.Entry]) throws -> Int? {
+                    entries: [MeetingNote.Entry], samples: [Place: VoiceSample] = [:], seconds: [Place: Double] = [:]) throws -> Int? {
         try sqlite.transaction {
             try sqlite.run("INSERT OR IGNORE INTO meetings (path, title, app, start, duration, you) VALUES (?, ?, ?, ?, ?, ?)",
                            [path, title, app, start.timeIntervalSince1970, duration, you])
@@ -74,8 +75,12 @@ public final class MeetingStore {
                     // A label that is a name ("[Olena]" in a note added by hand) is that person.
                     try link(id, key: label, to: label == you ? youID() : personID(named: label))
                 }
-                try sqlite.run("INSERT INTO lines (meeting, timestamp, ord, original, current) VALUES (?, ?, ?, ?, ?)",
-                               [id, place.timestamp, place.order, entry.label, entry.label])
+                try sqlite.run("INSERT INTO lines (meeting, timestamp, ord, original, current, words, seconds) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                               [id, place.timestamp, place.order, entry.label, entry.label, DictationStore.words(entry.text), seconds[place]])
+                if let sample = samples[place] {
+                    try sqlite.run("INSERT INTO samples (meeting, timestamp, ord, vector) VALUES (?, ?, ?, ?)",
+                                   [id, place.timestamp, place.order, sample.blob])
+                }
             }
             return id
         }
@@ -86,17 +91,18 @@ public final class MeetingStore {
         public var errorDescription: String? { "not a meeting transcript (no entries)" }
     }
 
-    /// Adds the meeting of a note (§4). What the session knows (`start`, `duration`) wins; otherwise the start is the front
+    /// Adds the meeting of a note (§4). What the session knows (`start`, `duration`) wins, and its lines' talk time and voice samples are kept; otherwise the start is the front
     /// matter's (or the first header's) and the duration runs to the last header. `you` is kept only when the note has
     /// that label. The labels the note has now count as what speaker detection gave. nil when already listed.
-    public func add(note: URL, you: String?, start: Date? = nil, duration: TimeInterval? = nil, calendar: Calendar = .current) throws -> Int? {
+    public func add(note: URL, you: String?, start: Date? = nil, duration: TimeInterval? = nil, samples: [Place: VoiceSample] = [:],
+                    seconds: [Place: Double] = [:], calendar: Calendar = .current) throws -> Int? {
         let parsed = MeetingNote.parse(try String(contentsOf: note, encoding: .utf8), calendar: calendar)
         let times = parsed.entries.filter { $0.label != nil }.compactMap { MeetingNote.date($0.timestamp, calendar: calendar) }
         guard let first = times.first else { throw NotATranscript() }
         let begin = start ?? parsed.start ?? first
         return try add(path: note.path, start: begin, duration: duration ?? max(0, (times.max() ?? begin).timeIntervalSince(begin)),
                        title: parsed.title, app: parsed.app, you: parsed.entries.contains { $0.label == you } ? you : nil,
-                       entries: parsed.entries)
+                       entries: parsed.entries, samples: samples, seconds: seconds)
     }
 
     /// Newest first.

@@ -42,6 +42,7 @@
   "callApps": ["Teams", "Zoom", "Meet"],
   "theme": "system",
   "accentColor": "system",
+  "rememberVoices": false,
   "overlayStyle": {
     "position": "bottom",
     "width": 560,

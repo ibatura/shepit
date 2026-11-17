@@ -49,7 +49,7 @@ struct MainView: View {
         case .dictionary:
             DictionarySection(model: model, actions: actions)
         case .people:
-            Placeholder(section: .people, text: "Saved voices come in a later version.")
+            PeopleSection(model: model)
         case .statistics:
             StatisticsView(model: sections.statistics, settings: model) { navigation.openSettings(.historyPrivacy) }
         case .settings:
@@ -90,12 +90,22 @@ private struct RecordingCard: View {
 }
 
 /// A section that is not built yet.
-private struct Placeholder: View {
-    let section: WindowSection
-    let text: String
+/// The People section until its list of people comes (voices plan Task 4): the Remember voices switch.
+private struct PeopleSection: View {
+    let model: SettingsModel
 
     var body: some View {
-        ContentUnavailableView(section.rawValue, systemImage: section.symbol, description: Text(text))
+        Form {
+            Section {
+                Toggle(isOn: model.binding("rememberVoices", \.rememberVoices)) {
+                    Text("Remember voices")
+                    Text("Keeps a voice print for each person you name, so they are named in later meetings. Stored on this Mac only.")
+                }
+                .disabled(model.isReadOnly)
+            }
+            Section { Text("Saved voices come in a later version.").foregroundStyle(.secondary) }
+        }
+        .formStyle(.grouped)
     }
 }
 

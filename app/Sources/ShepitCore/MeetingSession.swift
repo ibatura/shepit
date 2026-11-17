@@ -18,12 +18,12 @@ public struct MeetingServices: Sendable {
     /// Recognition of one phrase, segments already passed through the dictionary. The second argument is
     /// the stream's `LanguageLeaning` for `TranscriptionRequest.leaning`.
     public var transcribe: @Sendable ([Float], String?) async throws -> Transcript
-    /// nil when the speaker model isn't downloaded: labels stay live.
-    public var speakers: (@Sendable ([Float]) async throws -> [SpeakerTurn])?
+    /// nil when the speaker model isn't downloaded: labels stay live. Windows only while Remember voices is on.
+    public var speakers: (@Sendable ([Float]) async throws -> Diarization)?
 
     public init(makeVAD: @escaping @Sendable () throws -> any VoiceDetector,
                 transcribe: @escaping @Sendable ([Float], String?) async throws -> Transcript,
-                speakers: (@Sendable ([Float]) async throws -> [SpeakerTurn])?) {
+                speakers: (@Sendable ([Float]) async throws -> Diarization)?) {
         self.makeVAD = makeVAD
         self.transcribe = transcribe
         self.speakers = speakers
@@ -141,6 +141,8 @@ public final class MeetingSession {
     public var onNotice: ((String) -> Void)?
     public var onFinished: ((MeetingRecord) -> Void)?
     public private(set) var state = MeetingState.idle { didSet { if state != oldValue { onState?(state) } } }
+    /// The call lines' voice samples by their place in the note, once speakers are detected with windows (voices design §4).
+    public private(set) var samples: [MeetingNote.Place: VoiceSample] = [:]
 
     public let config: MeetingConfig
     public var title: String? { config.title }
@@ -487,10 +489,11 @@ public final class MeetingSession {
             do {
                 let samples = try WAV.read(config.sessionDir.appending(path: "call.wav"))
                 let began = Date()
-                let turns = try await detect(samples)
+                let diarization = try await detect(samples)
                 guard !interrupted else { return }
                 diarizationSeconds = Date().timeIntervalSince(began)
-                speakers = try relabel(turns)
+                speakers = try relabel(diarization.turns)
+                self.samples = voiceSamples(diarization)
             } catch {
                 onNotice?("Speakers not detected: \(error.localizedDescription)")
             }
@@ -514,6 +517,21 @@ public final class MeetingSession {
         let relabelled = Speakers.relabel(note, live: config.liveLabel, entries: entries)
         if relabelled != note { try Data(relabelled.utf8).write(to: config.noteFile, options: .atomic) }
         return Set(labels.compactMap { $0 }).count
+    }
+
+    /// The call lines' samples by place; none without windows.
+    private func voiceSamples(_ diarization: Diarization) -> [MeetingNote.Place: VoiceSample] {
+        let call = zip(written, places).filter { $0.0.stream == .call }
+        let samples = Voices.lineSamples(call.map(\.0.offsets), diarization)
+        return Dictionary(uniqueKeysWithValues: zip(call.map(\.1), samples).compactMap { place, sample in sample.map { (place, $0) } })
+    }
+
+    /// Each entry's place in the note, as `MeetingStore` pairs them.
+    private var places: [MeetingNote.Place] { MeetingNote.places(written.map(\.entry.timestamp)) }
+
+    /// Each entry's talk time in seconds, by its place in the note.
+    public var talk: [MeetingNote.Place: Double] {
+        Dictionary(uniqueKeysWithValues: zip(places, written.map { $0.offsets.upperBound - $0.offsets.lowerBound }))
     }
 
     /// Entries written to the note so far.
