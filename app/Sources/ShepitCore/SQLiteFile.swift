@@ -18,12 +18,15 @@ final class SQLiteFile {
     /// first: a schema line can't use a column an upgrade adds. A failed upgrade changes nothing and fails the open, so
     /// the file isn't used until it runs on a later use.
     private let upgrades: [String]
+    /// SQL functions of one text argument, for what SQLite can't do itself (folding Cyrillic case); NULL in, NULL out.
+    private let functions: [String: (String) -> String?]
     private var db: OpaquePointer?
 
-    init(file: URL, schema: [String], upgrades: [String] = []) {
+    init(file: URL, schema: [String], upgrades: [String] = [], functions: [String: (String) -> String?] = [:]) {
         self.file = file
         self.schema = schema
         self.upgrades = upgrades
+        self.functions = functions
     }
 
     deinit {
@@ -113,6 +116,7 @@ final class SQLiteFile {
             throw Failure(description: "\(file.lastPathComponent): \(message)")
         }
         do {
+            for (name, body) in functions { try register(handle, name, body) }
             for sql in schema { try exec(handle, sql) }
             try upgrade(handle)
         } catch {
@@ -140,6 +144,22 @@ final class SQLiteFile {
             sqlite3_exec(handle, "ROLLBACK", nil, nil, nil)
             throw error
         }
+    }
+
+    private final class TextFunction {
+        let body: (String) -> String?
+        init(_ body: @escaping (String) -> String?) { self.body = body }
+    }
+
+    private func register(_ handle: OpaquePointer, _ name: String, _ body: @escaping (String) -> String?) throws {
+        let box = Unmanaged.passRetained(TextFunction(body)).toOpaque() // released by SQLite when the connection closes
+        let result = sqlite3_create_function_v2(handle, name, 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC, box, { context, _, arguments in
+            let function = Unmanaged<TextFunction>.fromOpaque(sqlite3_user_data(context)).takeUnretainedValue()
+            guard let argument = arguments?[0], let text = sqlite3_value_text(argument),
+                  let value = function.body(String(cString: text)) else { return sqlite3_result_null(context) }
+            sqlite3_result_text(context, value, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self)) // SQLITE_TRANSIENT
+        }, nil, nil, { Unmanaged<TextFunction>.fromOpaque($0!).release() })
+        guard result == SQLITE_OK else { throw error(handle) }
     }
 
     private func version(_ handle: OpaquePointer) throws -> Int {

@@ -24,14 +24,17 @@ public final class MeetingStore {
         }
     }
 
-    /// `key` is the label speaker detection gave; `name` the one given in the window.
+    /// A meeting's person: `key` is the label speaker detection gave; `name` the name shown for it (the linked person's,
+    /// or for "you" the name in this note); `person` the person it is linked to (voices design §5), You for "you".
     public struct Person: Equatable, Sendable {
         public var key: String
         public var name: String?
+        public var person: Int?
 
-        public init(key: String, name: String?) {
+        public init(key: String, name: String?, person: Int? = nil) {
             self.key = key
             self.name = name
+            self.person = person
         }
     }
 
@@ -52,7 +55,7 @@ public final class MeetingStore {
     private let sqlite: SQLiteFile
 
     public init(file: URL) {
-        sqlite = SQLiteFile(file: file, schema: Self.schema)
+        sqlite = SQLiteFile(file: file, schema: Self.schema, upgrades: Self.upgrades, functions: ["name_key": Names.key])
     }
 
     /// Adds a meeting with a person per distinct label (in order of first line) and a line per labelled entry.
@@ -67,6 +70,10 @@ public final class MeetingStore {
             let labelled = entries.filter { $0.label != nil }
             for (entry, place) in zip(labelled, MeetingNote.places(labelled.map(\.timestamp))) {
                 try sqlite.run("INSERT OR IGNORE INTO people (meeting, key) VALUES (?, ?)", [id, entry.label])
+                if sqlite.changes == 1, let label = entry.label {
+                    // A label that is a name ("[Olena]" in a note added by hand) is that person.
+                    try link(id, key: label, to: label == you ? youID() : personID(named: label))
+                }
                 try sqlite.run("INSERT INTO lines (meeting, timestamp, ord, original, current) VALUES (?, ?, ?, ?, ?)",
                                [id, place.timestamp, place.order, entry.label, entry.label])
             }
@@ -102,8 +109,12 @@ public final class MeetingStore {
 
     /// In the order they were added.
     public func people(_ meeting: Int) throws -> [Person] {
-        try sqlite.rows("SELECT key, name FROM people WHERE meeting = ? ORDER BY rowid", [meeting]) { row in
-            Person(key: row.text(0) ?? "", name: row.text(1))
+        // people.name is set only on the "you" row, and You has no name of its own.
+        try sqlite.rows("""
+            SELECT people.key, COALESCE(people.name, persons.name), people.person
+            FROM people LEFT JOIN persons ON persons.id = people.person WHERE people.meeting = ? ORDER BY people.rowid
+            """, [meeting]) { row in
+            Person(key: row.text(0) ?? "", name: row.text(1), person: row.isNull(2) ? nil : row.int(2))
         }
     }
 
@@ -124,14 +135,51 @@ public final class MeetingStore {
 
     public func remove(_ meeting: Int) throws {
         try sqlite.transaction {
-            for table in ["lines", "people"] { try sqlite.run("DELETE FROM \(table) WHERE meeting = ?", [meeting]) }
+            for table in ["lines", "people", "samples", "declined"] { try sqlite.run("DELETE FROM \(table) WHERE meeting = ?", [meeting]) }
             try sqlite.run("DELETE FROM meetings WHERE id = ?", [meeting])
+            try dropUnlistedPersons()
         }
     }
 
-    /// nil: no name, the person shows its label.
-    public func setName(_ meeting: Int, person: String, to name: String?) throws {
-        try sqlite.run("UPDATE people SET name = ? WHERE meeting = ? AND key = ?", [name, meeting, person])
+    /// Links a meeting's person to the person with that name, or to a new one (voices design §5); nil: no name, it shows
+    /// its label. "you" keeps the name for this note only: the author is You whatever the name.
+    public func setName(_ meeting: Int, person key: String, to name: String?) throws {
+        try transaction {
+            if try sqlite.rows("SELECT 1 FROM meetings WHERE id = ? AND you = ?", [meeting, key]) { $0.int(0) }.isEmpty {
+                try link(meeting, key: key, to: name.flatMap(personID(named:)))
+                try dropUnlistedPersons()
+            } else {
+                try sqlite.run("UPDATE people SET name = ? WHERE meeting = ? AND key = ?", [name, meeting, key])
+            }
+        }
+    }
+
+    private func link(_ meeting: Int, key: String, to person: Int?) throws {
+        // A name of version 1 that is no person's ("Person 5") stays on its row until the row is named again.
+        try sqlite.run("UPDATE people SET person = ?, name = NULL WHERE meeting = ? AND key = ?", [person, meeting, key])
+    }
+
+    private func youID() throws -> Int {
+        try sqlite.rows("SELECT id FROM persons WHERE you = 1") { $0.int(0) }[0]
+    }
+
+    /// The person called `name`, the one seen most recently when two share it, or a new person when nobody is;
+    /// nil for a label that names nobody ("Person 3").
+    private func personID(named name: String) throws -> Int? {
+        guard let key = Names.key(name) else { return nil }
+        let found = try sqlite.rows("""
+            SELECT persons.id FROM persons
+            LEFT JOIN people ON people.person = persons.id LEFT JOIN meetings ON meetings.id = people.meeting
+            WHERE persons.you = 0 AND name_key(persons.name) = ? GROUP BY persons.id ORDER BY max(meetings.start) DESC LIMIT 1
+            """, [key]) { $0.int(0) }
+        if let id = found.first { return id }
+        try sqlite.run("INSERT INTO persons (name) VALUES (?)", [name])
+        return try sqlite.rows("SELECT last_insert_rowid()") { $0.int(0) }[0]
+    }
+
+    /// A person left with no meeting goes; You stays.
+    private func dropUnlistedPersons() throws {
+        try sqlite.run("DELETE FROM persons WHERE you = 0 AND id NOT IN (SELECT person FROM people WHERE person IS NOT NULL)")
     }
 
     public func give(_ meeting: Int, line: Place, to person: String) throws {
@@ -161,13 +209,11 @@ public final class MeetingStore {
     /// ("you", the labels of notes added by hand), not "Person N" or the live label. Newest meeting first, each once.
     public func knownNames() throws -> [String] {
         let names = try sqlite.rows("""
-            SELECT COALESCE(people.name, people.key) FROM people JOIN meetings ON meetings.id = people.meeting
-            ORDER BY meetings.start DESC, people.rowid
+            SELECT COALESCE(people.name, persons.name, people.key) FROM people JOIN meetings ON meetings.id = people.meeting
+            LEFT JOIN persons ON persons.id = people.person ORDER BY meetings.start DESC, people.rowid
             """) { $0.text(0) }
         var seen = Set<String>()
-        return names.filter { name in
-            !name.isEmpty && name != MeetingNote.callLabel && name.wholeMatch(of: /Person \d+/) == nil && seen.insert(name).inserted
-        }
+        return names.filter { Names.key($0) != nil && seen.insert($0).inserted }
     }
 
     /// A change to a meeting's people or lines made by `body` (Meetings design §8): the store and the note's headers together,
@@ -224,8 +270,8 @@ public final class MeetingStore {
         try sqlite.transaction(body)
     }
 
-    // Later parts (voice prints, import) add tables with CREATE IF NOT EXISTS; schema_version marks the layout.
-    private static let schema = [
+    /// Version 1's layout; later versions are `upgrades`.
+    static let schema = [
         """
         CREATE TABLE IF NOT EXISTS meetings (
           id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, title TEXT, app TEXT, start REAL NOT NULL, duration REAL, you TEXT)
@@ -239,4 +285,32 @@ public final class MeetingStore {
         "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)",
         "INSERT INTO schema_version (version) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_version)",
     ]
+
+    /// Version 2 (voices design §7): persons, voice samples, talk time and words per line. Names already given, and labels
+    /// that are names, become persons: one per name the same ignoring case, accents and script, spelled as in the newest
+    /// meeting. Each meeting's "you" row is You and keeps its name for that note; a linked row's name is its person's.
+    static let upgrades = ["""
+        CREATE TABLE persons (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, you INTEGER NOT NULL DEFAULT 0);
+        ALTER TABLE people ADD COLUMN person INTEGER;
+        ALTER TABLE people ADD COLUMN recognised INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE lines ADD COLUMN words INTEGER;
+        ALTER TABLE lines ADD COLUMN seconds REAL;
+        CREATE TABLE samples (
+          meeting INTEGER NOT NULL, timestamp TEXT NOT NULL, ord INTEGER NOT NULL, vector BLOB NOT NULL,
+          PRIMARY KEY (meeting, timestamp, ord));
+        CREATE TABLE declined (meeting INTEGER NOT NULL, key TEXT NOT NULL, person INTEGER NOT NULL, PRIMARY KEY (meeting, key, person));
+        INSERT INTO persons (you) VALUES (1);
+        UPDATE people SET person = (SELECT id FROM persons WHERE you = 1)
+          WHERE key = (SELECT you FROM meetings WHERE meetings.id = people.meeting);
+        INSERT INTO persons (name)
+          SELECT name FROM (
+            SELECT COALESCE(people.name, people.key) AS name, max(meetings.start)
+            FROM people JOIN meetings ON meetings.id = people.meeting
+            WHERE people.person IS NULL AND name_key(COALESCE(people.name, people.key)) IS NOT NULL
+            GROUP BY name_key(COALESCE(people.name, people.key)));
+        UPDATE people SET person = (
+            SELECT persons.id FROM persons WHERE persons.you = 0 AND name_key(persons.name) = name_key(COALESCE(people.name, people.key)))
+          WHERE person IS NULL;
+        UPDATE people SET name = NULL WHERE person IN (SELECT id FROM persons WHERE you = 0)
+        """]
 }

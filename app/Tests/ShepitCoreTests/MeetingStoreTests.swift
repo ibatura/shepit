@@ -26,7 +26,7 @@ struct MeetingStoreTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let id = try addSample(store)
         #expect(try store.meetings() == [.init(id: id, path: "/notes/a.md", title: "Sync", app: "Teams", start: start, duration: 60, you: "Me")])
-        #expect(try store.people(id) == [.init(key: "Me", name: nil), .init(key: "Person 1", name: nil), .init(key: "Person 2", name: nil)])
+        #expect(try store.people(id) == [.init(key: "Me", name: nil, person: 1), .init(key: "Person 1", name: nil), .init(key: "Person 2", name: nil)])
         #expect(try store.lines(id) == [
             .init(place: .init(timestamp: "2026-07-31 10:00:01", order: 0), original: "Me", current: "Me"),
             .init(place: .init(timestamp: "2026-07-31 10:00:03", order: 0), original: "Person 1", current: "Person 1"),
@@ -109,6 +109,105 @@ struct MeetingStoreTests {
         _ = try store.add(path: "/added.md", start: start.addingTimeInterval(-3600), duration: nil, title: nil, app: nil, you: nil,
                           entries: [entry(MeetingNote.callLabel, 1), entry("Olha Barbara", 2), entry("Person 4", 3)])
         #expect(try store.knownNames() == ["Me", "Only here", "Anna", "Olena K.", "Marko D.", "Olha Barbara"])
+    }
+
+    // Persons (voices design §5, §7)
+
+    @Test func namesAreTheSameIgnoringCaseAccentsAndScript() {
+        #expect(Names.key("ОЛЕНА") == Names.key("Olena") && Names.key(" Oléna ") == Names.key("olena"))
+        #expect(Names.key("Олена") != Names.key("Олег"))
+        #expect([" ", "Person 3", MeetingNote.callLabel].allSatisfy { Names.key($0) == nil })
+    }
+
+    @Test func aNameLinksToThePersonWithItOrMakesOne() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let old = try addSample(store, path: "/old.md")
+        let new = try addSample(store, path: "/new.md", start: start.addingTimeInterval(3600))
+        try store.setName(old, person: "Person 1", to: "Olena K.")
+        try store.setName(new, person: "Person 2", to: "OLENA K.") // the same person, shown as she was named first
+        let olena = try #require(try store.people(old)[1].person)
+        #expect(try store.people(new)[2] == .init(key: "Person 2", name: "Olena K.", person: olena))
+        // "you" keeps a name for this note only, and stays You.
+        try store.setName(new, person: "Me", to: "Ivan")
+        #expect(try store.people(new)[0] == .init(key: "Me", name: "Ivan", person: 1))
+        #expect(try store.people(old)[0] == .init(key: "Me", name: nil, person: 1))
+        // A typo, then the right name: the typo's person goes with its last meeting.
+        try store.setName(new, person: "Person 1", to: "Mrako")
+        let typo = try #require(try store.people(new)[1].person)
+        try store.setName(new, person: "Person 1", to: nil)
+        try store.setName(new, person: "Person 1", to: "Mrako")
+        #expect(try store.people(new)[1].person != typo)
+        // A label that is a name is that person; "Person N" and the live label are nobody.
+        let added = try #require(try store.add(path: "/added.md", start: start.addingTimeInterval(-3600), duration: nil, title: nil,
+                                               app: nil, you: nil, entries: [entry("olena k.", 1), entry("Person 4", 2), entry(MeetingNote.callLabel, 3)]))
+        #expect(try store.people(added).map(\.person) == [olena, nil, nil])
+        // Removing the meetings where Olena is leaves no Olena; naming her again makes a new person.
+        try store.remove(old)
+        try store.remove(new)
+        try store.remove(added)
+        _ = try addSample(store)
+        try store.setName(try store.meetings()[0].id, person: "Person 1", to: "Olena K.")
+        #expect(try store.people(try store.meetings()[0].id)[1].person != olena)
+    }
+
+    @Test func removingAMeetingDeletesItsVoiceSamples() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let id = try addSample(store)
+        let other = try addSample(store, path: "/b.md")
+        let raw = SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: [])
+        for meeting in [id, other] {
+            try raw.run("INSERT INTO samples VALUES (?, '2026-07-31 10:00:03', 0, x'00')", [meeting])
+            try raw.run("INSERT INTO declined VALUES (?, 'Person 1', 1)", [meeting])
+        }
+        try store.remove(id)
+        #expect(try raw.rows("SELECT meeting FROM samples UNION ALL SELECT meeting FROM declined") { $0.int(0) } == [other, other])
+    }
+
+    @Test func twoPeopleWithOneNameGoToTheOneSeenMostRecently() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let older = try addSample(store, path: "/older.md")
+        let newer = try addSample(store, path: "/newer.md", start: start.addingTimeInterval(3600))
+        try store.setName(older, person: "Person 1", to: "Olena")
+        let first = try #require(try store.people(older)[1].person)
+        // A second Olena, as Keep both will make: the store is changed by hand here.
+        let file = dir.appending(path: "meetings.sqlite")
+        try SQLiteFile(file: file, schema: []).run("INSERT INTO persons (id, name) VALUES (99, 'Olena')")
+        try SQLiteFile(file: file, schema: []).run("UPDATE people SET person = 99 WHERE meeting = ? AND key = 'Person 2'", [newer])
+        let later = try addSample(store, path: "/later.md", start: start.addingTimeInterval(7200))
+        try store.setName(later, person: "Person 1", to: "olena")
+        #expect(try store.people(later)[1].person == 99)
+        #expect(first != 99)
+    }
+
+    @Test func version1KeepsEverythingAndItsNamesBecomePersons() throws {
+        let (_, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appending(path: "meetings.sqlite")
+        let v1 = SQLiteFile(file: file, schema: MeetingStore.schema)
+        let day = start.timeIntervalSince1970
+        try v1.run("INSERT INTO meetings (id, path, start, you) VALUES (1, '/a.md', ?, 'Me'), (2, '/b.md', ?, 'Іван'), (3, '/c.md', ?, NULL)",
+                   [day, day + 3600, day - 3600])
+        // a: you, Person 1 named "Олена", Person 2 unnamed. b (newest): you named for this note, Person 1 named "ОЛЕНА".
+        // c (added by hand): labels "olena" and the live label.
+        try v1.run("""
+            INSERT INTO people (meeting, key, name) VALUES (1, 'Me', NULL), (1, 'Person 1', 'Олена'), (1, 'Person 2', 'Person 5'),
+              (2, 'Іван', 'Ivan B.'), (2, 'Person 1', 'ОЛЕНА'), (3, 'olena', NULL), (3, '\(MeetingNote.callLabel)', NULL)
+            """)
+        try v1.run("INSERT INTO lines VALUES (1, '2026-07-31 10:00:01', 0, 'Person 1', 'Person 2')")
+
+        let store = MeetingStore(file: file)
+        #expect(try store.meetings().map(\.id) == [2, 1, 3])
+        #expect(try store.lines(1) == [.init(place: .init(timestamp: "2026-07-31 10:00:01", order: 0), original: "Person 1", current: "Person 2")])
+        let olena = try #require(try store.people(1)[1].person)
+        #expect(try store.people(1) == [.init(key: "Me", name: nil, person: 1), .init(key: "Person 1", name: "ОЛЕНА", person: olena),
+                                        .init(key: "Person 2", name: "Person 5")]) // a name that is no person's stays
+        #expect(try store.people(2) == [.init(key: "Іван", name: "Ivan B.", person: 1), .init(key: "Person 1", name: "ОЛЕНА", person: olena)])
+        #expect(try store.people(3) == [.init(key: "olena", name: "ОЛЕНА", person: olena), .init(key: MeetingNote.callLabel, name: nil)])
+        #expect(try SQLiteFile(file: file, schema: []).rows("SELECT count(*) FROM persons") { $0.int(0) } == [2]) // You and Olena
+        #expect(try store.knownNames() == ["Ivan B.", "ОЛЕНА", "Me"]) // "you" labels are names, as before
     }
 
     @Test func aFailedChangeLeavesTheDatabaseAsItWas() throws {
