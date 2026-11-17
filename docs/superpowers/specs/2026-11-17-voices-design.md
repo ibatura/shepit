@@ -1,7 +1,7 @@
 # Main window, part 5: Voices and People
 
 Date: 2026-11-17
-Status: Draft, for the author's review
+Status: Approved by the author (2026-11-17)
 Look and screens: `2026-11-11-visual-style/visual-style.md` ("the style spec") §5.2, §5.5, and `mockups.html` screens 2 and 6.
 Builds on: `2026-11-14-meetings-design.md` ("the meetings spec"): the meetings database, people, lines, merge, give a line, reset.
 
@@ -72,7 +72,7 @@ The People section, a placeholder today, becomes the place for everyone named in
 
 ## 5. People, prints and recognition
 
-**A person** is a row of its own in `meetings.sqlite`, with a number and a name (§7). Naming Person 2 "Olena K." in a meeting links that meeting's Person 2 to the person with that name, or makes a new person. Names are compared ignoring case and spaces at the ends, in Swift, so "ОЛЕНА" and "Олена" are one name (SQLite's own case folding knows only Latin letters). Olena K. in three meetings is one person with three meetings. The author is one fixed person ("You"), whatever label their lines have in each note.
+**A person** is a row of its own in `meetings.sqlite`, with a number and a name (§7). Naming Person 2 "Olena K." in a meeting links that meeting's Person 2 to the person with that name, or makes a new person. Names are compared as the meeting's name clash check already does (meetings spec §6): ignoring case, accents and script, in Swift, so "ОЛЕНА", "Олена" and "Olena" are one name (SQLite's own case folding knows only Latin letters). A label that is a name (a note added with Add notes… labelled "[Olena]") is linked to a person too, when the meeting is added. Olena K. in three meetings is one person with three meetings. The author is one fixed person ("You"), whatever label their lines have in each note.
 
 Two different people may share a name: the database keeps them apart, so their voices don't mix. Choosing between them in the name field comes later; until then a typed name goes to the person with that name seen most recently, and a new person with the same name is made only by Rename in People (§6).
 
@@ -109,7 +109,7 @@ Mockup 6, grown into a section with a list and a person.
 - **Meetings:** the meetings the person was in, newest first, with date, name, talk time and words; a click opens the meeting in the Meetings section.
 - **May also be in:** when the print matches an unnamed person of other meetings (those still holding samples, so at most 30 days old), a line "May also be in 3 meetings" with **Show…**: a list of those meetings with the Person N each, a checkbox each (all on), and **Name them**, which names the checked ones as the Meetings section does. A suggestion turned down by unchecking isn't shown again for that meeting's person.
 
-**You** has no Merge into and no Delete in the list's ⋯; its Voice line says "From your microphone and the lines given to you". Its talk time and words are the author's.
+**You** has no Merge into, no Delete and no Rename: the name in each note comes from Settings → Meetings (`meetingMyName`), as today; its Voice line says "From your microphone and the lines given to you". Its talk time and words are the author's.
 
 Changes are written like every change of the meetings spec: the database and the notes together, or neither; a note that can't be written stops the change and says which.
 
@@ -122,7 +122,7 @@ Changes are written like every change of the meetings spec: the database and the
 - A new `samples` table: meeting, timestamp, order (the line's key, as in `lines`) and the 256 numbers as a blob. Deleted with its meeting.
 - A new `declined` table: meeting, label and person of suggestions the author unchecked.
 
-The upgrade makes a person for each name already given, names that differ only in case or spaces at the ends as one (with a folding function Shepit gives SQLite, as SQLite's own folds only Latin letters), links each `people` row to it, and links each meeting's "you" row to You.
+The upgrade makes a person for each name already given and each label that is a name, names that are the same ignoring case, accents and script as one (with a folding function Shepit gives SQLite, as SQLite's own folds only Latin letters), links each `people` row to it, and links each meeting's "you" row to You.
 
 Renaming a person changes one row; merging moves the `people` rows of one person to the other. The notes still get their headers rewritten, meeting by meeting, in the same change. Prints are read from `samples` joined with `lines` and `people`, grouped by person; the means are kept in memory and made again after any change.
 
