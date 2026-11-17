@@ -29,6 +29,7 @@ The People section, a placeholder today, becomes the place for everyone named in
 - **Merging two voices renames the person in older meetings too:** every meeting where she is "Olena" gets "Olena K." in the database and in the note's headers, so one name is one voice everywhere.
 - **Earlier meetings are suggested, not changed:** when a voice is saved or its print changes, the People section says the person may be in other meetings, and names them there only on a click.
 - **The People section also has:** renaming a person, who talked how much, a person's meetings, and the author's own voice from the microphone.
+- **A person has a number of their own** (a `persons` table): the name belongs to the person, not to each meeting. Not for size (names take little room), but so a rename is one row, Cyrillic names that differ only in case are one person, two people with one name keep their voices apart, and samples, suggestions and talk time point at a number.
 
 ## 3. Goals, non-goals, anti-goals
 
@@ -71,7 +72,11 @@ The People section, a placeholder today, becomes the place for everyone named in
 
 ## 5. People, prints and recognition
 
-**A person** is a name given in meetings, the same name ignoring case and spaces at the ends. Olena K. in three meetings is one person with three meetings. The author is a person too ("You"), whatever label their lines have in each note.
+**A person** is a row of its own in `meetings.sqlite`, with a number and a name (§7). Naming Person 2 "Olena K." in a meeting links that meeting's Person 2 to the person with that name, or makes a new person. Names are compared ignoring case and spaces at the ends, in Swift, so "ОЛЕНА" and "Олена" are one name (SQLite's own case folding knows only Latin letters). Olena K. in three meetings is one person with three meetings. The author is one fixed person ("You"), whatever label their lines have in each note.
+
+Two different people may share a name: the database keeps them apart, so their voices don't mix. Choosing between them in the name field comes later; until then a typed name goes to the person with that name seen most recently, and a new person with the same name is made only by Rename in People (§6).
+
+A person with no meeting left (the last one removed from the list) is deleted with their voice. You stays.
 
 **A print** is not stored on its own: it is made from the samples of every line that belongs to that person now. So:
 - naming Person 2 "Olena K." adds Person 2's lines to Olena K.'s print;
@@ -82,7 +87,7 @@ A print is used for recognition once it has samples from at least one meeting an
 
 **Recognition** runs when a transcript is ready, after speaker detection, while Remember voices is on:
 - Each Person N of the new meeting is compared with every print (the mean of Person N's line samples against each print, or against each print's nearest samples: §12).
-- A person whose best match passes the threshold, clearly ahead of the second best, gets that name. Two people of one meeting can't get the same name: the closer one gets it.
+- A person whose best match passes the threshold, clearly ahead of the second best, is linked to that person and gets their name. Two people of one meeting can't be linked to the same person: the closer one is.
 - A match with You merges that person into the author's row (the author's voice heard through the call audio), as the meetings spec's merge does.
 - The note's headers get the names, as when the author names someone (meetings spec §8), and the person is marked "recognised by voice" in the database.
 
@@ -94,12 +99,12 @@ Mockup 6, grown into a section with a list and a person.
 
 **Top:** the **Remember voices** switch with its explanation ("Keeps a voice print for each person you name, so they are named in later meetings. Stored on this Mac only."). Turning it off stops samples and recognition; saved voices stay until deleted, and the explanation says so. **Delete all voices…** beside it asks first, then deletes every sample.
 
-**The list:** every person named in at least one listed meeting, You first, then by the last meeting, newest first. A row: the colour dot with initials, the name, "6 meetings · last 10 Nov", and a voice mark when the person has a print ("Voice saved", or nothing).
+**The list:** every person with at least one listed meeting, You first, then by the last meeting, newest first. A row: the colour dot with initials, the name, "6 meetings · last 10 Nov", and a voice mark when the person has a print ("Voice saved", or nothing).
 
 **A person**, chosen in the list:
-- The name as an editable title. **Rename** gives the new name in every meeting where the person is, in the database and the notes' headers (meetings spec §8), and in the name suggestions. A name another person has asks: "Marko D. is already in People. Merge Olena into Marko D.?"
-- **Merge into…** lists the other people. Every meeting with this person gets the other name; in a meeting that has both, this person's lines go to the other, as a merge in the Meetings section does.
-- **Voice:** "Saved from 6 meetings" with **Delete voice…**, or "No voice saved" (Remember voices off, or no samples). Delete voice deletes the samples of this person's lines; the name stays in the meetings, and new meetings start a new print once the author names them again.
+- The name as an editable title. **Rename** changes the person's one name; every meeting where the person is gets it in its note's headers (meetings spec §8), and the name suggestions follow. A name another person has asks: "Marko D. is already in People. Merge Olena into Marko D.?" with **Merge**, **Keep both** (two people with one name) and **Cancel**.
+- **Merge into…** lists the other people. Every meeting with this person moves to the other person and its note's headers get the other name; in a meeting that has both, this person's lines go to the other, as a merge in the Meetings section does. The merged person is deleted; their samples now count for the other.
+- **Voice:** "Saved from 6 meetings" with **Delete voice…**, or "No voice saved" (Remember voices off, or no samples). Delete voice deletes the samples of this person's lines; the person and their name stay in the meetings, and new meetings start a new print once the author names them again.
 - **Who talked how much:** for the period menu at the top (Dictations' and Statistics' periods): meetings, talk time and words, and the share of the words in those meetings. Talk time is known for meetings recorded from this version on; for older ones the row says "–".
 - **Meetings:** the meetings the person was in, newest first, with date, name, talk time and words; a click opens the meeting in the Meetings section.
 - **May also be in:** when the print matches an unnamed person of other meetings (those still holding samples, so at most 30 days old), a line "May also be in 3 meetings" with **Show…**: a list of those meetings with the Person N each, a checkbox each (all on), and **Name them**, which names the checked ones as the Meetings section does. A suggestion turned down by unchecking isn't shown again for that meeting's person.
@@ -112,11 +117,14 @@ Changes are written like every change of the meetings spec: the database and the
 
 `meetings.sqlite`, upgraded to version 2 with `SQLiteFile`'s numbered upgrades (as `stats.sqlite` in the Statistics part):
 - `lines` gets `words` (the entry's word count, not its text) and `seconds` (its talk time from the session's offsets; null for Add notes… and older meetings). `words` of meetings already in the list are filled the first time the meeting is opened in the window, when the note is read anyway.
-- `people` gets `recognised` (1 when the name came from a voice).
+- A new `persons` table: a number, the name, and which one is You. One row per person, however many meetings they are in.
+- `people` (a meeting's Person 1, Person 2, you) keeps its label and gets `person`, the number of the person it is linked to (empty for a Person N with no name), and `recognised` (1 when the link came from a voice). Its `name` column goes: the name is the person's.
 - A new `samples` table: meeting, timestamp, order (the line's key, as in `lines`) and the 256 numbers as a blob. Deleted with its meeting.
-- A new `declined` table: meeting and person key of suggestions the author unchecked.
+- A new `declined` table: meeting, label and person of suggestions the author unchecked.
 
-Prints are read from `samples` joined with `lines` and `people`; the means are kept in memory and made again after any change.
+The upgrade makes a person for each name already given, names that differ only in case or spaces at the ends as one (with a folding function Shepit gives SQLite, as SQLite's own folds only Latin letters), links each `people` row to it, and links each meeting's "you" row to You.
+
+Renaming a person changes one row; merging moves the `people` rows of one person to the other. The notes still get their headers rewritten, meeting by meeting, in the same change. Prints are read from `samples` joined with `lines` and `people`, grouped by person; the means are kept in memory and made again after any change.
 
 ## 8. Checking recognition
 
@@ -132,13 +140,13 @@ Prints are read from `samples` joined with `lines` and `people`; the means are k
 
 ## 10. Structure
 
-- **ShepitCore:** `VoiceSample` (256 floats, from and to a blob, cosine similarity, mean); `Voices` (pure: a line's sample from window embeddings, prints from samples, recognition with threshold and margin, suggestions); `MeetingStore` gains samples, recognised, words and seconds, rename and merge across meetings; `PeoplePage` builds the section's list, a person, talk time and words.
+- **ShepitCore:** `VoiceSample` (256 floats, from and to a blob, cosine similarity, mean); `Voices` (pure: a line's sample from window embeddings, prints from samples, recognition with threshold and margin, suggestions); `MeetingStore` gains persons, samples, recognised, words and seconds, rename and merge across meetings; `PeoplePage` builds the section's list, a person, talk time and words.
 - **ShepitEngines:** `Diarizer` returns turns and window embeddings (`exposeChunkEmbeddings`); a call for the microphone's samples.
 - **Shepit:** `MeetingSession` keeps `mic.wav` while Remember voices is on; `AppHost+Meetings` recognises and stores samples when a transcript is ready; `PeopleModel` / `PeopleView` in `Window/`; `Shepit voices-check`.
 
 ## 11. Tests and manual checks
 
-**Tests (ShepitCore):** a line's sample from overlapping windows of its cluster only; prints follow naming, merge, give a line, reset and delete; recognition with threshold, margin and one name per meeting; You merge; 30-day deletion of unnamed samples; rename and merge across meetings write the notes' headers and the database together; nothing written with `rememberVoices` off; suggestions skip declined ones; talk time and words per period.
+**Tests (ShepitCore):** the upgrade makes one person of names that differ only in case (Cyrillic too) and keeps the author's labels as You; two people with one name keep their voices apart; a line's sample from overlapping windows of its cluster only; prints follow naming, merge, give a line, reset and delete; recognition with threshold, margin and one name per meeting; You merge; 30-day deletion of unnamed samples; rename and merge across meetings write the notes' headers and the database together; nothing written with `rememberVoices` off; suggestions skip declined ones; talk time and words per period.
 
 **Manual checks V1–V10** (`docs/manual-test-checklist.md`), on real calls:
 - V1 Remember voices off: a meeting keeps no samples (`samples` empty for it).
@@ -161,7 +169,7 @@ Prints are read from `samples` joined with `lines` and `people`; the means are k
 
 ## 13. My calls (not confirmed one by one)
 
-- A person is a name, the same ignoring case; there is no separate person id.
+- A typed name goes to the person with that name seen most recently; a second person with the same name is made only by Keep both when renaming in People.
 - The People section lists everyone named in meetings, not only saved voices, so a person's meetings and talk time work with Remember voices off too; the voice is one line of a person.
 - Turning Remember voices off keeps saved voices until Delete all voices….
 - A recognised You merges into the author's row on its own.
