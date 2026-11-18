@@ -508,6 +508,8 @@ public final class MeetingStore {
 
     /// Version 1's layout; later versions are `upgrades`.
     static let schema = [
+        // Runs on every open. Deleted voice samples are overwritten; macOS's default (FAST) leaves freed pages as they were.
+        "PRAGMA secure_delete = ON",
         """
         CREATE TABLE IF NOT EXISTS meetings (
           id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, title TEXT, app TEXT, start REAL NOT NULL, duration REAL, you TEXT)

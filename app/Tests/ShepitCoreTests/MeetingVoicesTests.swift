@@ -139,6 +139,28 @@ struct MeetingVoicesTests {
         #expect(try store.people(a.id).map(\.name) == ["Olena", "Marko"]) // names stay
     }
 
+    /// Biometric data: every way out overwrites the sample, not only unlinks it (macOS's default `secure_delete = FAST`
+    /// leaves freed pages as they were).
+    @Test func deletedVoicesLeaveNoTraceInTheFile() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let named = try meeting(store, dir, "a", start: start, labels: ["Person 1"], voices: ["Person 1": 1])
+        _ = try meeting(store, dir, "b", start: start, labels: ["Person 1"], voices: ["Person 1": 2])
+        let removed = try meeting(store, dir, "c", start: start, labels: ["Person 1"], voices: ["Person 1": 3])
+        let kept = try meeting(store, dir, "d", start: start + 40 * 86_400, labels: ["Person 1"], voices: ["Person 1": 4])
+        try store.setName(named.id, person: "Person 1", to: "Olena")
+        try store.setName(kept.id, person: "Person 1", to: "Marko")
+        func inFile(_ axis: Int) throws -> Bool { try Data(contentsOf: dir.appending(path: "meetings.sqlite")).range(of: voice(axis, 100).blob) != nil }
+        #expect(try inFile(1) && inFile(2) && inFile(3) && inFile(4))
+        try store.deleteVoice(try #require(try store.people(named.id)[0].person))
+        try store.forgetUnnamedVoices(before: start + 30 * 86_400)
+        try store.remove(removed.id)
+        #expect(try !inFile(1) && !inFile(2) && !inFile(3))
+        #expect(try inFile(4))
+        try store.deleteAllVoices()
+        #expect(try !inFile(4))
+    }
+
     // MARK: Rename and merge across meetings (voices design §6)
 
     /// Names a meeting's person in the store and the note, as the Meetings section does.
