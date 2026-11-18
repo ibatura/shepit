@@ -42,7 +42,7 @@ Today a meeting is only a file. Shepit writes the note, labels the remote voices
 
 **Non-goals**
 - Import names from a Teams, Zoom or Meet transcript (part 8). The Import names… button of the mockup is not shown yet.
-- Voice prints, "recognised by voice" and the People section (part 7).
+- Voice prints, "recognised by voice" and the People section (part 7). Designed in `2026-11-17-voices-design.md`.
 - New statistics (part 6). `stats.sqlite` is unchanged.
 - Giving several lines at once.
 - Finding a moved note on its own.

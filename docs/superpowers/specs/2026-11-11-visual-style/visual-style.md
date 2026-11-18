@@ -85,6 +85,7 @@ Terms as chips, replace rules as a two-column list, drop phrases as chips, and a
 
 ### 5.5 People
 The "Remember voices" switch with its explanation, the list of saved voices (name, number of meetings, last seen, Delete), and "Delete all voices…".
+Built in part 5 as a section of everyone named in meetings: `../2026-11-17-voices-design.md`.
 
 ### 5.6 Statistics
 The same tiles and charts as today (`2026-10-18-native-app/05-statistics.md`), in this style. Added (decided 2026-11-11):

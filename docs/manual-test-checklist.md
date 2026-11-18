@@ -148,3 +148,22 @@ Design: `docs/superpowers/specs/2026-11-17-statistics-design.md`.
 | S6 | Collect statistics off; dictate once | "Statistics are off" with its button in every view, the old numbers under it; the dictation isn't counted ||
 | S7 | Clear statistics…, then open each view | Every view is empty; `stats.sqlite` stays deleted while Statistics is only looked at ||
 | S8 | Light and dark; a narrow and a wide window | Tiles, charts, legends and tooltips readable; nothing cut off ||
+
+## Main window: Voices and People
+
+Date: 2026-11-18
+
+Design: `docs/superpowers/specs/2026-11-17-voices-design.md`. On real calls; samples are counted read-only (`sqlite3 -readonly ~/.local/share/dictation/meetings.sqlite "SELECT count(*) FROM samples WHERE meeting = …"`), and only counts are reported.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| V1 | Remember voices off; a meeting with two remote people; name them | The meeting keeps no samples; People lists both with "No voice saved" ||
+| V2 | Remember voices on (People); a meeting with two remote people; name both in Meetings | People lists them with the waveform and "Saved from 1 meeting"; You says "Saved from 1 meeting: your microphone and the lines given to you" ||
+| V3 | A second meeting with one of them | After Stop the person has the name on their own, "recognised by voice" under it in Meetings, the name in the note's headers; the Transcript ready panel says "1 recognised" ||
+| V4 | `voices-check`; give a recognised line to someone else, then Reset people…; `voices-check` again | The line goes to the other person and back; the counts after Reset are the same as before ||
+| V5 | People → Merge into: a person into another named in older meetings | It asks first; every meeting of the first goes to the second, the older notes get the kept name; the first leaves People and the second is chosen ||
+| V6 | People: rename a person (click the name, Enter); then type the name another person has | Every meeting and note of the person follows; the taken name asks Merge, Keep both or Cancel; Keep both lists two people with one name ||
+| V7 | A person with a saved voice who is an unnamed `Person N` in another recent meeting: May also be in → Show…, uncheck one, Name them | The checked meetings get the name, in their notes too; the unchecked one is not suggested again ||
+| V8 | Delete voice… on a person; then Delete all voices… | Both ask first; the person shows "No voice saved" and keeps the name in their meetings; after Delete all the `samples` table is empty and You has no voice ||
+| V9 | A call on speakers, not headphones, with Remember voices on | Your voice heard through the call is not left as a `Person N`: it is merged into you ||
+| V10 | People: Who talked how much for Last month and other periods; a person's meetings; a click on one; relaunch Shepit | Meetings, talk time, words and share follow the period; older meetings show words and "–" for talk time; the click opens the meeting in Meetings; the period and the person are the same after the relaunch ||

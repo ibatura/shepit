@@ -93,7 +93,7 @@ Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open 
 | Dictionary | Terms, replace rules and drop phrases, and **Add word** (see [Dictionary](#dictionary)) |
 | Statistics | Numbers about your dictations and meetings, kept on this Mac (see [Statistics in the window](#statistics-in-the-window)) |
 | Settings | All settings (see [Settings](#settings)) |
-| People | Not built yet |
+| People | Everyone you named in meetings: their voice, their meetings and how much they talked; rename and merge; **Remember voices** (see [People in the window](#people-in-the-window)) |
 
 While a meeting transcript runs, a card at the top of the sidebar shows its time and name; a click opens it in Meetings.
 
@@ -143,6 +143,38 @@ Open a finished meeting to:
 The transcript is read only here; edit it in Obsidian. Shepit changes only the `[name] time` lines and the `title` line, and reads the note again right before each change, so your edits stay. If you add or delete a line in Obsidian, the lines with the same time (to the second) can no longer be given to someone else. A label typed by hand in a `[name] time` line is not read back.
 
 A meeting whose note was moved, renamed or deleted shows **note not found**, with **Locate note…** to point at the file. Notes made before this version are not in the list: **Add notes…** under the list adds them (pick several, or ⌘A in the folder); a file with no transcript lines is skipped.
+
+### People in the window
+
+Shepit window → **People** lists everyone you named in meetings: you first, then by their last meeting, newest first. A waveform beside a name means their voice is saved. Choose a person to see:
+
+- **The name:** click it to rename. Every meeting with this person, and its note's `[name] time` lines, get the new name. A name another person already has asks to **Merge** the two, or **Keep both** (two people with one name, kept apart).
+- **Merge into:** every meeting of this person goes to the person you pick, and the notes get that name (one person named twice, say "Olena" and "Olena K."). The merged person leaves People.
+- **Voice:** "Saved from 6 meetings" with **Delete voice…**, or "No voice saved".
+- **May also be in 2 meetings:** recent meetings with a `Person N` whose voice is like this person's. **Show…** lists them, all checked; **Name them** names the checked ones, as the Meetings section does; the unchecked ones are not suggested again.
+- **Who talked how much** in the period picked beside it (the periods of Dictations): meetings, talk time, words, and their share of all the words of those meetings.
+- **Meetings:** each with its date and their talk time and words; a click opens it in Meetings.
+
+Talk time is known for meetings recorded from this version on; older meetings and notes added with Add notes… show "–". The words of meetings listed before this version are counted from their notes the first time People opens.
+
+You have no Rename, Merge into or Delete voice: your name in notes is Settings → Meetings → Your name (`meetingMyName`), and **Delete all voices…** deletes your voice too.
+
+**Remember voices** (the switch at the top of People, off by default, `rememberVoices`). While it is on:
+
+- Each line of a meeting Shepit records keeps a **voice sample**: 256 numbers that describe the voice, made by speaker detection after Stop. A sample is not audio; it can't be turned back into sound or words. Your own lines get theirs from the first minutes of your microphone.
+- A person's **voice print** is the samples of the lines that are theirs now. Naming a person, merging two, giving a line to someone else or Reset people… moves the samples with the lines, so prints learn from your corrections, and undoing one takes its samples back out.
+- When a transcript is ready, each `Person N` is compared with the saved voices. A clear match gets that person's name, in the window and in the note, with **recognised by voice** under the name in Meetings; the Transcript ready panel says how many ("42 min · 3 people · 2 recognised"). Change the name, merge or give lines as for anyone. A match with your own voice (heard from your speakers) is merged into you.
+
+Samples are kept only on this Mac, in `meetings.sqlite`, and are deleted:
+
+- one person's: **Delete voice…** (their name stays in the meetings);
+- all of them, yours too: **Delete all voices…** beside the switch;
+- a meeting's: **Remove note from list…** or **Move file to Trash…**;
+- a `Person N` you never named: 30 days after the meeting.
+
+Turning Remember voices off stops samples and recognition; saved voices stay until you delete them. Meetings recorded while it was off, before this version, or added with Add notes… have no samples, as their audio is gone.
+
+To see how well the saved voices would have recognised your people in earlier meetings, run `~/Applications/Shepit.app/Contents/MacOS/Shepit voices-check`: counts per threshold from 0.30 to 0.95, with no names and no text.
 
 ### The call panel
 
@@ -356,8 +388,9 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | Clipboard | — | The dictated text passes through the clipboard for a moment; your previous clipboard is put back |
 | Meeting notes | `meetingsFolder` (`~/.local/share/dictation/meetings` by default, local) | Until you delete them. A synced folder (iCloud Drive, an Obsidian vault in iCloud) uploads the notes to that service |
 | Meeting names | `~/.local/share/dictation/meeting-names.json` | The names you gave meetings, with app and start time, to suggest them again (last 300) |
-| Meetings list | `~/.local/share/dictation/meetings.sqlite` | Each meeting's note path, name, app, start and duration, the names you gave its people and who said each line — **not** what was said, which stays in the note. Remove note from list… deletes a meeting from it; `uninstall.sh --purge` deletes it |
-| Meeting audio | a private temporary folder | Only during the meeting and speaker detection, then deleted — also after a failure, and at the next launch after a crash |
+| Meetings list | `~/.local/share/dictation/meetings.sqlite` | Each meeting's note path, name, app, start and duration, the people you named (one name each, shared by their meetings), who said each line and each line's word count and talk time — **not** what was said, which stays in the note. Remove note from list… deletes a meeting from it; `uninstall.sh --purge` deletes it |
+| Voice samples | `meetings.sqlite`, only while **Remember voices** is on | 256 numbers per transcript line describing the voice, not audio; see [People in the window](#people-in-the-window). Until Delete voice…, Delete all voices… or the meeting leaves the list; for people you never named, 30 days |
+| Meeting audio | a private temporary folder | Only during the meeting and speaker detection (with Remember voices on, the first minutes of your microphone too), then deleted — also after a failure, and at the next launch after a crash |
 
 **Shepit's permissions:** Accessibility lets it send ⌘V, read a selected word (⌘C, for ⌃⌥D) and read window and tab titles and the call's mute button, to suggest a meeting name and leave out what you say while muted (it also asks Teams and Chrome to keep their accessibility information built, which they otherwise do only for assistive apps); Microphone lets it record while you dictate or during a meeting transcript; System Audio Recording lets it record the call, only between Start and Stop. It uses them for nothing else.
 
@@ -373,7 +406,7 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | `~/.local/share/dictation/stats.sqlite` | Usage statistics (in `databasesFolder`) |
 | `~/.local/share/dictation/models/` | Model files |
 | `~/.local/share/dictation/meetings/` | Meeting notes (default `meetingsFolder`) |
-| `~/.local/share/dictation/meetings.sqlite` | The meetings list: names, people and who said each line (in `databasesFolder`) |
+| `~/.local/share/dictation/meetings.sqlite` | The meetings list: names, people, who said each line, and saved voices (in `databasesFolder`) |
 | `~/.local/share/dictation/meeting-names.json` | Meeting names you used, for the name dialog |
 
 ## Development
