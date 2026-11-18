@@ -248,6 +248,60 @@ struct MeetingSessionTests {
         #expect(Set(windows.session.talk.keys) == [mine, theirs] && windows.session.talk.values.allSatisfy { $0 > 0 })
     }
 
+    /// The microphone's speaker detection: you (Y) up to 4 s, someone in the room (R) after; the audio it was given.
+    private final class MicSpeakers: @unchecked Sendable {
+        var heard: [[Float]] = []
+        let you: VoiceSample, room: VoiceSample
+
+        init(_ you: VoiceSample, _ room: VoiceSample) {
+            self.you = you
+            self.room = room
+        }
+
+        func detect(_ audio: [Float]) -> Diarization {
+            heard.append(audio)
+            return Diarization(turns: [SpeakerTurn(speaker: "Y", start: 0, end: 4), SpeakerTurn(speaker: "R", start: 4, end: 6)],
+                               windows: [VoiceWindow(speaker: "Y", start: 0.3, end: 1.7, sample: you),
+                                         VoiceWindow(speaker: "Y", start: 2.3, end: 3.7, sample: you),
+                                         VoiceWindow(speaker: "R", start: 4.3, end: 5.7, sample: room)])
+        }
+    }
+
+    private func axis(_ index: Int) throws -> VoiceSample {
+        var vector = [Float](repeating: 0, count: VoiceSample.size)
+        vector[index] = 1
+        return try #require(VoiceSample(vector))
+    }
+
+    @Test func yourLinesGetSamplesOfYourVoiceFromTheMicrophone() async throws {
+        let speakers = MicSpeakers(try axis(1), try axis(2))
+        let detect: @Sendable ([Float]) async throws -> Diarization = { speakers.detect($0) }
+        let on = rig(speakers: detect, change: { $0.rememberVoices = true })
+        let off = rig(speakers: detect)
+        let blocked = rig(speakers: detect, change: { $0.rememberVoices = true })
+        let short = rig(speakers: detect, change: { $0.rememberVoices = true; $0.micVoiceSeconds = 1 })
+        defer { for r in [on, off, blocked, short] { try? FileManager.default.removeItem(at: r.root) } }
+        try FileManager.default.createDirectory(at: blocked.config.sessionDir.appending(path: "mic.wav"), withIntermediateDirectories: true)
+        var kept: [[String]] = []
+        for r in [on, off, blocked, short] {
+            try r.session.start()
+            // Your lines at 0.5–1.5 and 2.5–3.5 s, someone in the room at 4.5–5.5 s; the call is silent.
+            r.mic.push(seconds(0.5) + seconds(1, 0.5) + seconds(1) + seconds(1, 0.5) + seconds(1) + seconds(1, 0.5) + seconds(0.5))
+            r.call.push(seconds(6))
+            await r.session.settle()
+            kept.append(try FileManager.default.contentsOfDirectory(atPath: r.config.sessionDir.path).sorted())
+            r.clock.now += 6
+            await r.session.stop()
+        }
+        #expect(kept == [["call.wav", "mic.wav"], ["call.wav"], ["call.wav", "mic.wav"], ["call.wav", "mic.wav"]])
+        let yours = ["2026-07-31 18:22:30", "2026-07-31 18:22:32"].map { MeetingNote.Place(timestamp: $0, order: 0) }
+        #expect(on.session.samples == [yours[0]: try axis(1), yours[1]: try axis(1)]) // the room's line isn't your voice
+        #expect(off.session.samples.isEmpty && blocked.session.samples.isEmpty)
+        #expect(short.session.samples.isEmpty) // your line ends after the first second
+        #expect(speakers.heard.map(\.count) == [6 * 16_000, 16_000]) // on, then only the first second of short
+        #expect(!FileManager.default.fileExists(atPath: on.config.sessionDir.path))
+    }
+
     @Test func failedSpeakerDetectionKeepsLiveLabelsAndStillDeletesAudio() async throws {
         var r = rig(speakers: { _ in throw MeetingError("model broke") })
         defer { try? FileManager.default.removeItem(at: r.root) }

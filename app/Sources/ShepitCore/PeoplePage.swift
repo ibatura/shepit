@@ -11,7 +11,7 @@ public enum PeoplePage {
         public var detail: String
         /// How many of their meetings keep samples of their lines; 0: no voice saved.
         public var voiceMeetings: Int
-        /// "Saved from 6 meetings", "No voice saved".
+        /// "Saved from 6 meetings", "No voice saved"; yours says where it comes from.
         public var voice: String
         /// Newest first.
         public var meetings: [MeetingRow]
@@ -53,7 +53,8 @@ public enum PeoplePage {
             let voice = seen.filter { $0.presence.samples > 0 }.count
             return Person(id: id, name: name, initials: MeetingPage.initials(name), isYou: presence.you,
                           detail: detail.joined(separator: " · "), voiceMeetings: voice,
-                          voice: voice == 0 ? "No voice saved" : "Saved from \(count(voice, "meeting"))",
+                          voice: voice == 0 ? "No voice saved"
+                              : "Saved from \(count(voice, "meeting"))" + (presence.you ? ": your microphone and the lines given to you" : ""),
                           meetings: seen.map { meeting, presence in
                               let (title, date) = describe(meeting)
                               let talk = presence.words.map { [presence.seconds.map(StatisticsPage.duration) ?? "–", "\($0.formatted()) words"] }

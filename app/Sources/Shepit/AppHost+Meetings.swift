@@ -168,6 +168,7 @@ extension AppHost {
                                    stateDir: Paths.dataDir, engine: engine)
         config.title = title
         config.app = app
+        config.rememberVoices = settings.rememberVoices
         let session = MeetingSession(config: config, mic: MicSource(recorder: recorder, device: settings.microphone),
                                      call: CallTapSource(), services: meetingServices(language: settings.meetingLanguage))
         session.onState = { [weak self] state in

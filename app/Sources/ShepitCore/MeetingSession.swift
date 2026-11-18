@@ -35,7 +35,7 @@ public struct MeetingConfig: Sendable {
     public var frontMatter: String
     public var myName: String
     public var liveLabel = MeetingNote.callLabel
-    /// Private dir for call.wav, deleted when the session ends (spec §5.1).
+    /// Private dir for call.wav (and mic.wav), deleted when the session ends (spec §5.1).
     public var sessionDir: URL
     /// Where `last-meeting` and `active-meeting` live (spec §5.7, §5.10).
     public var stateDir: URL
@@ -51,6 +51,10 @@ public struct MeetingConfig: Sendable {
     /// Mic entries repeating the call within this many seconds are dropped; entries wait this long (MeetingQueue).
     public var echoWindow: TimeInterval = 5
     public var calendar = Calendar.current
+    /// Remember voices was on at Start (voices design §4): the microphone's first `micVoiceSeconds` are kept in mic.wav
+    /// too, for samples of your own lines.
+    public var rememberVoices = false
+    public var micVoiceSeconds: Double = 600
 
     public init(noteFile: URL, frontMatter: String, myName: String, sessionDir: URL, stateDir: URL, engine: EngineChoice) {
         self.noteFile = noteFile
@@ -141,7 +145,8 @@ public final class MeetingSession {
     public var onNotice: ((String) -> Void)?
     public var onFinished: ((MeetingRecord) -> Void)?
     public private(set) var state = MeetingState.idle { didSet { if state != oldValue { onState?(state) } } }
-    /// The call lines' voice samples by their place in the note, once speakers are detected with windows (voices design §4).
+    /// The lines' voice samples by their place in the note, once speakers are detected with windows (voices design §4):
+    /// the call's from the call audio, yours from the microphone's.
     public private(set) var samples: [MeetingNote.Place: VoiceSample] = [:]
 
     public let config: MeetingConfig
@@ -170,6 +175,9 @@ public final class MeetingSession {
     private var queue = MeetingQueue()
     private var transcription: Task<Void, Never>?
     private var callWAV: WAVFileWriter?
+    /// The microphone's first `micVoiceSeconds`, while Remember voices is on; nil after a write error (no samples of yours).
+    private var micWAV: WAVFileWriter?
+    private var micKept = 0
     private var capturing = false
     public private(set) var startedAt = Date.distantPast
     private var lastSpeech = Date.distantPast
@@ -213,6 +221,7 @@ public final class MeetingSession {
             }
             try FileManager.default.createDirectory(at: config.sessionDir, withIntermediateDirectories: true)
             callWAV = try WAVFileWriter(file: config.sessionDir.appending(path: "call.wav"))
+            if config.rememberVoices { micWAV = try? WAVFileWriter(file: config.sessionDir.appending(path: "mic.wav")) }
             try FileManager.default.createDirectory(at: config.stateDir, withIntermediateDirectories: true)
             try Data((config.noteFile.path + "\n").utf8).write(to: config.stateDir.appending(path: Self.activeMeetingFile), options: .atomic)
             startedAt = now()
@@ -235,6 +244,7 @@ public final class MeetingSession {
             capturing = false
             try? FileManager.default.removeItem(at: config.noteFile) // only front matter so far
             callWAV = nil
+            micWAV = nil
             streams = [:]
             cleanUpAudio()
             throw error is MeetingError ? error : MeetingError(error.localizedDescription)
@@ -286,6 +296,16 @@ public final class MeetingSession {
                     // Later offsets would no longer match the note: no speaker detection for this meeting.
                     callAudioBroken = true
                     onNotice?("Can't keep call audio, speakers won't be detected: \(error.localizedDescription)")
+                }
+            }
+        } else if let micWAV {
+            let take = min(block.count, Int(config.micVoiceSeconds * 16_000) - micKept)
+            if take > 0 {
+                do {
+                    try micWAV.append(Array(block.prefix(take)))
+                    micKept += take
+                } catch {
+                    self.micWAV = nil // later offsets would no longer match your lines
                 }
             }
         }
@@ -498,6 +518,16 @@ public final class MeetingSession {
                 onNotice?("Speakers not detected: \(error.localizedDescription)")
             }
         }
+        let micWhole = micWAV.map { (try? $0.finish()) != nil } ?? false
+        micWAV = nil
+        if let detect = services.speakers, micWhole, written.contains(where: { $0.stream == .mine }) {
+            state = .detectingSpeakers
+            // Without your voice from the microphone the transcript is still whole: nothing to say.
+            if let diarization = try? await detect(try WAV.read(config.sessionDir.appending(path: "mic.wav"))) {
+                guard !interrupted else { return }
+                samples.merge(yourSamples(diarization)) { call, _ in call }
+            }
+        }
         cleanUpAudio()
         let record = MeetingRecord(start: startedAt, duration: now().timeIntervalSince(startedAt), wordsMine: words[.mine] ?? 0,
                                    wordsCall: words[.call] ?? 0, speakers: speakers, engine: config.engine,
@@ -524,6 +554,20 @@ public final class MeetingSession {
         let call = zip(written, places).filter { $0.0.stream == .call }
         let samples = Voices.lineSamples(call.map(\.0.offsets), diarization)
         return Dictionary(uniqueKeysWithValues: zip(call.map(\.1), samples).compactMap { place, sample in sample.map { (place, $0) } })
+    }
+
+    /// Your lines' samples from the microphone (voices plan Task 8): the windows of the voice that speaks most of your
+    /// lines in its first `micVoiceSeconds`. A line of another voice there (someone in the room) gets none.
+    private func yourSamples(_ diarization: Diarization) -> [MeetingNote.Place: VoiceSample] {
+        let mine = zip(written, places).filter { $0.0.stream == .mine && $0.0.offsets.upperBound <= config.micVoiceSeconds }
+        let voices = mine.map { Speakers.speaker(for: $0.0.offsets, turns: diarization.turns) }
+        let counts = Dictionary(grouping: voices.compactMap { $0 }, by: { $0 }).mapValues(\.count)
+        // The voice of most lines; on a tie, the first by name, so the same audio always gives the same voice.
+        guard let you = counts.max(by: { ($0.value, $1.key) < ($1.value, $0.key) })?.key else { return [:] }
+        let samples = Voices.lineSamples(mine.map(\.0.offsets), diarization)
+        return Dictionary(uniqueKeysWithValues: zip(zip(mine.map(\.1), voices), samples).compactMap { line, sample in
+            line.1 == you ? sample.map { (line.0, $0) } : nil
+        })
     }
 
     /// Each entry's place in the note, as `MeetingStore` pairs them.
@@ -567,6 +611,8 @@ public final class MeetingSession {
         try? writer.append(MeetingNote.interruptedLine(at: now(), calendar: config.calendar))
         try? callWAV?.finish()
         callWAV = nil
+        try? micWAV?.finish()
+        micWAV = nil
         cleanUpAudio()
         state = .interrupted
     }

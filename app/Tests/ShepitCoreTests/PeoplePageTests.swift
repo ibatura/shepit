@@ -59,6 +59,8 @@ struct PeoplePageTests {
         #expect(list[1].voiceMeetings == 0)
         #expect(list[1].voice == "No voice saved")
         #expect(people([.init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 1)], meetings)[0].voice == "Saved from 1 meeting")
+        #expect(people([.init(person: 1, name: nil, you: true, meeting: 3, samples: 4)], meetings)[0].voice
+                == "Saved from 1 meeting: your microphone and the lines given to you")
     }
 
     @Test func suggestionsAreTheirMeetingsNewestFirst() {
