@@ -96,7 +96,9 @@ struct PeopleModelTests {
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena", "Marko"])
         model.rename(olena, typed: " Olena K. ")
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena K.", "Marko"])
-        model.rename(model.people[1], typed: "marko", keepBoth: true)
+        model.rename(model.people[1], typed: "marko")
+        model.keepBoth(try #require(model.question))
+        #expect(model.question == nil)
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "marko", "Marko"])
     }
 

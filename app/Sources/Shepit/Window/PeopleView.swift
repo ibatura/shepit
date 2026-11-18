@@ -27,8 +27,8 @@ struct PeopleView: View {
                isPresented: Binding(get: { model.question != nil }, set: { if !$0 { model.question = nil } }),
                presenting: model.question) { question in
             Button(text(question).button, role: text(question).destructive ? .destructive : nil) { model.answer(question, yes: true) }
-            if case .taken(let person, let name, _) = question {
-                Button("Keep both") { model.rename(person, typed: name, keepBoth: true) }
+            if case .taken = question {
+                Button("Keep both") { model.keepBoth(question) }
             }
             Button("Cancel", role: .cancel) { model.answer(question, yes: false) }
         } message: { question in

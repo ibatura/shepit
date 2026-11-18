@@ -136,13 +136,23 @@ final class PeopleModel {
     }
 
     /// A name typed in a person's title (voices design §6): saved in every meeting and note, or a question when another
-    /// person has it. With `keepBoth`, saved anyway: two people with one name.
-    func rename(_ person: PeoplePage.Person, typed: String, keepBoth: Bool = false) {
+    /// person has it.
+    func rename(_ person: PeoplePage.Person, typed: String) {
         guard !person.isYou, let name = MeetingPage.name(typed), let key = Names.key(name), name != person.name else { return }
-        if !keepBoth, let other = people.first(where: { $0.id != person.id && Names.key($0.name) == key }) {
+        if let other = people.first(where: { $0.id != person.id && Names.key($0.name) == key }) {
             question = .taken(person, name: name, by: other)
-            return
+        } else {
+            save(person, name)
         }
+    }
+
+    /// Keep both, the third answer to `.taken`: the name is saved anyway, two people with one name.
+    func keepBoth(_ question: Question) {
+        self.question = nil
+        if case .taken(let person, let name, _) = question { save(person, name) }
+    }
+
+    private func save(_ person: PeoplePage.Person, _ name: String) {
         apply("Can't rename \(person.name)") { try store.rename(person: person.id, to: name) }
     }
 
