@@ -192,4 +192,6 @@ From the audit of 2026-10-06. The items about the old Lua tool (whisper-server, 
 
 Small things to come back to; none blocks the next part.
 
+- **Clearer colours for the call panels' buttons** (the author, 2026-11-18). The panels shown when a transcript starts or ends (Start transcript, Not this call, Start now, Don't record, Keep recording, Stop now) could colour their buttons so the right one is quicker to find and press. To think over with the author.
+- **Highlight a person's lines in a meeting** (the author, 2026-11-18). In Meetings, clicking a person in People (Person 3, or yourself) highlights every line of theirs in the transcript.
 - **A better look for the Dictations section.** The author has design remarks after trying it on 2026-11-16 (Task 4 of the Dictations and Dictionary plan) and wants the section to look better. To go through with the author; the section works as it is.
