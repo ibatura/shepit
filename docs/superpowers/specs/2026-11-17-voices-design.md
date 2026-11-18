@@ -116,7 +116,7 @@ Changes are written like every change of the meetings spec: the database and the
 ## 7. The database
 
 `meetings.sqlite`, upgraded to version 2 with `SQLiteFile`'s numbered upgrades (as `stats.sqlite` in the Statistics part):
-- `lines` gets `words` (the entry's word count, not its text) and `seconds` (its talk time from the session's offsets; null for Add notes… and older meetings). `words` of meetings already in the list are filled the first time the meeting is opened in the window, when the note is read anyway.
+- `lines` gets `words` (the entry's word count, not its text) and `seconds` (its talk time from the session's offsets; null for Add notes… and older meetings). `words` of meetings already in the list are filled from their notes all at once, the first time People appears in a run (the author, 2026-11-18), each note read off the main thread.
 - A new `persons` table: a number, the name, and which one is You. One row per person, however many meetings they are in.
 - `people` (a meeting's Person 1, Person 2, you) keeps its label and gets `person`, the number of the person it is linked to (empty for a Person N with no name), and `recognised` (1 when the link came from a voice). Its `name` column stays only for the "you" row (the author's name in that note, meetings spec §6); every other row's name is its person's. You has no name of its own. Person numbers are never reused, so a deleted person's number can't point at someone else.
 - A new `samples` table: meeting, timestamp, order (the line's key, as in `lines`) and the 256 numbers as a blob. Deleted with its meeting.
