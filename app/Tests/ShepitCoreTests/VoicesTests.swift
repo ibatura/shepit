@@ -50,7 +50,7 @@ struct VoicesTests {
     @Test func aPrintNeedsEnoughSamples() {
         let prints = Voices.prints(rows(1, meeting: 1, axis: 1) + rows(2, meeting: 1, axis: 2, count: 2))
         #expect(Set(prints.keys) == [1])
-        #expect(prints[1]?.samples.count == 3 && prints[1]!.mean.similarity(near(1, 100)) > 0.95)
+        #expect(prints[1]?.samples == 3 && prints[1]!.mean.similarity(near(1, 100)) > 0.95)
     }
 
     @Test func recognitionNeedsTheThresholdTheMarginAndOnePrintPerKey() {
@@ -65,13 +65,6 @@ struct VoicesTests {
         // Two keys near one print: only the closer gets it.
         let closer = (0..<3).map { near(1, 140 + $0, by: 0.05) }
         #expect(Voices.recognise(["Person 1": one, "Person 4": closer], prints: prints) == ["Person 4": 1])
-        // Nearest sample: a voice like one sample of a print, not like its mean.
-        let spread = Voices.prints([Voices.Row(person: 5, meeting: 1, sample: near(5, 6, by: 0)),
-                                    Voices.Row(person: 5, meeting: 1, sample: near(6, 5, by: 0)),
-                                    Voices.Row(person: 5, meeting: 1, sample: near(7, 5, by: 0))])
-        let likeOne = (0..<3).map { near(5, 150 + $0, by: 0.1) }
-        #expect(Voices.recognise(["Person 1": likeOne], prints: spread).isEmpty)
-        #expect(Voices.recognise(["Person 1": likeOne], prints: spread, match: .nearest) == ["Person 1": 5])
     }
 
     @Test func theCheckCountsEachMeetingsPeopleAgainstTheOtherMeetings() {
@@ -83,6 +76,26 @@ struct VoicesTests {
         let apart = rows(1, meeting: 1, axis: 1) + rows(1, meeting: 2, axis: 1) + rows(2, meeting: 2, axis: 2)
         #expect(Voices.check(apart, match: .mean, threshold: 0.8) == .init(recognised: 2, unknown: 1))
         #expect(Voices.check(apart, match: .mean, threshold: 0.99) == .init(missed: 2, unknown: 1))
+        // Nearest sample: in meeting 2 a voice like one sample of meeting 1's spread print, not like its mean.
+        let spread = [near(5, 6, by: 0), near(6, 5, by: 0), near(7, 5, by: 0)].map { Voices.Row(person: 5, meeting: 1, sample: $0) }
+            + (0..<3).map { Voices.Row(person: 5, meeting: 2, sample: near(5, 150 + $0, by: 0.1)) }
+        #expect(Voices.check(spread, match: .mean, threshold: 0.8) == .init(missed: 2))
+        #expect(Voices.check(spread, match: .nearest, threshold: 0.8) == .init(recognised: 1, missed: 1))
+    }
+
+    @Test func yourSamplesAreTheVoiceOfMostOfYourLines() {
+        func window(_ speaker: String, _ start: Double, _ axis: Int) -> VoiceWindow {
+            VoiceWindow(speaker: speaker, start: start, end: start + 10, sample: near(axis, 200))
+        }
+        let turns = [SpeakerTurn(speaker: "S1", start: 0, end: 20), SpeakerTurn(speaker: "S2", start: 20, end: 30),
+                     SpeakerTurn(speaker: "S1", start: 30, end: 40)]
+        let diarization = Diarization(turns: turns, windows: [window("S1", 0, 1), window("S2", 20, 2), window("S1", 30, 1)])
+        let samples = Voices.yourSamples([1..<5, 21..<25, 31..<35], diarization)
+        #expect(samples.map { $0 != nil } == [true, false, true]) // the room's voice gets none
+        #expect(samples[0]!.similarity(near(1, 200)) > 0.99)
+        // A tie: the first voice by name.
+        #expect(Voices.yourSamples([1..<5, 21..<25], diarization).map { $0 != nil } == [true, false])
+        #expect(Voices.yourSamples([], diarization).isEmpty)
     }
 
     @Test func suggestionsAreTheMeetingsWhereRecognitionNamesThePerson() {

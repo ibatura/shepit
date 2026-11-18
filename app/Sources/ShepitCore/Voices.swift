@@ -76,6 +76,16 @@ public enum Voices {
         }
     }
 
+    /// Your lines' samples from the microphone (voices plan Task 8): the samples of the voice that speaks most of `lines`;
+    /// a line of another voice (someone in the room) gets none. On a tie, the first voice by name, so the same audio
+    /// always gives the same voice.
+    public static func yourSamples(_ lines: [Range<Double>], _ diarization: Diarization) -> [VoiceSample?] {
+        let voices = lines.map { Speakers.speaker(for: $0, turns: diarization.turns) }
+        let counts = Dictionary(grouping: voices.compactMap { $0 }, by: { $0 }).mapValues(\.count)
+        guard let you = counts.max(by: { ($0.value, $1.key) < ($1.value, $0.key) })?.key else { return lines.map { _ in nil } }
+        return zip(voices, lineSamples(lines, diarization)).map { voice, sample in voice == you ? sample : nil }
+    }
+
     /// A line's sample, the person its line belongs to now, and its meeting (`MeetingStore.voiceRows`).
     public struct Row: Equatable, Sendable {
         public var person: Int
@@ -89,14 +99,11 @@ public enum Voices {
         }
     }
 
-    /// A person's voice: never stored, made from the samples of the lines that are theirs now (voices design §5).
+    /// A person's voice: never stored, the mean of the samples of the lines that are theirs now (voices design §5).
     public struct Print: Sendable {
         public var mean: VoiceSample
-        public var samples: [VoiceSample]
+        public var samples: Int
     }
-
-    /// How a voice is compared with a print: with its mean, or with its nearest sample (`Shepit voices-check` says which works).
-    public enum Match: Sendable, CaseIterable { case mean, nearest }
 
     /// Starting values, to be settled with `Shepit voices-check` on the author's meetings (voices plan Task 10). On the
     /// first meeting kept with voices (2026-11-18) two different voices had means 0.76 alike, so the bar is high.
@@ -106,27 +113,36 @@ public enum Voices {
     /// Samples a voice or a print needs before it is compared at all.
     public static let enough = 3
 
+    /// The prints of the people with `enough` samples, summed as the rows come: no sample is kept.
     public static func prints(_ rows: [Row]) -> [Int: Print] {
-        Dictionary(grouping: rows, by: \.person).compactMapValues { rows in
-            let samples = rows.map(\.sample)
-            return samples.count >= enough ? VoiceSample.mean(samples).map { Print(mean: $0, samples: samples) } : nil
+        var sums: [Int: (sum: [Float], count: Int)] = [:]
+        for row in rows {
+            var entry = sums[row.person] ?? ([Float](repeating: 0, count: VoiceSample.size), 0)
+            for i in entry.sum.indices { entry.sum[i] += row.sample.vector[i] }
+            entry.count += 1
+            sums[row.person] = entry
         }
+        return sums.compactMapValues { sum, count in count >= enough ? VoiceSample(sum).map { Print(mean: $0, samples: count) } : nil }
     }
 
     /// The people of one meeting (samples by key) that a print names: the best print passing `threshold` and leading the
     /// second best by `margin`; never one print for two keys (the closer key gets it).
-    public static func recognise(_ people: [String: [VoiceSample]], prints: [Int: Print], match: Match = .mean,
-                                 threshold: Float = threshold, margin: Float = margin) -> [String: Int] {
-        var candidates: [(key: String, person: Int, score: Float)] = []
+    public static func recognise<Key: Hashable>(_ people: [Key: [VoiceSample]], prints: [Int: Print], threshold: Float = threshold,
+                                                margin: Float = margin) -> [Key: Int] {
+        recognise(people, threshold: threshold, margin: margin) { voice in prints.mapValues { voice.similarity($0.mean) } }
+    }
+
+    /// `recognise` with how alike a voice is to each person (`scores`).
+    private static func recognise<Key: Hashable>(_ people: [Key: [VoiceSample]], threshold: Float, margin: Float,
+                                                 scores: (VoiceSample) -> [Int: Float]) -> [Key: Int] {
+        var candidates: [(key: Key, person: Int, score: Float)] = []
         for (key, samples) in people where samples.count >= enough {
             guard let voice = VoiceSample.mean(samples) else { continue }
-            let scores = prints.map { person, print in
-                (person, match == .mean ? voice.similarity(print.mean) : print.samples.map(voice.similarity).max() ?? -1)
-            }.sorted { $0.1 > $1.1 }
-            guard let best = scores.first, best.1 >= threshold, best.1 - (scores.dropFirst().first?.1 ?? -1) >= margin else { continue }
-            candidates.append((key, best.0, best.1))
+            let ranked = scores(voice).sorted { $0.value > $1.value }
+            guard let best = ranked.first, best.value >= threshold, best.value - (ranked.dropFirst().first?.value ?? -1) >= margin else { continue }
+            candidates.append((key, best.key, best.value))
         }
-        var links: [String: Int] = [:]
+        var links: [Key: Int] = [:]
         for candidate in candidates.sorted(by: { $0.score > $1.score }) where !links.values.contains(candidate.person) {
             links[candidate.key] = candidate.person
         }
@@ -139,6 +155,10 @@ public enum Voices {
         guard prints[person] != nil else { return [:] }
         return unnamed.compactMapValues { people in recognise(people, prints: prints).first { $0.value == person }?.key }
     }
+
+    /// How `Shepit voices-check` compares a voice with a person: with the mean of their samples (as recognition does), or
+    /// with their nearest sample. Which works better is settled on the author's meetings (voices plan Task 10).
+    public enum Match: Sendable, CaseIterable { case mean, nearest }
 
     /// `Shepit voices-check` (voices design §8): each meeting's people taken as new and matched against the prints of
     /// the other meetings. `unknown`: no print elsewhere and left alone, as it should be.
@@ -157,11 +177,17 @@ public enum Voices {
         var count = CheckCount()
         for meeting in Set(rows.map(\.meeting)) {
             let here = Dictionary(grouping: rows.filter { $0.meeting == meeting }, by: \.person).mapValues { $0.map(\.sample) }
-            let prints = prints(rows.filter { $0.meeting != meeting })
-            let links = recognise(Dictionary(uniqueKeysWithValues: here.map { (String($0.key), $0.value) }), prints: prints,
-                                  match: match, threshold: threshold, margin: margin)
+            let others = rows.filter { $0.meeting != meeting }
+            let prints = prints(others)
+            let nearest = Dictionary(grouping: others, by: \.person).filter { prints[$0.key] != nil }.mapValues { $0.map(\.sample) }
+            let links = recognise(here, threshold: threshold, margin: margin) { voice in
+                switch match {
+                case .mean: prints.mapValues { voice.similarity($0.mean) }
+                case .nearest: nearest.mapValues { $0.map(voice.similarity).max() ?? -1 }
+                }
+            }
             for (person, samples) in here where samples.count >= enough {
-                switch links[String(person)] {
+                switch links[person] {
                 case person?: count.recognised += 1
                 case .some: count.wrong += 1
                 case nil: if prints[person] != nil { count.missed += 1 } else { count.unknown += 1 }

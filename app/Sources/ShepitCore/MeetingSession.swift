@@ -513,7 +513,7 @@ public final class MeetingSession {
                 guard !interrupted else { return }
                 diarizationSeconds = Date().timeIntervalSince(began)
                 speakers = try relabel(diarization.turns)
-                self.samples = voiceSamples(diarization)
+                self.samples = lineSamples(of: .call) { Voices.lineSamples($0, diarization) }
             } catch {
                 onNotice?("Speakers not detected: \(error.localizedDescription)")
             }
@@ -525,7 +525,7 @@ public final class MeetingSession {
             // Without your voice from the microphone the transcript is still whole: nothing to say.
             if let diarization = try? await detect(try WAV.read(config.sessionDir.appending(path: "mic.wav"))) {
                 guard !interrupted else { return }
-                samples.merge(yourSamples(diarization)) { call, _ in call }
+                samples.merge(lineSamples(of: .mine, until: config.micVoiceSeconds) { Voices.yourSamples($0, diarization) }) { call, _ in call }
             }
         }
         cleanUpAudio()
@@ -549,24 +549,12 @@ public final class MeetingSession {
         return Set(labels.compactMap { $0 }).count
     }
 
-    /// The call lines' samples by place; none without windows.
-    private func voiceSamples(_ diarization: Diarization) -> [MeetingNote.Place: VoiceSample] {
-        let call = zip(written, places).filter { $0.0.stream == .call }
-        let samples = Voices.lineSamples(call.map(\.0.offsets), diarization)
-        return Dictionary(uniqueKeysWithValues: zip(call.map(\.1), samples).compactMap { place, sample in sample.map { (place, $0) } })
-    }
-
-    /// Your lines' samples from the microphone (voices plan Task 8): the windows of the voice that speaks most of your
-    /// lines in its first `micVoiceSeconds`. A line of another voice there (someone in the room) gets none.
-    private func yourSamples(_ diarization: Diarization) -> [MeetingNote.Place: VoiceSample] {
-        let mine = zip(written, places).filter { $0.0.stream == .mine && $0.0.offsets.upperBound <= config.micVoiceSeconds }
-        let voices = mine.map { Speakers.speaker(for: $0.0.offsets, turns: diarization.turns) }
-        let counts = Dictionary(grouping: voices.compactMap { $0 }, by: { $0 }).mapValues(\.count)
-        // The voice of most lines; on a tie, the first by name, so the same audio always gives the same voice.
-        guard let you = counts.max(by: { ($0.value, $1.key) < ($1.value, $0.key) })?.key else { return [:] }
-        let samples = Voices.lineSamples(mine.map(\.0.offsets), diarization)
-        return Dictionary(uniqueKeysWithValues: zip(zip(mine.map(\.1), voices), samples).compactMap { line, sample in
-            line.1 == you ? sample.map { (line.0, $0) } : nil
+    /// The samples `sample` gives the lines of `stream` that end by `end` (offsets in seconds), by their place in the note.
+    private func lineSamples(of stream: MeetingStream, until end: Double = .infinity,
+                         _ sample: ([Range<Double>]) -> [VoiceSample?]) -> [MeetingNote.Place: VoiceSample] {
+        let lines = zip(written, places).filter { $0.0.stream == stream && $0.0.offsets.upperBound <= end }
+        return Dictionary(uniqueKeysWithValues: zip(lines.map(\.1), sample(lines.map(\.0.offsets))).compactMap { place, sample in
+            sample.map { (place, $0) }
         })
     }
 
