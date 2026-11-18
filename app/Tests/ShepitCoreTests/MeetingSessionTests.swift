@@ -302,6 +302,25 @@ struct MeetingSessionTests {
         #expect(!FileManager.default.fileExists(atPath: on.config.sessionDir.path))
     }
 
+    @Test func theMicrophoneKeptForYourVoiceIsSilentWhileYouAreMutedOrDictating() async throws {
+        let speakers = MicSpeakers(try axis(1), try axis(2))
+        let r = rig(speakers: { speakers.detect($0) }, change: { $0.rememberVoices = true })
+        defer { try? FileManager.default.removeItem(at: r.root) }
+        try r.session.start()
+        r.session.micMuted(true, at: 16_000)
+        r.session.micMuted(false, at: 2 * 16_000)
+        r.session.dictationStarted(at: 3 * 16_000)
+        r.mic.push(seconds(1, 0.5) + seconds(1, 0.5) + seconds(1, 0.5) + seconds(1, 0.5)) // still dictating at the end
+        r.call.push(seconds(4))
+        await r.session.settle()
+        r.clock.now += 4
+        await r.session.stop()
+        let heard = try #require(speakers.heard.first)
+        func second(_ s: Int) -> ArraySlice<Float> { heard[(s * 16_000)..<((s + 1) * 16_000)] }
+        #expect(second(0).allSatisfy { abs($0 - 0.5) < 0.01 } && second(2).allSatisfy { abs($0 - 0.5) < 0.01 }) // kept as 16-bit
+        #expect(second(1).allSatisfy { $0 == 0 } && second(3).allSatisfy { $0 == 0 })
+    }
+
     @Test func failedSpeakerDetectionKeepsLiveLabelsAndStillDeletesAudio() async throws {
         var r = rig(speakers: { _ in throw MeetingError("model broke") })
         defer { try? FileManager.default.removeItem(at: r.root) }

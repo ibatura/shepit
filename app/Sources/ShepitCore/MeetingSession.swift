@@ -265,6 +265,9 @@ public final class MeetingSession {
 
     /// Why the mic is left out right now; it is skipped while any reason holds.
     private var micSkips: Set<String> = []
+    /// Where it was left out, in microphone samples; the last one is open while a reason holds. mic.wav keeps silence
+    /// there: what you say while muted or dictating isn't kept for your voice either.
+    private var micSkipped: [Range<Int>] = []
 
     public func dictationStarted(at index: Int) { skipMic("dictation", true, at: index) }
     public func dictationEnded(at index: Int) { skipMic("dictation", false, at: index) }
@@ -275,8 +278,14 @@ public final class MeetingSession {
     private func skipMic(_ reason: String, _ on: Bool, at index: Int) {
         let was = !micSkips.isEmpty
         if on { micSkips.insert(reason) } else { micSkips.remove(reason) }
-        if !was, !micSkips.isEmpty { streams[.mine]?.cutter.startSkip(at: index) }
-        if was, micSkips.isEmpty { streams[.mine]?.cutter.endSkip(at: index) }
+        if !was, !micSkips.isEmpty {
+            streams[.mine]?.cutter.startSkip(at: index)
+            micSkipped.append(index..<Int.max)
+        }
+        if was, micSkips.isEmpty {
+            streams[.mine]?.cutter.endSkip(at: index)
+            if let open = micSkipped.popLast() { micSkipped.append(open.lowerBound..<max(open.lowerBound, index)) }
+        }
     }
 
     // MARK: Audio → phrases
@@ -301,8 +310,13 @@ public final class MeetingSession {
         } else if let micWAV {
             let take = min(block.count, Int(config.micVoiceSeconds * 16_000) - micKept)
             if take > 0 {
+                var kept = Array(block.prefix(take))
+                for skipped in micSkipped {
+                    let silent = max(skipped.lowerBound, end)..<min(skipped.upperBound, end + take)
+                    if !silent.isEmpty { kept.replaceSubrange((silent.lowerBound - end)..<(silent.upperBound - end), with: repeatElement(0, count: silent.count)) }
+                }
                 do {
-                    try micWAV.append(Array(block.prefix(take)))
+                    try micWAV.append(kept)
                     micKept += take
                 } catch {
                     self.micWAV = nil // later offsets would no longer match your lines
