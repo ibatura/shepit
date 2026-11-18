@@ -34,4 +34,54 @@ struct VoicesTests {
         #expect(samples[3] == nil) // no speaker there
         #expect(Voices.lineSamples([1..<5], Diarization(turns: diarization.turns)) == [nil]) // no windows: Remember voices off
     }
+
+    /// A voice near `axis`: most of it there, a little on `noise` so samples of one voice differ.
+    private func near(_ axis: Int, _ noise: Int, by amount: Float = 0.2) -> VoiceSample {
+        var vector = [Float](repeating: 0, count: VoiceSample.size)
+        vector[axis] = 1
+        vector[noise] = amount
+        return VoiceSample(vector)!
+    }
+
+    private func rows(_ person: Int, meeting: Int, axis: Int, count: Int = 3) -> [Voices.Row] {
+        (0..<count).map { Voices.Row(person: person, meeting: meeting, sample: near(axis, 150 + 10 * meeting + $0)) }
+    }
+
+    @Test func aPrintNeedsEnoughSamples() {
+        let prints = Voices.prints(rows(1, meeting: 1, axis: 1) + rows(2, meeting: 1, axis: 2, count: 2))
+        #expect(Set(prints.keys) == [1])
+        #expect(prints[1]?.samples.count == 3 && prints[1]!.mean.similarity(near(1, 100)) > 0.95)
+    }
+
+    @Test func recognitionNeedsTheThresholdTheMarginAndOnePrintPerKey() {
+        let prints = Voices.prints(rows(1, meeting: 1, axis: 1) + rows(2, meeting: 2, axis: 2))
+        let one = (0..<3).map { near(1, 110 + $0) }, two = (0..<3).map { near(2, 120 + $0) }
+        #expect(Voices.recognise(["Person 1": one, "Person 2": two], prints: prints) == ["Person 1": 1, "Person 2": 2])
+        // Too few samples, or nobody near enough.
+        #expect(Voices.recognise(["Person 1": Array(one.prefix(2)), "Person 3": (0..<3).map { near(3, 130 + $0) }], prints: prints).isEmpty)
+        // Halfway between two prints: neither leads by the margin.
+        let between = (0..<3).map { _ in VoiceSample([Float](repeating: 0, count: 256).enumerated().map { $0.offset == 1 || $0.offset == 2 ? 1 : 0 })! }
+        #expect(Voices.recognise(["Person 1": between], prints: prints, threshold: 0.5).isEmpty)
+        // Two keys near one print: only the closer gets it.
+        let closer = (0..<3).map { near(1, 140 + $0, by: 0.05) }
+        #expect(Voices.recognise(["Person 1": one, "Person 4": closer], prints: prints) == ["Person 4": 1])
+        // Nearest sample: a voice like one sample of a print, not like its mean.
+        let spread = Voices.prints([Voices.Row(person: 5, meeting: 1, sample: near(5, 6, by: 0)),
+                                    Voices.Row(person: 5, meeting: 1, sample: near(6, 5, by: 0)),
+                                    Voices.Row(person: 5, meeting: 1, sample: near(7, 5, by: 0))])
+        let likeOne = (0..<3).map { near(5, 150 + $0, by: 0.1) }
+        #expect(Voices.recognise(["Person 1": likeOne], prints: spread).isEmpty)
+        #expect(Voices.recognise(["Person 1": likeOne], prints: spread, match: .nearest) == ["Person 1": 5])
+    }
+
+    @Test func theCheckCountsEachMeetingsPeopleAgainstTheOtherMeetings() {
+        // Olena (1) in meetings 1 and 2, Marko (2) only in meeting 2, and person 3 in meeting 3 sounds like Olena: in meeting 3
+        // they are taken for her (wrong); in meetings 1 and 2 Olena is too close to person 3's print to tell (missed).
+        // Marko has no print elsewhere and is left alone.
+        let alike = rows(1, meeting: 1, axis: 1) + rows(1, meeting: 2, axis: 1) + rows(2, meeting: 2, axis: 2) + rows(3, meeting: 3, axis: 1)
+        #expect(Voices.check(alike, match: .mean, threshold: 0.8) == .init(wrong: 1, missed: 2, unknown: 1))
+        let apart = rows(1, meeting: 1, axis: 1) + rows(1, meeting: 2, axis: 1) + rows(2, meeting: 2, axis: 2)
+        #expect(Voices.check(apart, match: .mean, threshold: 0.8) == .init(recognised: 2, unknown: 1))
+        #expect(Voices.check(apart, match: .mean, threshold: 0.99) == .init(missed: 2, unknown: 1))
+    }
 }

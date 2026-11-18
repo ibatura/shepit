@@ -25,16 +25,19 @@ public final class MeetingStore {
     }
 
     /// A meeting's person: `key` is the label speaker detection gave; `name` the name shown for it (the linked person's,
-    /// or for "you" the name in this note); `person` the person it is linked to (voices design §5), You for "you".
+    /// or for "you" the name in this note); `person` the person it is linked to (voices design §5), You for "you";
+    /// `recognised` when that link came from a voice.
     public struct Person: Equatable, Sendable {
         public var key: String
         public var name: String?
         public var person: Int?
+        public var recognised: Bool
 
-        public init(key: String, name: String?, person: Int? = nil) {
+        public init(key: String, name: String?, person: Int? = nil, recognised: Bool = false) {
             self.key = key
             self.name = name
             self.person = person
+            self.recognised = recognised
         }
     }
 
@@ -107,7 +110,15 @@ public final class MeetingStore {
 
     /// Newest first.
     public func meetings() throws -> [Meeting] {
-        try sqlite.rows("SELECT id, path, title, app, start, duration, you FROM meetings ORDER BY start DESC, id DESC") { row in
+        try meetings("ORDER BY start DESC, id DESC")
+    }
+
+    public func meeting(_ id: Int) throws -> Meeting? {
+        try meetings("WHERE id = ?", [id]).first
+    }
+
+    private func meetings(_ clause: String, _ values: [Any?] = []) throws -> [Meeting] {
+        try sqlite.rows("SELECT id, path, title, app, start, duration, you FROM meetings \(clause)", values) { row in
             Meeting(id: row.int(0), path: row.text(1) ?? "", title: row.text(2), app: row.text(3), start: Date(timeIntervalSince1970: row.double(4)),
                     duration: row.isNull(5) ? nil : row.double(5), you: row.text(6))
         }
@@ -117,10 +128,10 @@ public final class MeetingStore {
     public func people(_ meeting: Int) throws -> [Person] {
         // people.name is set only on the "you" row, and You has no name of its own.
         try sqlite.rows("""
-            SELECT people.key, COALESCE(people.name, persons.name), people.person
+            SELECT people.key, COALESCE(people.name, persons.name), people.person, people.recognised
             FROM people LEFT JOIN persons ON persons.id = people.person WHERE people.meeting = ? ORDER BY people.rowid
             """, [meeting]) { row in
-            Person(key: row.text(0) ?? "", name: row.text(1), person: row.isNull(2) ? nil : row.int(2))
+            Person(key: row.text(0) ?? "", name: row.text(1), person: row.isNull(2) ? nil : row.int(2), recognised: row.int(3) == 1)
         }
     }
 
@@ -162,7 +173,7 @@ public final class MeetingStore {
 
     private func link(_ meeting: Int, key: String, to person: Int?) throws {
         // A name of version 1 that is no person's ("Person 5") stays on its row until the row is named again.
-        try sqlite.run("UPDATE people SET person = ?, name = NULL WHERE meeting = ? AND key = ?", [person, meeting, key])
+        try sqlite.run("UPDATE people SET person = ?, name = NULL, recognised = 0 WHERE meeting = ? AND key = ?", [person, meeting, key])
     }
 
     private func youID() throws -> Int {
@@ -209,6 +220,59 @@ public final class MeetingStore {
     /// Every line back to the person speaker detection gave it. Names stay.
     public func reset(_ meeting: Int) throws {
         try sqlite.run("UPDATE lines SET current = original WHERE meeting = ?", [meeting])
+    }
+
+    // MARK: Voices (voices design §4, §5)
+
+    /// Every sample of a line that belongs to a person now, for prints; `except` leaves one meeting out.
+    public func voiceRows(except meeting: Int? = nil) throws -> [Voices.Row] {
+        try sqlite.rows("""
+            SELECT people.person, samples.meeting, samples.vector FROM samples JOIN lines USING (meeting, timestamp, ord)
+            JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
+            WHERE people.person IS NOT NULL AND samples.meeting IS NOT ?
+            """, [meeting]) { row in
+            VoiceSample(blob: row.blob(2)).map { Voices.Row(person: row.int(0), meeting: row.int(1), sample: $0) }
+        }
+    }
+
+    /// The samples of each person of `meeting` that has no person yet, by key.
+    public func unnamedVoices(_ meeting: Int) throws -> [String: [VoiceSample]] {
+        let rows = try sqlite.rows("""
+            SELECT lines.current, samples.vector FROM samples JOIN lines USING (meeting, timestamp, ord)
+            JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
+            WHERE samples.meeting = ? AND people.person IS NULL
+            """, [meeting]) { row in VoiceSample(blob: row.blob(1)).map { (key: row.text(0) ?? "", sample: $0) } }
+        return Dictionary(grouping: rows, by: \.key).mapValues { $0.map(\.sample) }
+    }
+
+    /// Names the people of `meeting` a print recognises, as the window names them (the note's headers and the store
+    /// together), marked as recognised; a match with You merges that person into "you". Returns how many.
+    public func recognise(_ meeting: Meeting) throws -> Int {
+        let links = Voices.recognise(try unnamedVoices(meeting.id), prints: Voices.prints(try voiceRows(except: meeting.id)))
+        let you = try youID()
+        let applied = links.filter { $0.value != you || meeting.you != nil }
+        guard !applied.isEmpty else { return 0 }
+        try change(meeting) {
+            for (key, person) in applied {
+                if person == you, let label = meeting.you {
+                    try merge(meeting.id, person: key, into: label)
+                } else {
+                    try link(meeting.id, key: key, to: person)
+                    try sqlite.run("UPDATE people SET recognised = 1 WHERE meeting = ? AND key = ?", [meeting.id, key])
+                }
+            }
+        }
+        return applied.count
+    }
+
+    /// The samples of lines that belong to nobody named, in meetings started before `date` (voices design §4: 30 days).
+    public func forgetUnnamedVoices(before date: Date) throws {
+        try sqlite.runIfExists("""
+            DELETE FROM samples WHERE meeting IN (SELECT id FROM meetings WHERE start < ?) AND NOT EXISTS (
+              SELECT 1 FROM lines JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
+              WHERE lines.meeting = samples.meeting AND lines.timestamp = samples.timestamp AND lines.ord = samples.ord
+                AND people.person IS NOT NULL)
+            """, [date.timeIntervalSince1970])
     }
 
     /// Every real name of every meeting, for the name fields: names given in the window, and labels that are names

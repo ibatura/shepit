@@ -50,6 +50,7 @@ struct MeetingStoreTests {
         _ = try addSample(store, path: "/new.md", start: start.addingTimeInterval(3600))
         let reopened = MeetingStore(file: dir.appending(path: "meetings.sqlite"))
         #expect(try reopened.meetings().map(\.path) == ["/new.md", "/old.md"])
+        #expect(try reopened.meeting(reopened.meetings()[1].id)?.path == "/old.md" && reopened.meeting(999) == nil)
     }
 
     @Test func renameRelinkAndRemove() throws {

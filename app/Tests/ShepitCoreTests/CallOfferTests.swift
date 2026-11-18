@@ -458,5 +458,6 @@ struct CallOfferTests {
         #expect(CallOffer.readyDetail(title: nil, duration: 20, speakers: 1) == "1 min · 1 person")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: nil) == "10 min")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 0) == "10 min")
+        #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 4, recognised: 2) == "10 min · 4 people · 2 recognised")
     }
 }

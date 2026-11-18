@@ -24,6 +24,8 @@ public enum MeetingPage {
         public var share: Double
         /// The people this one can be merged into.
         public var mergeTargets: [String]
+        /// Named by a saved voice (voices design §5).
+        public var recognised: Bool
     }
 
     public struct Row: Equatable, Sendable {
@@ -65,7 +67,8 @@ public enum MeetingPage {
         let rows = order.map { key in
             PersonRow(key: key, name: names[key] ?? key, given: people.first { $0.key == key }?.name ?? (key == you ? key : nil),
                       initials: initials(names[key] ?? key), isYou: key == you, share: Double(words[key] ?? 0) / Double(total),
-                      mergeTargets: key == you ? [] : order.filter { $0 != key })
+                      mergeTargets: key == you ? [] : order.filter { $0 != key },
+                      recognised: people.first { $0.key == key }?.recognised ?? false)
         }
         let transcript = zip(entries, paired).map { entry, line in
             Row(name: line.map { names[$0.current] ?? $0.current } ?? entry.label, time: String(entry.timestamp.suffix(8)),

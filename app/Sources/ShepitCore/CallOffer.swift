@@ -321,10 +321,11 @@ public struct CallOffer: Sendable {
 
 extension CallOffer {
     /// The line of the "Transcript ready" panel: "Weekly sync · 42 min · 3 people".
-    public static func readyDetail(title: String?, duration: TimeInterval, speakers: Int?) -> String {
+    public static func readyDetail(title: String?, duration: TimeInterval, speakers: Int?, recognised: Int = 0) -> String {
         let minutes = max(1, Int((duration / 60).rounded()))
         let people = speakers.flatMap { $0 > 0 ? "\($0) \($0 == 1 ? "person" : "people")" : nil }
-        return [title, "\(minutes) min", people].compactMap { $0 }.joined(separator: " · ")
+        let known = recognised > 0 ? "\(recognised) recognised" : nil // voices design §9
+        return [title, "\(minutes) min", people, known].compactMap { $0 }.joined(separator: " · ")
     }
 }
 

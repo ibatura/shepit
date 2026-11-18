@@ -19,6 +19,7 @@ extension AppHost {
     var meetingActive: Bool { meeting?.state.isActive == true }
 
     func recoverMeeting() {
+        forgetOldVoices()
         if let note = MeetingSession.recover(stateDir: Paths.dataDir, sessionsRoot: Self.meetingSessionsRoot, now: Date()) {
             panel.message("⚠ The last meeting transcript was interrupted: \(note.lastPathComponent)")
             addToMeetings(note, you: settings.myName()) // after: a failure to list it is the message that stays
@@ -26,21 +27,50 @@ extension AppHost {
     }
 
     /// Puts a note in the meetings list (Meetings design §4), with what `session` knows of its lines: talk time, and voice
-    /// samples while Remember voices is still on. False, with a message, when it can't be listed; the note is kept.
+    /// samples while Remember voices is still on. Its id in the list (also when it was listed already); nil, with a
+    /// message, when it can't be listed: the note is kept.
     @discardableResult func addToMeetings(_ note: URL, you: String, start: Date? = nil, duration: TimeInterval? = nil,
-                                          session: MeetingSession? = nil) -> Bool {
+                                          session: MeetingSession? = nil) -> Int? {
         defer { refreshStatus() }
         do {
             let samples = settings.rememberVoices ? session?.samples ?? [:] : [:]
             if let id = try meetingStore.add(note: note, you: you, start: start, duration: duration, samples: samples,
-                                             seconds: session?.talk ?? [:]) { mainWindow.meetingAdded(id) }
-            return true
+                                             seconds: session?.talk ?? [:]) {
+                mainWindow.meetingAdded(id)
+                forgetOldVoices()
+                return id
+            }
+            return try meetingStore.meetings().first { $0.path == note.path }?.id
         } catch {
             NSLog("Shepit meetings list: %@", String(describing: error))
             mainWindow.sections.meetings.added(nil) // Name people must not open the meeting before this one
             panel.message("⚠ Transcript not added to the meetings list",
                           detail: "\(note.lastPathComponent): \(error.localizedDescription). Add notes… in Meetings adds it.")
-            return false
+            return nil
+        }
+    }
+
+    /// Names the people of a listed meeting whose voices are saved (voices design §5), while Remember voices is on.
+    /// Returns how many; a failure leaves the meeting as it was.
+    func recognisePeople(_ id: Int) -> Int {
+        guard settings.rememberVoices else { return 0 }
+        do {
+            guard let meeting = try meetingStore.meeting(id) else { return 0 }
+            let count = try meetingStore.recognise(meeting)
+            if count > 0 { mainWindow.reload(.meetings) }
+            return count
+        } catch {
+            NSLog("Shepit voices: %@", String(describing: error))
+            return 0
+        }
+    }
+
+    /// The voices of people nobody named go 30 days after their meeting (voices design §4).
+    private func forgetOldVoices() {
+        do {
+            try meetingStore.forgetUnnamedVoices(before: Date().addingTimeInterval(-30 * 86_400))
+        } catch {
+            NSLog("Shepit voices: %@", String(describing: error))
         }
     }
 
@@ -155,11 +185,16 @@ extension AppHost {
             self.meetingTimer = nil
             self.meetingMute?.cancel()
             self.meetingMute = nil
-            let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers)
-            // An empty transcript of a call is removed and gets no statistics row.
+            // A transcript with entries is listed, and its people recognised, before the ready panel says how many were.
+            // An empty one waits for the call offer, which removes it (no list, no statistics row) when it was a call's.
+            let id = session.entries > 0 ? self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration,
+                                                              session: session) : nil
+            let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers,
+                                               recognised: id.map(self.recognisePeople) ?? 0)
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
             guard !effects.contains(.removeEmptyNote) else { return }
-            let listed = self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration, session: session)
+            let listed = session.entries > 0 ? id != nil
+                : self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration) != nil
             self.recordMeeting(record)
             guard listed else { return } // its warning stays on screen
             // The call panel says "Transcript ready", unless an offer or a stop countdown is in its place.

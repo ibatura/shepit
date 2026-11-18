@@ -264,8 +264,11 @@ private struct FinishedMeeting: View {
         HStack(spacing: 10) {
             Text(person.initials).font(.caption2).fontWeight(.bold).foregroundStyle(.white)
                 .frame(width: 26, height: 26).background(color, in: Circle())
-            NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
-                model.name(meeting.id, person: person.key, typed: $0)
+            VStack(alignment: .leading, spacing: 2) {
+                NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
+                    model.name(meeting.id, person: person.key, typed: $0)
+                }
+                if person.recognised { Text("recognised by voice").font(.caption).foregroundStyle(.secondary) }
             }
             .frame(width: 230)
             Spacer()
