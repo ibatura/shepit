@@ -93,7 +93,8 @@ struct PeopleView: View {
                         if person.isYou {
                             Text(person.name).font(.title2).fontWeight(.semibold)
                         } else {
-                            PersonName(name: person.name) { model.rename(person, typed: $0) }.id(person.id)
+                            EditableTitle(text: person.name) { model.rename(person, typed: $0) }.id(person.id)
+                            Spacer(minLength: 8)
                             Menu("Merge into") {
                                 ForEach(model.people.filter { $0.id != person.id }) { other in
                                     // The detail tells apart two people with one name (Keep both).
@@ -193,30 +194,6 @@ struct PeopleView: View {
         case .taken(let person, _, let other):
             ("\(other.name) is already in People", "Merge \(person.name) into \(other.name)?", "Merge", false)
         }
-    }
-}
-
-/// A person's name as an editable title (voices design §6): saved on Enter or when it loses focus; a name that isn't
-/// saved goes back to the person's.
-private struct PersonName: View {
-    let name: String
-    let save: (String) -> Void
-    @State private var typed = ""
-    @FocusState private var editing: Bool
-
-    var body: some View {
-        TextField("Name", text: $typed)
-            .textFieldStyle(.plain).font(.title2).fontWeight(.semibold)
-            .focused($editing)
-            .onSubmit(commit)
-            .onChange(of: editing) { if !editing { commit() } }
-            .onAppear { typed = name }
-            .onChange(of: name) { typed = name }
-    }
-
-    private func commit() {
-        save(typed)
-        typed = name
     }
 }
 

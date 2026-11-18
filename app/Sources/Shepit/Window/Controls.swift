@@ -37,6 +37,48 @@ struct Caption: View {
     }
 }
 
+/// A name shown as a title and renamed on purpose (a meeting, a person): a click on it or on the pencil opens a field
+/// with Save and Cancel. Enter saves, Esc cancels; clicking elsewhere keeps the field open and saves nothing.
+struct EditableTitle: View {
+    let text: String
+    /// Shown for no name (a meeting without one: "Teams call").
+    var placeholder = ""
+    let save: (String) -> Void
+    @State private var editing = false
+    @State private var typed = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        if editing {
+            HStack(spacing: 8) {
+                TextField(placeholder, text: $typed)
+                    .textFieldStyle(.roundedBorder).font(.title2)
+                    .focused($focused)
+                    .onSubmit(commit)
+                    .onExitCommand { editing = false }
+                    .onAppear {
+                        typed = text
+                        focused = true
+                    }
+                Button("Save", action: commit)
+                Button("Cancel") { editing = false }
+            }
+        } else {
+            HStack(spacing: 6) {
+                Text(text.isEmpty ? placeholder : text).font(.title2).fontWeight(.semibold).lineLimit(2)
+                    .onTapGesture { editing = true }
+                Button { editing = true } label: { Image(systemName: "pencil") }
+                    .buttonStyle(.borderless).help("Rename").accessibilityLabel("Rename")
+            }
+        }
+    }
+
+    private func commit() {
+        editing = false
+        if typed != text { save(typed) }
+    }
+}
+
 /// A person's initials on their colour (mockups 2 and 6).
 struct Avatar: View {
     let initials: String

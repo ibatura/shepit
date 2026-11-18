@@ -133,7 +133,7 @@ Shepit window → **Meetings** lists every transcript, newest first, grouped by 
 
 Open a finished meeting to:
 
-- **Rename it:** click its name. The note's `title` and its file name change too (the `meetingFileName` template is filled again, in the folder the note is in now). Links to the note from other Obsidian notes are not updated: Obsidian does that only for renames made inside it.
+- **Rename it:** click its name (or ✎), type, and press **Save** or Enter; **Cancel** or Esc leaves it as it was. The note's `title` and its file name change too (the `meetingFileName` template is filled again, in the folder the note is in now). Links to the note from other Obsidian notes are not updated: Obsidian does that only for renames made inside it.
 - **Name people:** type a name next to `Person 1`; names given in earlier meetings are suggested. Every line of that person gets the name in the note. A name another person of the meeting already has asks to merge the two.
 - **Merge into:** all lines of one person go to another (for one voice that speaker detection split in two). Your own voice heard through the call can be merged into you.
 - **Give a line to another person:** click the line. **New person** makes a `Person N` for a voice that speaker detection put under someone else.
@@ -148,7 +148,7 @@ A meeting whose note was moved, renamed or deleted shows **note not found**, wit
 
 Shepit window → **People** lists everyone you named in meetings: you first, then by their last meeting, newest first. A waveform beside a name means their voice is saved. Choose a person to see:
 
-- **The name:** click it to rename. Every meeting with this person, and its note's `[name] time` lines, get the new name. A name another person already has asks to **Merge** the two, or **Keep both** (two people with one name, kept apart).
+- **The name:** click it (or ✎) to rename, and press **Save** or Enter. Every meeting with this person, and its note's `[name] time` lines, get the new name. A name another person already has asks to **Merge** the two, or **Keep both** (two people with one name, kept apart).
 - **Merge into:** every meeting of this person goes to the person you pick, and the notes get that name (one person named twice, say "Olena" and "Olena K."). The merged person leaves People.
 - **Voice:** "Saved from 6 meetings" with **Delete voice…**, or "No voice saved".
 - **May also be in 2 meetings:** recent meetings with a `Person N` whose voice is like this person's. **Show…** lists them, all checked; **Name them** names the checked ones, as the Meetings section does; the unchecked ones are not suggested again.

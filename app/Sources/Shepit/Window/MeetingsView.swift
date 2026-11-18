@@ -166,8 +166,6 @@ private struct FinishedMeeting: View {
     let model: MeetingsModel
     let open: MeetingsModel.Open
     let actions: WindowActions
-    @State private var title = ""
-    @FocusState private var editingTitle: Bool
     /// The transcript row whose "Give this line to" is open.
     @State private var giving: Int?
 
@@ -178,11 +176,9 @@ private struct FinishedMeeting: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                TextField(MeetingPage.title(nil, meeting.app), text: $title)
-                    .textFieldStyle(.plain).font(.title2).fontWeight(.semibold)
-                    .focused($editingTitle)
-                    .onSubmit(saveTitle)
-                    .onChange(of: editingTitle) { if !editingTitle { saveTitle() } }
+                EditableTitle(text: meeting.title ?? "", placeholder: MeetingPage.title(nil, meeting.app)) {
+                    model.rename(meeting, typed: $0)
+                }
                 HStack(spacing: 6) {
                     ForEach(MeetingPage.facts(meeting), id: \.self) { fact in
                         Text(fact).font(.caption).padding(.horizontal, 8).padding(.vertical, 3).background(.quaternary, in: Capsule())
@@ -219,12 +215,6 @@ private struct FinishedMeeting: View {
             }
             .padding(20)
         }
-        .onAppear { title = meeting.title ?? "" }
-        .onChange(of: meeting.title) { title = meeting.title ?? "" }
-    }
-
-    private func saveTitle() {
-        if !model.rename(meeting, typed: title) { title = meeting.title ?? "" }
     }
 
     private func people(_ page: MeetingPage.Page) -> some View {
