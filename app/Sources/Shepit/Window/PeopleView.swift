@@ -26,11 +26,11 @@ struct PeopleView: View {
         .alert(model.question.map { text($0).title } ?? "",
                isPresented: Binding(get: { model.question != nil }, set: { if !$0 { model.question = nil } }),
                presenting: model.question) { question in
-            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { model.answer(question, yes: true) }
+            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { Task { await model.answer(question, yes: true) } }
             if case .taken = question {
-                Button("Keep both") { model.keepBoth(question) }
+                Button("Keep both") { Task { await model.keepBoth(question) } }
             }
-            Button("Cancel", role: .cancel) { model.answer(question, yes: false) }
+            Button("Cancel", role: .cancel) { Task { await model.answer(question, yes: false) } }
         } message: { question in
             Text(text(question).message)
         }
@@ -93,7 +93,7 @@ struct PeopleView: View {
                         if person.isYou {
                             Text(person.name).font(.title2).fontWeight(.semibold)
                         } else {
-                            EditableTitle(text: person.name) { model.rename(person, typed: $0) }.id(person.id)
+                            EditableTitle(text: person.name) { typed in Task { await model.rename(person, typed: typed) } }.id(person.id)
                             Spacer(minLength: 8)
                             Menu("Merge into") {
                                 ForEach(model.people.filter { $0.id != person.id }) { other in
@@ -165,7 +165,7 @@ struct PeopleView: View {
                 .padding(20)
             }
             .sheet(isPresented: $suggesting) {
-                SuggestionsSheet(person: person, suggestions: model.suggestions) { model.name(person, suggestions: $0, checked: $1) }
+                SuggestionsSheet(person: person, suggestions: model.suggestions) { shown, checked in Task { await model.name(person, suggestions: shown, checked: checked) } }
             }
         } else {
             ContentUnavailableView("Choose a person", systemImage: "person.crop.circle")

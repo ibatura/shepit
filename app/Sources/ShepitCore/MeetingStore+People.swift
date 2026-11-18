@@ -93,12 +93,21 @@ extension MeetingStore {
         }
     }
 
-    private func meetings(of person: Int) throws -> [Meeting] {
+    /// The meetings a person is in, newest first.
+    public func meetings(of person: Int) throws -> [Meeting] {
         try meetings("WHERE id IN (SELECT meeting FROM people WHERE person = ?) ORDER BY start DESC, id DESC", [person])
     }
 
     private func keys(of person: Int, in meeting: Int) throws -> [String] {
         try sqlite.rows("SELECT key FROM people WHERE meeting = ? AND person = ? ORDER BY rowid", [meeting, person]) { $0.text(0) ?? "" }
+    }
+
+    /// Another person (not You) with `name`, ignoring case, accents and script, also one with no lines left: their name
+    /// is taken although People doesn't list them.
+    public func person(named name: String, except person: Int) throws -> (id: Int, name: String)? {
+        guard let key = Names.key(name) else { return nil }
+        return try sqlite.rows("SELECT id, name FROM persons WHERE you = 0 AND id != ? AND name_key(name) = ? ORDER BY id LIMIT 1",
+                               [person, key]) { (id: $0.int(0), name: $0.text(1) ?? "") }.first
     }
 
     /// Meetings listed before words were kept (voices design §7): some lines have none.

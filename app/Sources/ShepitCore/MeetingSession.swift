@@ -143,7 +143,8 @@ public final class MeetingSession {
 
     public var onState: ((MeetingState) -> Void)?
     public var onNotice: ((String) -> Void)?
-    public var onFinished: ((MeetingRecord) -> Void)?
+    /// Awaited before Stop returns.
+    public var onFinished: ((MeetingRecord) async -> Void)?
     public private(set) var state = MeetingState.idle { didSet { if state != oldValue { onState?(state) } } }
     /// The lines' voice samples by their place in the note, once speakers are detected with windows (voices design §4):
     /// the call's from the call audio, yours from the microphone's.
@@ -547,7 +548,7 @@ public final class MeetingSession {
                                    wordsCall: words[.call] ?? 0, speakers: speakers, engine: config.engine,
                                    diarizationSeconds: diarizationSeconds, failedChunks: failedChunks, app: config.app)
         state = .done(speakers: speakers)
-        onFinished?(record)
+        await onFinished?(record)
     }
 
     /// Person N labels into the note; returns how many remote speakers were found.

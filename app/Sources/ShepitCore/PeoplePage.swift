@@ -48,6 +48,12 @@ public enum PeoplePage {
             }
     }
 
+    /// A person People doesn't list (no lines left in any meeting) whose name is taken, for the question about it.
+    public static func unlisted(_ id: Int, name: String) -> Person {
+        Person(id: id, name: name, initials: MeetingPage.initials(name), isYou: false, detail: "no lines in any meeting",
+               voiceMeetings: 0, voice: "No voice saved")
+    }
+
     /// A person's meetings (their `presences`, as the store gives them for a period), newest first as `meetings` are.
     public static func meetings(_ presences: [MeetingStore.Presence], meetings: [MeetingStore.Meeting],
                                 calendar: Calendar = .current) -> [MeetingRow] {

@@ -57,6 +57,11 @@ public final class MeetingStore {
 
     let sqlite: SQLiteFile
 
+    public var file: URL { sqlite.file }
+
+    /// Changes as many times as the store does: what was read at one version still holds at the same one.
+    public var version: Int { sqlite.totalChanges }
+
     public init(file: URL) {
         sqlite = SQLiteFile(file: file, schema: Self.schema, upgrades: Self.upgrades, functions: ["name_key": Names.key])
     }

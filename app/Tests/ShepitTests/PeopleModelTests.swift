@@ -55,67 +55,81 @@ struct PeopleModelTests {
         #expect(again.chosen?.name == "Olena")
     }
 
-    @Test func deleteVoiceAsksFirst() throws {
+    @Test func deleteVoiceAsksFirst() async throws {
         let (model, store, dir) = try rig(try defaults())
         defer { try? FileManager.default.removeItem(at: dir) }
         let olena = model.people[1]
         #expect(olena.voiceMeetings == 1)
         model.question = .deleteVoice(olena)
-        model.answer(.deleteVoice(olena), yes: false)
+        await model.answer(.deleteVoice(olena), yes: false)
         #expect(model.question == nil)
         #expect(model.people[1].voiceMeetings == 1)
-        model.answer(.deleteVoice(olena), yes: true)
+        await model.answer(.deleteVoice(olena), yes: true)
         #expect(model.people[1].voiceMeetings == 0)
         #expect(model.people[0].voiceMeetings == 1) // yours stays
         #expect(try store.unnamedVoices(1).count == 1) // and Person 2's
     }
 
-    @Test func deleteAllVoicesAsksFirst() throws {
+    @Test func deleteAllVoicesAsksFirst() async throws {
         let (model, store, dir) = try rig(try defaults())
         defer { try? FileManager.default.removeItem(at: dir) }
-        model.answer(.deleteAll, yes: false)
+        await model.answer(.deleteAll, yes: false)
         #expect(try store.voiceRows().count == 2)
-        model.answer(.deleteAll, yes: true)
+        await model.answer(.deleteAll, yes: true)
         #expect(try store.voiceRows().isEmpty)
         #expect(try store.unnamedVoices(1).isEmpty)
         #expect(model.people.map(\.voiceMeetings) == [0, 0])
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena"]) // names stay
     }
 
-    @Test func renameAsksWhenAnotherPersonHasTheName() throws {
+    @Test func renameAsksWhenAnotherPersonHasTheName() async throws {
         let (model, store, dir) = try rig(try defaults())
         defer { try? FileManager.default.removeItem(at: dir) }
         let meeting = try #require(try store.meetings().first)
         try store.change([meeting]) { try store.setName(meeting.id, person: "Person 2", to: "Marko") }
         model.reload()
         let olena = try #require(model.people.first { $0.name == "Olena" }), marko = try #require(model.people.first { $0.name == "Marko" })
-        for typed in ["", " Olena ", "Person 4"] { model.rename(olena, typed: typed) } // nothing to save
+        for typed in ["", " Olena ", "Person 4"] { await model.rename(olena, typed: typed) } // nothing to save
         #expect(model.question == nil)
-        model.rename(olena, typed: "marko")
+        await model.rename(olena, typed: "marko")
         #expect(model.question == .taken(olena, name: "marko", by: marko))
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena", "Marko"])
-        model.rename(olena, typed: " Olena K. ")
+        await model.rename(olena, typed: " Olena K. ")
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena K.", "Marko"])
-        model.rename(model.people[1], typed: "marko")
-        model.keepBoth(try #require(model.question))
+        await model.rename(model.people[1], typed: "marko")
+        await model.keepBoth(try #require(model.question))
         #expect(model.question == nil)
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "marko", "Marko"])
     }
 
-    @Test func mergeChoosesTheOtherPerson() throws {
+    @Test func renameAsksAlsoForTheNameOfSomeoneWithNoLinesLeft() async throws {
+        let (model, store, dir) = try rig(try defaults())
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let meeting = try #require(try store.meetings().first)
+        try store.change([meeting]) { try store.setName(meeting.id, person: "Person 2", to: "Marko") }
+        let marko = try #require(try store.people(meeting.id)[2].person)
+        try store.give(meeting.id, line: .init(timestamp: "2026-07-31 10:00:05", order: 0), to: "Person 1") // Marko's only line
+        model.reload()
+        #expect(!model.people.contains { $0.id == marko }) // not listed
+        await model.rename(try #require(model.people.first { $0.name == "Olena" }), typed: "MARKO")
+        guard case .taken(_, "MARKO", let other) = model.question else { Issue.record("no question"); return }
+        #expect(other.id == marko && other.name == "Marko")
+    }
+
+    @Test func mergeChoosesTheOtherPerson() async throws {
         let (model, store, dir) = try rig(try defaults())
         defer { try? FileManager.default.removeItem(at: dir) }
         let meeting = try #require(try store.meetings().first)
         try store.change([meeting]) { try store.setName(meeting.id, person: "Person 2", to: "Marko") }
         model.reload()
         model.selection = model.people[1].id
-        model.merge(model.people[1], into: model.people[2])
+        await model.merge(model.people[1], into: model.people[2])
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Marko"])
         #expect(model.chosen?.name == "Marko")
         #expect(model.notice == nil)
     }
 
-    @Test func suggestionsForTheChosenPersonWhileRememberVoicesIsOn() throws {
+    @Test func suggestionsForTheChosenPersonWhileRememberVoicesIsOn() async throws {
         let dir = FileManager.default.temporaryDirectory.appending(path: "people-model-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -136,12 +150,15 @@ struct PeopleModelTests {
         #expect(model.suggestions.isEmpty) // Remember voices is off
         settings.rememberVoices = true
         model.reload()
+        #expect(model.suggestions.isEmpty) // until the prints are read, off the main thread
+        await model.reading?.value
         #expect(model.suggestions.map(\.key) == ["Person 1"])
         model.selection = nil
         #expect(model.suggestions.isEmpty)
         model.selection = model.people.first { $0.name == "Olena" }?.id
+        #expect(model.reading == nil && model.suggestions.map(\.key) == ["Person 1"]) // the store didn't change: read once
         let olena = try #require(model.chosen)
-        model.name(olena, suggestions: model.suggestions, checked: [ids[1]])
+        await model.name(olena, suggestions: model.suggestions, checked: [ids[1]])
         #expect(try store.people(ids[1])[0].person == olena.id)
         #expect(model.suggestions.isEmpty)
     }

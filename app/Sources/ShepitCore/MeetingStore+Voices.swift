@@ -27,10 +27,22 @@ extension MeetingStore {
         return Dictionary(grouping: rows, by: \.key).mapValues { $0.map(\.sample) }
     }
 
+    /// Everyone's prints, without the samples of `meeting`.
+    public func prints(except meeting: Int? = nil) throws -> [Int: Voices.Print] {
+        Voices.prints(try voiceRows(except: meeting))
+    }
+
+    /// `prints` read on a connection of its own, off the main thread: they need every sample kept (a year of meetings,
+    /// ~150k samples, takes ~0.3 s).
+    public static func prints(in file: URL, except meeting: Int? = nil) async throws -> [Int: Voices.Print] {
+        try await Task.detached { try MeetingStore(file: file).prints(except: meeting) }.value
+    }
+
     /// Names the people of `meeting` a print recognises, as the window names them (the note's headers and the store
-    /// together), marked as recognised; a match with You merges that person into "you". Returns how many.
-    public func recognise(_ meeting: Meeting) throws -> Int {
-        let links = Voices.recognise(try unnamedVoices(meeting.id), prints: Voices.prints(try voiceRows(except: meeting.id)))
+    /// together), marked as recognised; a match with You merges that person into "you". Returns how many. `prints`:
+    /// read beforehand, off the main thread (`prints(in:except:)`), or here.
+    public func recognise(_ meeting: Meeting, prints: [Int: Voices.Print]? = nil) throws -> Int {
+        let links = Voices.recognise(try unnamedVoices(meeting.id), prints: try prints ?? self.prints(except: meeting.id))
         let you = try youID()
         let applied = links.filter { $0.value != you || meeting.you != nil }
         guard !applied.isEmpty else { return 0 }

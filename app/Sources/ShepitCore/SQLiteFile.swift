@@ -36,6 +36,9 @@ final class SQLiteFile {
     /// Rows changed by the last INSERT, UPDATE or DELETE.
     var changes: Int { db.map { Int(sqlite3_changes($0)) } ?? 0 }
 
+    /// Rows changed through this file since it was opened: a different number means the data may differ.
+    var totalChanges: Int { db.map { Int(sqlite3_total_changes($0)) } ?? 0 }
+
     /// A write; creates the file with its schema when it is missing.
     func run(_ sql: String, _ values: [Any?] = []) throws {
         try execute(try existing() ?? open(), sql, values)
@@ -118,6 +121,7 @@ final class SQLiteFile {
             sqlite3_close(handle)
             throw Failure(description: "\(file.lastPathComponent): \(message)")
         }
+        sqlite3_busy_timeout(handle, 5000) // another connection (a read off the main thread) may hold the file a moment
         do {
             for (name, body) in functions { try register(handle, name, body) }
             for sql in schema { try exec(handle, sql) }

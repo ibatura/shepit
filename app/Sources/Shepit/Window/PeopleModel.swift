@@ -49,8 +49,11 @@ final class PeopleModel {
     @ObservationIgnored private let defaults: UserDefaults
     /// Every listed meeting, for the titles of the chosen person's meetings and suggestions.
     @ObservationIgnored private var meetings: [MeetingStore.Meeting] = []
-    /// Everyone's voice prints, read with the first suggestion after `reload()`: they need every sample kept.
-    @ObservationIgnored private var prints: [Int: Voices.Print]?
+    /// Everyone's voice prints and the store's version they were read at; read off the main thread when a suggestion
+    /// needs them, since they need every sample kept, and again only once the store has changed.
+    @ObservationIgnored private var prints: (version: Int, prints: [Int: Voices.Print])?
+    /// The read of `prints` under way.
+    @ObservationIgnored private(set) var reading: Task<Void, Never>?
     @ObservationIgnored private var wordsFilled = false
 
     /// `settings`: your name, as it is now.
@@ -70,7 +73,6 @@ final class PeopleModel {
         } catch {
             NSLog("Shepit people: %@", String(describing: error))
         }
-        prints = nil
         tally()
         suggest()
     }
@@ -108,8 +110,8 @@ final class PeopleModel {
         meetingRows = presences.map { PeoplePage.meetings($0, meetings: meetings) } ?? []
     }
 
-    /// None for You, or while Remember voices is off: no voice is recognised then. The prints are read only when there
-    /// is an unnamed voice to compare.
+    /// None for You, or while Remember voices is off: no voice is recognised then. The prints are needed only when there
+    /// is an unnamed voice to compare; until they are read, none are suggested.
     private func suggest() {
         guard let person = chosen, !person.isYou, settings().rememberVoices else {
             suggestions = []
@@ -117,65 +119,95 @@ final class PeopleModel {
         }
         do {
             let unnamed = try store.suggestedVoices(for: person.id)
-            if prints == nil, !unnamed.isEmpty { prints = Voices.prints(try store.voiceRows()) }
-            suggestions = PeoplePage.suggestions(Voices.suggestions(person.id, unnamed: unnamed, prints: prints ?? [:]), meetings: meetings)
+            guard !unnamed.isEmpty, let prints, prints.version == store.version else {
+                suggestions = []
+                if !unnamed.isEmpty { readPrints() }
+                return
+            }
+            suggestions = PeoplePage.suggestions(Voices.suggestions(person.id, unnamed: unnamed, prints: prints.prints), meetings: meetings)
         } catch {
             NSLog("Shepit suggestions: %@", String(describing: error))
             suggestions = []
         }
     }
 
+    /// Everyone's prints, off the main thread, then the suggestions again. A failed read leaves none at this version.
+    private func readPrints() {
+        guard reading == nil else { return }
+        let version = store.version, file = store.file
+        reading = Task {
+            do {
+                prints = (version, try await MeetingStore.prints(in: file))
+            } catch {
+                NSLog("Shepit prints: %@", String(describing: error))
+                prints = (version, [:])
+            }
+            reading = nil
+            suggest()
+        }
+    }
+
     /// Name them: of the `suggestions` shown, the people in the `checked` meetings become `person`; the rest aren't
     /// suggested again.
-    func name(_ person: PeoplePage.Person, suggestions: [PeoplePage.Suggestion], checked: Set<Int>) {
+    func name(_ person: PeoplePage.Person, suggestions: [PeoplePage.Suggestion], checked: Set<Int>) async {
         let keys = Dictionary(uniqueKeysWithValues: suggestions.map { ($0.id, $0.key) })
-        apply("Can't name \(person.name)") {
+        await apply("Can't name \(person.name)", notes: meetings.filter { checked.contains($0.id) }) {
             try store.nameSuggested(person.id, named: keys.filter { checked.contains($0.key) },
                                     declined: keys.filter { !checked.contains($0.key) })
         }
     }
 
     /// A name typed in a person's title (voices design §6): saved in every meeting and note, or a question when another
-    /// person has it.
-    func rename(_ person: PeoplePage.Person, typed: String) {
+    /// person has it, also one People doesn't list (no lines left), or You.
+    func rename(_ person: PeoplePage.Person, typed: String) async {
         guard !person.isYou, let name = MeetingPage.name(typed), let key = Names.key(name), name != person.name else { return }
-        if let other = people.first(where: { $0.id != person.id && Names.key($0.name) == key }) {
+        let taken = (try? store.person(named: name, except: person.id)).flatMap { $0 }
+        if let other = people.first(where: { $0.id != person.id && Names.key($0.name) == key })
+            ?? taken.map({ found in people.first { $0.id == found.id } ?? PeoplePage.unlisted(found.id, name: found.name) }) {
             question = .taken(person, name: name, by: other)
         } else {
-            save(person, name)
+            await save(person, name)
         }
     }
 
     /// Keep both, the third answer to `.taken`: the name is saved anyway, two people with one name.
-    func keepBoth(_ question: Question) {
+    func keepBoth(_ question: Question) async {
         self.question = nil
-        if case .taken(let person, let name, _) = question { save(person, name) }
+        if case .taken(let person, let name, _) = question { await save(person, name) }
     }
 
-    private func save(_ person: PeoplePage.Person, _ name: String) {
-        apply("Can't rename \(person.name)") { try store.rename(person: person.id, to: name) }
+    private func save(_ person: PeoplePage.Person, _ name: String) async {
+        await apply("Can't rename \(person.name)", notes: (try? store.meetings(of: person.id)) ?? []) {
+            try store.rename(person: person.id, to: name)
+        }
     }
 
     /// Merge into…: `person`'s meetings go to `other`, who is chosen next.
-    func merge(_ person: PeoplePage.Person, into other: PeoplePage.Person) {
-        if apply("Can't merge \(person.name)", { try store.merge(person: person.id, into: other.id, myName: settings().myName()) }) {
+    func merge(_ person: PeoplePage.Person, into other: PeoplePage.Person) async {
+        if await apply("Can't merge \(person.name)", notes: (try? store.meetings(of: person.id)) ?? [], {
+            try store.merge(person: person.id, into: other.id, myName: settings().myName())
+        }) {
             selection = other.id
         }
     }
 
     /// The answer to `question`: yes deletes or merges.
-    func answer(_ question: Question, yes: Bool) {
+    func answer(_ question: Question, yes: Bool) async {
         self.question = nil
         guard yes else { return }
         switch question {
-        case .deleteVoice(let person): apply("Voices not deleted") { try store.deleteVoice(person.id) }
-        case .deleteAll: apply("Voices not deleted") { try store.deleteAllVoices() }
-        case .merge(let person, let other), .taken(let person, _, let other): merge(person, into: other)
+        case .deleteVoice(let person): await apply("Voices not deleted") { try store.deleteVoice(person.id) }
+        case .deleteAll: await apply("Voices not deleted") { try store.deleteAllVoices() }
+        case .merge(let person, let other), .taken(let person, _, let other): await merge(person, into: other)
         }
     }
 
-    /// Runs a change and reads the list again; false, with a notice, when it failed.
-    @discardableResult private func apply(_ failed: String, _ change: () throws -> Void) -> Bool {
+    /// Runs a change and reads the list again; false, with a notice, when it failed. The `notes` it rewrites are read off
+    /// the main thread first: a note in iCloud Drive is downloaded when read, and the change reads and writes each one
+    /// on the main thread, in one transaction.
+    @discardableResult private func apply(_ failed: String, notes: [MeetingStore.Meeting] = [], _ change: () throws -> Void) async -> Bool {
+        let urls = notes.map { URL(fileURLWithPath: $0.path) }
+        await Task.detached { for url in urls { _ = try? Data(contentsOf: url) } }.value
         defer { reload() }
         do {
             try change()

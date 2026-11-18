@@ -52,11 +52,12 @@ extension AppHost {
 
     /// Names the people of a listed meeting whose voices are saved (voices design §5), while Remember voices is on.
     /// Returns how many; a failure leaves the meeting as it was.
-    func recognisePeople(_ id: Int) -> Int {
+    func recognisePeople(_ id: Int) async -> Int {
         guard settings.rememberVoices else { return 0 }
         do {
+            let prints = try await MeetingStore.prints(in: meetingStore.file, except: id) // every sample: off the main thread
             guard let meeting = try meetingStore.meeting(id) else { return 0 }
-            let count = try meetingStore.recognise(meeting)
+            let count = try meetingStore.recognise(meeting, prints: prints)
             if count > 0 {
                 mainWindow.reload(.meetings)
                 mainWindow.reload(.people)
@@ -193,8 +194,8 @@ extension AppHost {
             // An empty one waits for the call offer, which removes it (no list, no statistics row) when it was a call's.
             let list = { self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration, session: session) }
             var id = session.entries > 0 ? list() : nil
-            let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers,
-                                               recognised: id.map(self.recognisePeople) ?? 0)
+            let recognised = if let id { await self.recognisePeople(id) } else { 0 }
+            let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers, recognised: recognised)
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
             guard !effects.contains(.removeEmptyNote) else { return }
             if session.entries == 0 { id = list() }
