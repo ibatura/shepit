@@ -142,16 +142,6 @@ private struct MeetingMenu: View {
     }
 }
 
-/// A small caption over a block, as in the mockups ("People", "Transcript (read only)").
-private struct Caption: View {
-    let text: String
-    init(_ text: String) { self.text = text }
-
-    var body: some View {
-        Text(text).font(.subheadline).foregroundStyle(.secondary).padding(.top, 6)
-    }
-}
-
 /// One entry: "Name · 10:00:19" over its text; a ⚠ line of its own in grey.
 private struct EntryRow: View {
     let name: String?
@@ -181,7 +171,6 @@ private struct FinishedMeeting: View {
     /// The transcript row whose "Give this line to" is open.
     @State private var giving: Int?
 
-    private static let colors: [Color] = [.green, .purple, .orange, .cyan, .pink, .blue, .yellow, .indigo, .mint, .brown]
     private var meeting: MeetingStore.Meeting { open.meeting }
     private var missing: Bool { open.content == .missing }
     private var note: URL { URL(fileURLWithPath: meeting.path) }
@@ -247,8 +236,7 @@ private struct FinishedMeeting: View {
                     personRow(person, color: color(of: person.key, in: page), page: page)
                 }
             }
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+            .boxed()
             HStack {
                 Spacer()
                 Button("Reset people…") { model.question = .reset(meeting: meeting.id) }.disabled(!page.canReset)
@@ -257,13 +245,12 @@ private struct FinishedMeeting: View {
     }
 
     private func color(of person: String, in page: MeetingPage.Page) -> Color {
-        Self.colors[(page.people.firstIndex { $0.key == person } ?? 0) % Self.colors.count]
+        Avatar.color(page.people.firstIndex { $0.key == person } ?? 0)
     }
 
     private func personRow(_ person: MeetingPage.PersonRow, color: Color, page: MeetingPage.Page) -> some View {
         HStack(spacing: 10) {
-            Text(person.initials).font(.caption2).fontWeight(.bold).foregroundStyle(.white)
-                .frame(width: 26, height: 26).background(color, in: Circle())
+            Avatar(initials: person.initials, color: color)
             VStack(alignment: .leading, spacing: 2) {
                 NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
                     model.name(meeting.id, person: person.key, typed: $0)
@@ -455,7 +442,6 @@ private struct RunningMeeting: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .boxed()
     }
 }

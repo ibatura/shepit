@@ -57,7 +57,10 @@ extension AppHost {
         do {
             guard let meeting = try meetingStore.meeting(id) else { return 0 }
             let count = try meetingStore.recognise(meeting)
-            if count > 0 { mainWindow.reload(.meetings) }
+            if count > 0 {
+                mainWindow.reload(.meetings)
+                mainWindow.reload(.people)
+            }
             return count
         } catch {
             NSLog("Shepit voices: %@", String(describing: error))

@@ -26,3 +26,37 @@ struct Hinted<Content: View>: View {
         }
     }
 }
+
+/// A small caption over a block, as in the mockups ("People", "Transcript (read only)").
+struct Caption: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
+        Text(text).font(.subheadline).foregroundStyle(.secondary).padding(.top, 6)
+    }
+}
+
+/// A person's initials on their colour (mockups 2 and 6).
+struct Avatar: View {
+    let initials: String
+    let color: Color
+
+    private static let colors: [Color] = [.green, .purple, .orange, .cyan, .pink, .blue, .yellow, .indigo, .mint, .brown]
+
+    /// The colour of the person at `index`, repeating after ten.
+    static func color(_ index: Int) -> Color { colors[index % colors.count] }
+
+    var body: some View {
+        Text(initials).font(.caption2).fontWeight(.bold).foregroundStyle(.white)
+            .frame(width: 26, height: 26).background(color, in: Circle())
+    }
+}
+
+extension View {
+    /// The rounded box a block of rows sits in (mockups 2 and 6).
+    func boxed() -> some View {
+        background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+    }
+}

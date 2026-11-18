@@ -61,7 +61,8 @@ final class AppHost: ControllerHost {
         model: settingsModel, actions: windowActions,
         sections: WindowSections(meetings: MeetingsModel(store: meetingStore, settings: { [unowned self] in self.settings }),
                                  dictations: DictationsModel(store: dictations),
-                                 statistics: StatisticsModel(stats: stats, typingSpeed: { [unowned self] in self.settings.typingSpeedWpm })),
+                                 statistics: StatisticsModel(stats: stats, typingSpeed: { [unowned self] in self.settings.typingSpeedWpm }),
+                                 people: PeopleModel(store: meetingStore, settings: { [unowned self] in self.settings })),
         snapshot: { [unowned self] in self.snapshot() })
     /// The snapshot's device and disk lookups (AppHost+Window.swift says when they are gathered).
     var lookups = Lookups()

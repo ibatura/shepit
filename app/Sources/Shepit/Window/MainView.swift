@@ -49,7 +49,10 @@ struct MainView: View {
         case .dictionary:
             DictionarySection(model: model, actions: actions)
         case .people:
-            PeopleSection(model: model)
+            PeopleView(model: sections.people, settings: model) {
+                navigation.section = .meetings
+                sections.meetings.selection = .meeting($0)
+            }
         case .statistics:
             StatisticsView(model: sections.statistics, settings: model) { navigation.openSettings(.historyPrivacy) }
         case .settings:
@@ -86,26 +89,6 @@ private struct RecordingCard: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
-    }
-}
-
-/// A section that is not built yet.
-/// The People section until its list of people comes (voices plan Task 4): the Remember voices switch.
-private struct PeopleSection: View {
-    let model: SettingsModel
-
-    var body: some View {
-        Form {
-            Section {
-                Toggle(isOn: model.binding("rememberVoices", \.rememberVoices)) {
-                    Text("Remember voices")
-                    Text("Keeps a voice print for each person you name, so they are named in later meetings. Stored on this Mac only.")
-                }
-                .disabled(model.isReadOnly)
-            }
-            Section { Text("Saved voices come in a later version.").foregroundStyle(.secondary) }
-        }
-        .formStyle(.grouped)
     }
 }
 

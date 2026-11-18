@@ -275,6 +275,46 @@ public final class MeetingStore {
             """, [date.timeIntervalSince1970])
     }
 
+    // MARK: People (voices design §6)
+
+    /// A person in a listed meeting where they have lines now, and how many of those lines keep a voice sample.
+    public struct Presence: Hashable, Sendable {
+        public var person: Int
+        /// nil for You, who has no name of their own.
+        public var name: String?
+        public var you: Bool
+        public var meeting: Int
+        public var samples: Int
+    }
+
+    /// Every person in every meeting where they have lines now, once per meeting.
+    public func presences() throws -> [Presence] {
+        try sqlite.rows("""
+            SELECT persons.id, persons.name, persons.you, people.meeting, count(samples.ord)
+            FROM people JOIN persons ON persons.id = people.person
+            JOIN lines ON lines.meeting = people.meeting AND lines.current = people.key
+            LEFT JOIN samples ON samples.meeting = lines.meeting AND samples.timestamp = lines.timestamp AND samples.ord = lines.ord
+            GROUP BY persons.id, people.meeting
+            """) { row in
+            Presence(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meeting: row.int(3), samples: row.int(4))
+        }
+    }
+
+    /// Delete voice…: the samples of the lines that are `person`'s now. The person and their names stay.
+    public func deleteVoice(_ person: Int) throws {
+        try sqlite.runIfExists("""
+            DELETE FROM samples WHERE EXISTS (
+              SELECT 1 FROM lines JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
+              WHERE lines.meeting = samples.meeting AND lines.timestamp = samples.timestamp AND lines.ord = samples.ord
+                AND people.person = ?)
+            """, [person])
+    }
+
+    /// Delete all voices…: every sample, named or not.
+    public func deleteAllVoices() throws {
+        try sqlite.runIfExists("DELETE FROM samples")
+    }
+
     /// Every real name of every meeting, for the name fields: names given in the window, and labels that are names
     /// ("you", the labels of notes added by hand), not "Person N" or the live label. Newest meeting first, each once.
     public func knownNames() throws -> [String] {

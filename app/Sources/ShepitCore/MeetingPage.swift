@@ -118,7 +118,7 @@ public enum MeetingPage {
     }
 
     /// "P2" for Person 2, else the first letters of the first two words.
-    private static func initials(_ name: String) -> String {
+    static func initials(_ name: String) -> String {
         if let match = name.wholeMatch(of: /Person (\d+)/) { return "P\(match.1)" }
         return String(name.split(whereSeparator: \.isWhitespace).prefix(2).compactMap(\.first)).uppercased()
     }

@@ -95,4 +95,47 @@ struct MeetingVoicesTests {
         #expect(try store.unnamedVoices(old.id).isEmpty)
         #expect(try store.unnamedVoices(new.id).mapValues(\.count) == ["Person 1": 3, "Person 2": 1])
     }
+
+    // MARK: People (voices design §6)
+
+    @Test func presencesAreThePeopleWithLinesInEachMeeting() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = try meeting(store, dir, "a", start: start, labels: ["Me", "Person 1", "Person 1", "Person 2"],
+                            voices: ["Person 1": 1, "Person 2": 2])
+        let b = try meeting(store, dir, "b", start: start + 3600, labels: ["Me", "Person 1", "Person 2", "Person 3"], voices: [:])
+        try store.setName(a.id, person: "Person 1", to: "Olena")
+        try store.setName(a.id, person: "Person 2", to: "Marko")
+        try store.give(a.id, line: .init(timestamp: "2026-07-31 10:00:04", order: 0), to: "Person 1") // Marko has no line left in a
+        try store.setName(b.id, person: "Person 1", to: "Olena")
+        try store.setName(b.id, person: "Person 2", to: "OLENA") // one person twice in a meeting: one presence
+        let you = try #require(try store.people(a.id)[0].person), olena = try #require(try store.people(a.id)[1].person)
+        let presences = try store.presences().sorted { ($0.meeting, $0.person) < ($1.meeting, $1.person) }
+        #expect(presences == [
+            .init(person: you, name: nil, you: true, meeting: a.id, samples: 0),
+            .init(person: olena, name: "Olena", you: false, meeting: a.id, samples: 3),
+            .init(person: you, name: nil, you: true, meeting: b.id, samples: 0),
+            .init(person: olena, name: "Olena", you: false, meeting: b.id, samples: 0),
+        ])
+        #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).presences().isEmpty)
+    }
+
+    @Test func deleteVoiceTakesOnlyThatPersonsSamples() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = try meeting(store, dir, "a", start: start, labels: ["Person 1", "Person 2"], voices: ["Person 1": 1, "Person 2": 2])
+        let b = try meeting(store, dir, "b", start: start + 3600, labels: ["Person 1", "Person 2"], voices: ["Person 1": 1, "Person 2": 3])
+        try store.setName(a.id, person: "Person 1", to: "Olena")
+        try store.setName(a.id, person: "Person 2", to: "Marko")
+        try store.setName(b.id, person: "Person 1", to: "Olena")
+        let olena = try #require(try store.people(a.id)[0].person)
+        try store.deleteVoice(olena)
+        #expect(try store.presences().filter { $0.person == olena }.map(\.samples) == [0, 0]) // she stays in both meetings
+        #expect(try store.voiceRows().count == 1) // Marko's
+        #expect(try store.unnamedVoices(b.id).mapValues(\.count) == ["Person 2": 1])
+        try store.deleteAllVoices()
+        #expect(try store.voiceRows().isEmpty)
+        #expect(try store.unnamedVoices(b.id).isEmpty)
+        #expect(try store.people(a.id).map(\.name) == ["Olena", "Marko"]) // names stay
+    }
 }
