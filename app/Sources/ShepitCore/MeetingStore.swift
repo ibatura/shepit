@@ -79,13 +79,32 @@ public final class MeetingStore {
                     try link(id, key: label, to: label == you ? youID() : personID(named: label))
                 }
                 try sqlite.run("INSERT INTO lines (meeting, timestamp, ord, original, current, words, seconds) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                               [id, place.timestamp, place.order, entry.label, entry.label, DictationStore.words(entry.text), seconds[place]])
+                               [id, place.timestamp, place.order, entry.label, entry.label, Self.words(entry.text), seconds[place]])
                 if let sample = samples[place] {
                     try sqlite.run("INSERT INTO samples (meeting, timestamp, ord, vector) VALUES (?, ?, ?, ?)",
                                    [id, place.timestamp, place.order, sample.blob])
                 }
             }
             return id
+        }
+    }
+
+    /// An entry's words; none for a line that wasn't recognised.
+    static func words(_ text: String) -> Int {
+        text == MeetingQueue.failedText ? 0 : DictationStore.words(text)
+    }
+
+    /// The words of a meeting listed before they were kept (voices design §7), from its note's `entries`, when the
+    /// Meetings section reads the note; only lines that have none.
+    public func fillWords(_ meeting: Int, entries: [MeetingNote.Entry]) throws {
+        guard try !sqlite.rows("SELECT 1 FROM lines WHERE meeting = ? AND words IS NULL LIMIT 1", [meeting]) { $0.int(0) }.isEmpty else { return }
+        let lines = try lines(meeting)
+        try transaction {
+            for (entry, line) in zip(entries, MeetingPage.pair(entries, lines)) {
+                guard let line else { continue }
+                try sqlite.run("UPDATE lines SET words = ? WHERE meeting = ? AND timestamp = ? AND ord = ? AND words IS NULL",
+                               [Self.words(entry.text), meeting, line.place.timestamp, line.place.order])
+            }
         }
     }
 
@@ -313,18 +332,27 @@ public final class MeetingStore {
         public var you: Bool
         public var meeting: Int
         public var samples: Int
+        /// Their words in the meeting; nil while the meeting's words aren't known (listed before they were kept).
+        public var words: Int? = nil
+        /// Their talk time; nil when none of their lines has one (Add notes…, meetings before talk time was kept).
+        public var seconds: Double? = nil
+        /// The words of the whole meeting, everyone's.
+        public var meetingWords: Int? = nil
     }
 
     /// Every person in every meeting where they have lines now, once per meeting.
     public func presences() throws -> [Presence] {
         try sqlite.rows("""
-            SELECT persons.id, persons.name, persons.you, people.meeting, count(samples.ord)
+            SELECT persons.id, persons.name, persons.you, people.meeting, count(samples.ord), sum(lines.words), sum(lines.seconds),
+              (SELECT sum(words) FROM lines AS everyone WHERE everyone.meeting = people.meeting)
             FROM people JOIN persons ON persons.id = people.person
             JOIN lines ON lines.meeting = people.meeting AND lines.current = people.key
             LEFT JOIN samples ON samples.meeting = lines.meeting AND samples.timestamp = lines.timestamp AND samples.ord = lines.ord
             GROUP BY persons.id, people.meeting
             """) { row in
-            Presence(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meeting: row.int(3), samples: row.int(4))
+            Presence(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meeting: row.int(3), samples: row.int(4),
+                     words: row.isNull(5) ? nil : row.int(5), seconds: row.isNull(6) ? nil : row.double(6),
+                     meetingWords: row.isNull(7) ? nil : row.int(7))
         }
     }
 

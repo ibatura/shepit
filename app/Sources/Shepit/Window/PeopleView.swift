@@ -124,15 +124,27 @@ struct PeopleView: View {
                         }
                     }
                     .boxed()
+                    HStack {
+                        Caption("Who talked how much")
+                        Spacer()
+                        Picker("Period", selection: $model.period) {
+                            ForEach(Period.allCases, id: \.self) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.menu).labelsHidden().fixedSize()
+                    }
+                    StatTiles(tiles: model.talk).padding(12).boxed()
                     Caption("Meetings")
                     VStack(spacing: 0) {
                         ForEach(Array(person.meetings.enumerated()), id: \.element.id) { index, meeting in
                             if index > 0 { Divider().padding(.leading, 10) }
                             Button { openMeeting(meeting.id) } label: {
                                 HStack {
-                                    Text(meeting.title).lineLimit(1)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(meeting.title).lineLimit(1)
+                                        Text(meeting.date).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                                    }
                                     Spacer()
-                                    Text(meeting.date).foregroundStyle(.secondary).monospacedDigit()
+                                    Text(meeting.talk).foregroundStyle(.secondary).monospacedDigit()
                                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                                 }
                                 .padding(.horizontal, 10).padding(.vertical, 7)
@@ -230,8 +242,8 @@ private struct SuggestionsSheet: View {
                         Toggle(isOn: Binding(get: { checked.contains(suggestion.id) },
                                              set: { if $0 { checked.insert(suggestion.id) } else { checked.remove(suggestion.id) } })) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(suggestion.meeting.title).lineLimit(1)
-                                Text("\(suggestion.meeting.date) · \(suggestion.key)").font(.caption).foregroundStyle(.secondary)
+                                Text(suggestion.title).lineLimit(1)
+                                Text("\(suggestion.date) · \(suggestion.key)").font(.caption).foregroundStyle(.secondary)
                             }
                         }
                     }

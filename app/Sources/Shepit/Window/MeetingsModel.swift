@@ -120,7 +120,13 @@ final class MeetingsModel {
                 open = Open(meeting: meeting, content: .missing)
                 return
             }
-            let page = MeetingPage.page(people: people, lines: lines, you: meeting.you, entries: MeetingNote.parse(text).entries)
+            let entries = MeetingNote.parse(text).entries
+            do {
+                try store.fillWords(id, entries: entries) // a meeting listed before words were kept (voices design §7)
+            } catch {
+                NSLog("Shepit meeting words: %@", String(describing: error))
+            }
+            let page = MeetingPage.page(people: people, lines: lines, you: meeting.you, entries: entries)
             open = Open(meeting: meeting, content: .page(page), suggestions: suggestions)
         }
     }

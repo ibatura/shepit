@@ -21,9 +21,19 @@ final class PeopleModel {
     var selection: Int? {
         didSet {
             defaults.set(selection ?? 0, forKey: "peopleSelection")
+            tally()
             suggest()
         }
     }
+    /// Who talked how much counts this period (Dictations' periods), remembered.
+    var period: Period {
+        didSet {
+            defaults.set(period.rawValue, forKey: "peoplePeriod")
+            tally()
+        }
+    }
+    /// Who talked how much, for the chosen person.
+    private(set) var talk: [StatisticsPage.Tile] = []
     /// May also be in, for the chosen person (voices design §6): read with the list and when the choice changes.
     private(set) var suggestions: [PeoplePage.Suggestion] = []
     var question: Question?
@@ -35,6 +45,9 @@ final class PeopleModel {
     @ObservationIgnored private let store: MeetingStore
     @ObservationIgnored private let settings: () -> ShepitCore.Settings
     @ObservationIgnored private let defaults: UserDefaults
+    /// What the list was built from, for the talk of another person or period without reading the store again.
+    @ObservationIgnored private var presences: [MeetingStore.Presence] = []
+    @ObservationIgnored private var meetings: [MeetingStore.Meeting] = []
 
     /// `settings`: your name, as it is now.
     init(store: MeetingStore, settings: @escaping () -> ShepitCore.Settings, defaults: UserDefaults = .standard) {
@@ -43,15 +56,23 @@ final class PeopleModel {
         self.defaults = defaults
         let remembered = defaults.integer(forKey: "peopleSelection")
         selection = remembered == 0 ? nil : remembered
+        period = defaults.string(forKey: "peoplePeriod").flatMap(Period.init) ?? .month
     }
 
     func reload() {
         do {
-            people = PeoplePage.people(try store.presences(), meetings: try store.meetings(), you: settings().myName(), now: Date())
+            presences = try store.presences()
+            meetings = try store.meetings()
+            people = PeoplePage.people(presences, meetings: meetings, you: settings().myName(), now: Date())
         } catch {
             NSLog("Shepit people: %@", String(describing: error))
         }
+        tally()
         suggest()
+    }
+
+    private func tally() {
+        talk = chosen.map { PeoplePage.talk($0.id, presences, meetings: meetings, period: period, now: Date()) } ?? []
     }
 
     /// None for You, or while Remember voices is off: no voice is recognised then.
@@ -63,7 +84,7 @@ final class PeopleModel {
         do {
             let found = Voices.suggestions(person.id, unnamed: try store.suggestedVoices(for: person.id),
                                            prints: Voices.prints(try store.voiceRows()))
-            suggestions = PeoplePage.suggestions(found, meetings: try store.meetings())
+            suggestions = PeoplePage.suggestions(found, meetings: meetings)
         } catch {
             NSLog("Shepit suggestions: %@", String(describing: error))
             suggestions = []

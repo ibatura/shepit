@@ -143,4 +143,17 @@ struct PeopleModelTests {
         #expect(try store.people(ids[1])[0].person == olena.id)
         #expect(model.suggestions.isEmpty)
     }
+
+    @Test func talkFollowsThePeriodWhichIsRemembered() throws {
+        let defaults = try defaults()
+        let (model, store, dir) = try rig(defaults)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(model.talk.isEmpty) // nobody chosen
+        model.selection = model.people[1].id
+        model.period = .all
+        #expect(model.talk.map(\.value) == ["1", "–", "1", "33%"])
+        model.period = .today
+        #expect(model.talk.map(\.value) == ["0", "–", "–", "–"])
+        #expect(PeopleModel(store: store, settings: { .defaults }, defaults: defaults).period == .today)
+    }
 }

@@ -112,10 +112,10 @@ struct MeetingVoicesTests {
         let you = try #require(try store.people(a.id)[0].person), olena = try #require(try store.people(a.id)[1].person)
         let presences = try store.presences().sorted { ($0.meeting, $0.person) < ($1.meeting, $1.person) }
         #expect(presences == [
-            .init(person: you, name: nil, you: true, meeting: a.id, samples: 0),
-            .init(person: olena, name: "Olena", you: false, meeting: a.id, samples: 3),
-            .init(person: you, name: nil, you: true, meeting: b.id, samples: 0),
-            .init(person: olena, name: "Olena", you: false, meeting: b.id, samples: 0),
+            .init(person: you, name: nil, you: true, meeting: a.id, samples: 0, words: 1, meetingWords: 4),
+            .init(person: olena, name: "Olena", you: false, meeting: a.id, samples: 3, words: 3, meetingWords: 4),
+            .init(person: you, name: nil, you: true, meeting: b.id, samples: 0, words: 1, meetingWords: 4),
+            .init(person: olena, name: "Olena", you: false, meeting: b.id, samples: 0, words: 2, meetingWords: 4), // both her labels
         ])
         #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).presences().isEmpty)
     }
@@ -253,5 +253,35 @@ struct MeetingVoicesTests {
         // Merged into Marko, Olena's declined ones are his.
         try store.merge(person: olena, into: marko, myName: "Me")
         #expect(try counts(marko).isEmpty)
+    }
+
+    // MARK: Who talked how much (voices design §6)
+
+    @Test func presencesCountWordsAndTalkTimeAndOlderMeetingsGetTheirWords() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appending(path: "n.md")
+        let times = (1...4).map { "2026-07-31 10:00:0\($0)" }
+        let note = zip(["Me", "Person 1", "Person 1", "Person 2"], ["one two three", "four five", MeetingQueue.failedText, "six"])
+        try Data(zip(note, times).map { "[\($0.0)] \($1)\n\($0.1)\n" }.joined(separator: "\n").utf8).write(to: file)
+        let places = MeetingNote.places(times)
+        let id = try #require(try store.add(note: file, you: "Me", seconds: [places[0]: 2.5, places[1]: 1.5]))
+        try store.setName(id, person: "Person 1", to: "Olena")
+        func presences() throws -> [MeetingStore.Presence] { try store.presences().sorted { $0.person < $1.person } }
+        #expect(try presences().map(\.words) == [3, 2]) // a line not recognised has no words
+        #expect(try presences().map(\.seconds) == [2.5, 1.5])
+        #expect(try presences().map(\.meetingWords) == [6, 6])
+
+        // A meeting listed before words were kept gets them when its note is read.
+        try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
+        #expect(try presences().map(\.words) == [nil, nil])
+        let entries = MeetingNote.parse(try String(contentsOf: file, encoding: .utf8)).entries
+        try store.fillWords(id, entries: entries)
+        #expect(try presences().map(\.words) == [3, 2])
+        #expect(try presences().map(\.meetingWords) == [6, 6])
+        // Only where there are none: a note edited later doesn't change them.
+        try store.fillWords(id, entries: entries.map { var entry = $0; entry.text += " more"; return entry })
+        #expect(try presences().map(\.words) == [3, 2])
     }
 }

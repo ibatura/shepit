@@ -43,18 +43,18 @@ struct PeoplePageTests {
 
     @Test func aPersonsVoiceAndMeetings() throws {
         let list = people([
-            .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 3),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 2),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 2, samples: 0),
+            .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 3), // listed before words and talk time were kept
+            .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 2, words: 1240, seconds: 750, meetingWords: 4000),
+            .init(person: 4, name: "Olena K.", you: false, meeting: 2, samples: 0, words: 30, meetingWords: 100),
             .init(person: 5, name: "Marko D.", you: false, meeting: 2, samples: 0),
         ], meetings)
         let olena = try #require(list.first)
         #expect(olena.voiceMeetings == 2)
         #expect(olena.voice == "Saved from 2 meetings")
         #expect(olena.meetings == [
-            .init(id: 3, title: "Sprint planning", date: "10 Nov 2026, 10:00"),
-            .init(id: 2, title: "Teams call", date: "6 Nov 2026, 10:00"),
-            .init(id: 1, title: "Teams call", date: "3 Dec 2025, 10:00"),
+            .init(id: 3, title: "Sprint planning", date: "10 Nov 2026, 10:00", talk: "12 min · \(1240.formatted()) words"),
+            .init(id: 2, title: "Teams call", date: "6 Nov 2026, 10:00", talk: "– · 30 words"),
+            .init(id: 1, title: "Teams call", date: "3 Dec 2025, 10:00", talk: "–"),
         ])
         #expect(list[1].voiceMeetings == 0)
         #expect(list[1].voice == "No voice saved")
@@ -63,9 +63,28 @@ struct PeoplePageTests {
 
     @Test func suggestionsAreTheirMeetingsNewestFirst() {
         let rows = PeoplePage.suggestions([1: "Person 2", 3: "Person 1", 99: "Person 1"], meetings: meetings, calendar: calendar)
-        #expect(rows == [.init(meeting: .init(id: 3, title: "Sprint planning", date: "10 Nov 2026, 10:00"), key: "Person 1"),
-                         .init(meeting: .init(id: 1, title: "Teams call", date: "3 Dec 2025, 10:00"), key: "Person 2")])
+        #expect(rows == [.init(id: 3, title: "Sprint planning", date: "10 Nov 2026, 10:00", key: "Person 1"),
+                         .init(id: 1, title: "Teams call", date: "3 Dec 2025, 10:00", key: "Person 2")])
         #expect(PeoplePage.mayAlsoBeIn(rows) == "May also be in 2 meetings")
         #expect(PeoplePage.mayAlsoBeIn(Array(rows.prefix(1))) == "May also be in 1 meeting")
+    }
+
+    @Test func whoTalkedHowMuchInAPeriod() {
+        let presences: [MeetingStore.Presence] = [
+            .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 0, words: 120, seconds: 300, meetingWords: 400),
+            .init(person: 4, name: "Olena K.", you: false, meeting: 2, samples: 0, words: 30, meetingWords: 100),
+            .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 0), // words not filled yet
+            .init(person: 5, name: "Marko D.", you: false, meeting: 2, samples: 0, words: 70, meetingWords: 100),
+            .init(person: 5, name: "Marko D.", you: false, meeting: 99, samples: 0, words: 70, meetingWords: 100), // not listed
+        ]
+        func talk(_ person: Int, _ period: Period) -> [String] {
+            PeoplePage.talk(person, presences, meetings: meetings, period: period, now: day(2026, 11, 18), calendar: calendar).map(\.value)
+        }
+        #expect(PeoplePage.talk(4, presences, meetings: meetings, period: .all, now: day(2026, 11, 18)).map(\.title)
+                == ["Meetings", "Talk time", "Words", "Share of words"])
+        #expect(talk(4, .month) == ["2", "5 min", "150", "30%"])
+        #expect(talk(4, .all) == ["3", "5 min", "150", "30%"])
+        #expect(talk(5, .all) == ["1", "–", "70", "70%"])
+        #expect(talk(4, .today) == ["0", "–", "–", "–"])
     }
 }
