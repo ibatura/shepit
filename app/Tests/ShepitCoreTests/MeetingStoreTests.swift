@@ -332,17 +332,17 @@ struct MeetingStoreTests {
     @Test func aChangeRewritesOnlyTheHeadersWhoseNameChanged() throws {
         let (store, meeting, file, dir) = try withNote()
         defer { try? FileManager.default.removeItem(at: dir) }
-        try store.change(meeting) { try store.setName(meeting.id, person: "Person 1", to: "Olena K.") }
+        try store.change([meeting]) { try store.setName(meeting.id, person: "Person 1", to: "Olena K.") }
         #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
                                       "[Olena K.] 2026-07-31 10:00:07"])
         #expect(try String(contentsOf: file, encoding: .utf8).contains("I said this in Obsidian, edited"))
-        try store.change(meeting) {
+        try store.change([meeting]) {
             try store.give(meeting.id, line: .init(timestamp: "2026-07-31 10:00:07", order: 0), to: try store.newPerson(meeting.id))
             try store.give(meeting.id, line: .init(timestamp: "2026-07-31 10:00:01", order: 0), to: "Person 2")
         }
         #expect(try headers(file) == ["[Person 2] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
                                       "[Person 3] 2026-07-31 10:00:07"])
-        try store.change(meeting) { try store.reset(meeting.id) }
+        try store.change([meeting]) { try store.reset(meeting.id) }
         #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03", "[Person 2] 2026-07-31 10:00:05",
                                       "[Olena K.] 2026-07-31 10:00:07"])
     }
@@ -355,7 +355,7 @@ struct MeetingStoreTests {
             try? FileManager.default.removeItem(at: dir)
         }
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: notes.path) // no temp file, no rename
-        #expect(throws: (any Error).self) { try store.change(meeting) { try store.setName(meeting.id, person: "Person 1", to: "Olena") } }
+        #expect(throws: (any Error).self) { try store.change([meeting]) { try store.setName(meeting.id, person: "Person 1", to: "Olena") } }
         #expect(try store.people(meeting.id).first { $0.key == "Person 1" }?.name == nil)
         #expect(try headers(file)[1] == "[Person 1] 2026-07-31 10:00:03")
     }

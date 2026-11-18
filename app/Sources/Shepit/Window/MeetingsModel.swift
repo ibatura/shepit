@@ -231,7 +231,7 @@ final class MeetingsModel {
     private func change(_ id: Int, _ body: () throws -> Void) {
         guard let meeting = meetings.first(where: { $0.id == id }), !missing.contains(id) else { return }
         do {
-            try store.change(meeting, body)
+            try store.change([meeting], body)
         } catch {
             failed("Can't change", meeting.path, error)
         }

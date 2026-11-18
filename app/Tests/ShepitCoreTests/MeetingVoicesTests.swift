@@ -138,4 +138,91 @@ struct MeetingVoicesTests {
         #expect(try store.unnamedVoices(b.id).isEmpty)
         #expect(try store.people(a.id).map(\.name) == ["Olena", "Marko"]) // names stay
     }
+
+    // MARK: Rename and merge across meetings (voices design §6)
+
+    /// Names a meeting's person in the store and the note, as the Meetings section does.
+    private func name(_ store: MeetingStore, _ meeting: MeetingStore.Meeting, _ key: String, _ name: String) throws {
+        try store.change([meeting]) { try store.setName(meeting.id, person: key, to: name) }
+    }
+
+    private func text(_ meeting: MeetingStore.Meeting) throws -> String {
+        try String(contentsOf: URL(fileURLWithPath: meeting.path), encoding: .utf8)
+    }
+
+    @Test func renameChangesThePersonInEveryMeetingAndNote() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = try meeting(store, dir, "a", start: start, labels: ["Me", "Person 1", "Person 2"], voices: [:])
+        let b = try meeting(store, dir, "b", start: start + 86_400, labels: ["Person 1", "Me"], voices: [:])
+        let c = try meeting(store, dir, "c", start: start + 2 * 86_400, labels: ["Person 1"], voices: [:])
+        try name(store, a, "Person 1", "Olena")
+        try name(store, b, "Person 1", "olena")
+        try name(store, c, "Person 1", "Olena")
+        let olena = try #require(try store.people(a.id)[1].person)
+        try Data((try text(b) + "added in Obsidian\n").utf8).write(to: URL(fileURLWithPath: b.path))
+        try FileManager.default.removeItem(atPath: c.path) // a missing note changes only the store
+        try store.rename(person: olena, to: "Olena K.")
+        #expect(try headers(a) == ["Me", "Olena K.", "Person 2"])
+        #expect(try headers(b) == ["Olena K.", "Me"])
+        #expect(try text(b).hasSuffix("added in Obsidian\n"))
+        #expect(try [a, b, c].map { try store.people($0.id).first { $0.person == olena }?.name } == ["Olena K.", "Olena K.", "Olena K."])
+    }
+
+    @Test func aNoteThatCannotBeWrittenLeavesEveryNoteAndTheStore() throws {
+        let (store, dir) = setUp()
+        let locked = dir.appending(path: "locked")
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: locked.path)
+            try? FileManager.default.removeItem(at: dir)
+        }
+        // Written newest first: the oldest note, the last one, fails after the other two were written.
+        let a = try meeting(store, dir, "a", start: start + 2 * 86_400, labels: ["Person 1"], voices: [:])
+        let b = try meeting(store, dir, "b", start: start + 86_400, labels: ["Person 1"], voices: [:])
+        let c = try meeting(store, locked, "c", start: start, labels: ["Person 1"], voices: [:])
+        for meeting in [a, b, c] { try name(store, meeting, "Person 1", "Olena") }
+        let olena = try #require(try store.people(a.id)[0].person)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: locked.path) // no temp file, no rename
+        let error = #expect(throws: MeetingStore.NoteNotChanged.self) { try store.rename(person: olena, to: "Olena K.") }
+        #expect(error?.path == c.path)
+        #expect(try [a, b, c].map { try headers($0) } == [["Olena"], ["Olena"], ["Olena"]])
+        #expect(try [a, b, c].map { try store.people($0.id)[0].name } == ["Olena", "Olena", "Olena"])
+    }
+
+    @Test func mergeMovesEveryMeetingOfThePersonToTheOther() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = try meeting(store, dir, "a", start: start, labels: ["Me", "Person 1", "Person 2"], voices: ["Person 1": 1, "Person 2": 2])
+        let b = try meeting(store, dir, "b", start: start + 86_400, labels: ["Person 1", "Me"], voices: ["Person 1": 1])
+        try name(store, a, "Person 1", "Olena")
+        try name(store, a, "Person 2", "Marko")
+        try name(store, b, "Person 1", "Olena")
+        let olena = try #require(try store.people(a.id)[1].person), marko = try #require(try store.people(a.id)[2].person)
+        try store.merge(person: olena, into: marko, myName: "Me")
+        // In a meeting with both, her lines go to his label; elsewhere her label becomes him.
+        #expect(try headers(a) == ["Me", "Marko", "Marko"])
+        #expect(try store.lines(a.id).map(\.current) == ["Me", "Person 2", "Person 2"])
+        #expect(try headers(b) == ["Marko", "Me"])
+        #expect(try store.people(b.id)[0].person == marko)
+        #expect(try store.voiceRows().filter { $0.person == marko }.count == 3) // her samples count for him
+        #expect(try !store.presences().contains { $0.person == olena })
+        #expect(try !store.knownNames().contains("Olena")) // she is gone
+    }
+
+    @Test func mergeIntoYouMakesThePersonYou() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = try meeting(store, dir, "a", start: start, labels: ["Me", "Person 1"], voices: [:])
+        let b = try meeting(store, dir, "b", start: start + 86_400, labels: ["Ivan", "Person 1"], voices: [:]) // a note with no "Me"
+        try name(store, a, "Person 1", "Ivan") // your voice through the call, named by hand
+        let you = try #require(try store.people(a.id)[0].person), ivan = try #require(try store.people(b.id)[0].person)
+        #expect(try store.people(a.id)[1].person == ivan)
+        try store.merge(person: ivan, into: you, myName: "Ivan B.")
+        #expect(try headers(a) == ["Me", "Me"])
+        #expect(try headers(b) == ["Ivan B.", "Person 1"])
+        #expect(try store.meeting(b.id)?.you == "Ivan")
+        #expect(try store.people(b.id)[0] == .init(key: "Ivan", name: "Ivan B.", person: you))
+        #expect(try store.presences().filter { $0.person == you }.map(\.meeting).sorted() == [a.id, b.id])
+        #expect(try !store.presences().contains { $0.person == ivan })
+    }
 }

@@ -252,7 +252,7 @@ public final class MeetingStore {
         let you = try youID()
         let applied = links.filter { $0.value != you || meeting.you != nil }
         guard !applied.isEmpty else { return 0 }
-        try change(meeting) {
+        try change([meeting]) {
             for (key, person) in applied {
                 if person == you, let label = meeting.you {
                     try merge(meeting.id, person: key, into: label)
@@ -326,18 +326,82 @@ public final class MeetingStore {
         return names.filter { Names.key($0) != nil && seen.insert($0).inserted }
     }
 
-    /// A change to a meeting's people or lines made by `body` (Meetings design §8): the store and the note's headers together,
-    /// or neither. The note is read right before writing, so edits made in Obsidian meanwhile stay; only the headers whose
-    /// shown name changed are rewritten.
-    public func change(_ meeting: Meeting, _ body: () throws -> Void) throws {
-        let note = URL(fileURLWithPath: meeting.path)
+    /// Rename (voices design §6): the person's one name, in every meeting and in the headers of their notes.
+    public func rename(person: Int, to name: String) throws {
+        try change(try meetings(of: person)) {
+            try sqlite.run("UPDATE persons SET name = ? WHERE id = ? AND you = 0", [name, person])
+        }
+    }
+
+    /// Merge into… (voices design §6): every meeting of `person` moves to `other`, and `person` is deleted. In a meeting
+    /// with both, `person`'s lines go to the other, as a merge in one meeting does. Into You, a meeting without "you"
+    /// gets this person as its "you", named `myName`.
+    public func merge(person: Int, into other: Int, myName: String) throws {
+        let meetings = try meetings(of: person)
+        let you = try youID()
+        try change(meetings) {
+            for meeting in meetings {
+                var target = other == you ? meeting.you : try keys(of: other, in: meeting.id).first
+                for key in try keys(of: person, in: meeting.id) {
+                    if let target {
+                        try merge(meeting.id, person: key, into: target)
+                        try link(meeting.id, key: key, to: nil)
+                        continue
+                    }
+                    if other == you {
+                        try sqlite.run("UPDATE meetings SET you = ? WHERE id = ?", [key, meeting.id])
+                        try sqlite.run("UPDATE people SET name = ? WHERE meeting = ? AND key = ?", [myName, meeting.id, key])
+                    }
+                    try sqlite.run("UPDATE people SET person = ? WHERE meeting = ? AND key = ?", [other, meeting.id, key])
+                    target = key
+                }
+            }
+            try dropUnlistedPersons()
+        }
+    }
+
+    private func meetings(of person: Int) throws -> [Meeting] {
+        try meetings("WHERE id IN (SELECT meeting FROM people WHERE person = ?) ORDER BY start DESC, id DESC", [person])
+    }
+
+    private func keys(of person: Int, in meeting: Int) throws -> [String] {
+        try sqlite.rows("SELECT key FROM people WHERE meeting = ? AND person = ? ORDER BY rowid", [meeting, person]) { $0.text(0) ?? "" }
+    }
+
+    /// A note a change could not read or write: nothing was changed.
+    public struct NoteNotChanged: LocalizedError {
+        public var path: String
+        public var reason: String
+        public var errorDescription: String? { "\(path)\n\(reason)" }
+    }
+
+    /// A change to the people or lines of `meetings` made by `body` (Meetings design §8): the store and the notes' headers
+    /// together, or none of them. Each note is read right before it is written, so edits made in Obsidian meanwhile stay;
+    /// only the headers whose shown name changed are rewritten. A missing note changes only the store.
+    public func change(_ meetings: [Meeting], _ body: () throws -> Void) throws {
         try transaction {
-            let before = (people: try people(meeting.id), lines: try lines(meeting.id))
+            let before = try meetings.map { (people: try people($0.id), lines: try lines($0.id)) }
             try body()
-            let after = (people: try people(meeting.id), lines: try lines(meeting.id))
-            let text = try String(contentsOf: note, encoding: .utf8)
-            let changed = MeetingPage.relabelled(text, before: before, after: after)
-            if changed != text { try Data(changed.utf8).write(to: note, options: .atomic) }
+            var written: [(note: URL, text: String)] = []
+            do {
+                for (meeting, before) in zip(meetings, before) {
+                    let after = (people: try people(meeting.id), lines: try lines(meeting.id))
+                    let note = URL(fileURLWithPath: meeting.path)
+                    guard FileManager.default.fileExists(atPath: note.path) else { continue }
+                    do {
+                        let text = try String(contentsOf: note, encoding: .utf8)
+                        let changed = MeetingPage.relabelled(text, before: before, after: after)
+                        guard changed != text else { continue }
+                        try Data(changed.utf8).write(to: note, options: .atomic)
+                        written.append((note, text))
+                    } catch {
+                        throw NoteNotChanged(path: meeting.path, reason: error.localizedDescription)
+                    }
+                }
+            } catch {
+                for (note, text) in written.reversed() { try? Data(text.utf8).write(to: note, options: .atomic) }
+                throw error
+            }
         }
     }
 

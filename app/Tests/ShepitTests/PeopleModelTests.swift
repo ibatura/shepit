@@ -81,4 +81,35 @@ struct PeopleModelTests {
         #expect(model.people.map(\.voiceMeetings) == [0, 0])
         #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena"]) // names stay
     }
+
+    @Test func renameAsksWhenAnotherPersonHasTheName() throws {
+        let (model, store, dir) = try rig(try defaults())
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let meeting = try #require(try store.meetings().first)
+        try store.change([meeting]) { try store.setName(meeting.id, person: "Person 2", to: "Marko") }
+        model.reload()
+        let olena = try #require(model.people.first { $0.name == "Olena" }), marko = try #require(model.people.first { $0.name == "Marko" })
+        for typed in ["", " Olena ", "Person 4"] { model.rename(olena, typed: typed) } // nothing to save
+        #expect(model.question == nil)
+        model.rename(olena, typed: "marko")
+        #expect(model.question == .taken(olena, name: "marko", by: marko))
+        #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena", "Marko"])
+        model.rename(olena, typed: " Olena K. ")
+        #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Olena K.", "Marko"])
+        model.rename(model.people[1], typed: "marko", keepBoth: true)
+        #expect(model.people.map(\.name) == [Settings.defaults.myName(), "marko", "Marko"])
+    }
+
+    @Test func mergeChoosesTheOtherPerson() throws {
+        let (model, store, dir) = try rig(try defaults())
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let meeting = try #require(try store.meetings().first)
+        try store.change([meeting]) { try store.setName(meeting.id, person: "Person 2", to: "Marko") }
+        model.reload()
+        model.selection = model.people[1].id
+        model.merge(model.people[1], into: model.people[2])
+        #expect(model.people.map(\.name) == [Settings.defaults.myName(), "Marko"])
+        #expect(model.chosen?.name == "Marko")
+        #expect(model.notice == nil)
+    }
 }

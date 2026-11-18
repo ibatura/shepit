@@ -23,15 +23,18 @@ struct PeopleView: View {
         .alert(model.question.map { text($0).title } ?? "",
                isPresented: Binding(get: { model.question != nil }, set: { if !$0 { model.question = nil } }),
                presenting: model.question) { question in
-            Button(text(question).button, role: .destructive) { model.answer(question, yes: true) }
+            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { model.answer(question, yes: true) }
+            if case .taken(let person, let name, _) = question {
+                Button("Keep both") { model.rename(person, typed: name, keepBoth: true) }
+            }
             Button("Cancel", role: .cancel) { model.answer(question, yes: false) }
         } message: { question in
             Text(text(question).message)
         }
-        .alert("Voices not deleted", isPresented: Binding(get: { model.failure != nil }, set: { if !$0 { model.failure = nil } })) {
-            Button("OK") { model.failure = nil }
+        .alert(model.notice?.title ?? "", isPresented: Binding(get: { model.notice != nil }, set: { if !$0 { model.notice = nil } })) {
+            Button("OK") { model.notice = nil }
         } message: {
-            Text(model.failure ?? "")
+            Text(model.notice?.message ?? "")
         }
     }
 
@@ -84,7 +87,17 @@ struct PeopleView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 10) {
                         Avatar(initials: person.initials, color: Avatar.color(person.id))
-                        Text(person.name).font(.title2).fontWeight(.semibold)
+                        if person.isYou {
+                            Text(person.name).font(.title2).fontWeight(.semibold)
+                        } else {
+                            PersonName(name: person.name) { model.rename(person, typed: $0) }.id(person.id)
+                            Menu("Merge into") {
+                                ForEach(model.people.filter { $0.id != person.id }) { other in
+                                    Button(other.name) { model.question = .merge(person, into: other) }
+                                }
+                            }
+                            .fixedSize()
+                        }
                     }
                     if person.isYou {
                         Text("You. Your name in notes is set in Settings → Meetings.").font(.caption).foregroundStyle(.secondary)
@@ -128,16 +141,46 @@ struct PeopleView: View {
         !person.isYou && person.voiceMeetings > 0
     }
 
-    private func text(_ question: PeopleModel.Question) -> (title: String, message: String, button: String) {
+    private func text(_ question: PeopleModel.Question) -> (title: String, message: String, button: String, destructive: Bool) {
         switch question {
         case .deleteVoice(let person):
             ("Delete the voice of \(person.name)?",
              "\(person.name) stays in the meetings. A new voice is saved when they are named in a later meeting.",
-             "Delete voice")
+             "Delete voice", true)
         case .deleteAll:
             ("Delete all voices?",
              "Every saved voice sample is deleted, also of people with no name. Names in meetings stay. With Remember voices on, later meetings save voices again.",
-             "Delete all")
+             "Delete all", true)
+        case .merge(let person, let other):
+            ("Merge \(person.name) into \(other.name)?",
+             "Every meeting with \(person.name) goes to \(other.name), and the notes get the name \(other.name). \(person.name) is removed from People.",
+             "Merge", false)
+        case .taken(let person, _, let other):
+            ("\(other.name) is already in People", "Merge \(person.name) into \(other.name)?", "Merge", false)
         }
+    }
+}
+
+/// A person's name as an editable title (voices design §6): saved on Enter or when it loses focus; a name that isn't
+/// saved goes back to the person's.
+private struct PersonName: View {
+    let name: String
+    let save: (String) -> Void
+    @State private var typed = ""
+    @FocusState private var editing: Bool
+
+    var body: some View {
+        TextField("Name", text: $typed)
+            .textFieldStyle(.plain).font(.title2).fontWeight(.semibold)
+            .focused($editing)
+            .onSubmit(commit)
+            .onChange(of: editing) { if !editing { commit() } }
+            .onAppear { typed = name }
+            .onChange(of: name) { typed = name }
+    }
+
+    private func commit() {
+        save(typed)
+        typed = name
     }
 }
