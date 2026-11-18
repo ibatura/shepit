@@ -135,8 +135,13 @@ struct PeopleView: View {
                     }
                     StatTiles(tiles: model.talk).padding(12).boxed()
                     Caption("Meetings")
-                    VStack(spacing: 0) {
-                        ForEach(Array(person.meetings.enumerated()), id: \.element.id) { index, meeting in
+                    // Lazy: You is in every meeting, and All history may list hundreds.
+                    LazyVStack(spacing: 0) {
+                        if model.meetingRows.isEmpty {
+                            Text("No meetings in this period").foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(10)
+                        }
+                        ForEach(Array(model.meetingRows.enumerated()), id: \.element.id) { index, meeting in
                             if index > 0 { Divider().padding(.leading, 10) }
                             Button { openMeeting(meeting.id) } label: {
                                 HStack {

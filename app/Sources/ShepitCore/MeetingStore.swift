@@ -344,19 +344,52 @@ public final class MeetingStore {
         public var meetingWords: Int? = nil
     }
 
-    /// Every person in every meeting where they have lines now, once per meeting.
-    public func presences() throws -> [Presence] {
-        try sqlite.rows("""
+    /// Every person (or only `person`) in every meeting (or those started `since`) where they have lines now, once per
+    /// meeting. Reads every line of those meetings: People reads one person's, for a period.
+    public func presences(of person: Int? = nil, since: Date? = nil) throws -> [Presence] {
+        var filters = ["1"], values: [Any?] = []
+        if let person { filters.append("people.person = ?"); values.append(person) }
+        if let since { filters.append("meetings.start >= ?"); values.append(since.timeIntervalSince1970) }
+        return try sqlite.rows("""
             SELECT persons.id, persons.name, persons.you, people.meeting, count(samples.ord), sum(lines.words), sum(lines.seconds),
               (SELECT sum(words) FROM lines AS everyone WHERE everyone.meeting = people.meeting)
-            FROM people JOIN persons ON persons.id = people.person
+            FROM people JOIN persons ON persons.id = people.person JOIN meetings ON meetings.id = people.meeting
             JOIN lines ON lines.meeting = people.meeting AND lines.current = people.key
             LEFT JOIN samples ON samples.meeting = lines.meeting AND samples.timestamp = lines.timestamp AND samples.ord = lines.ord
+            WHERE \(filters.joined(separator: " AND "))
             GROUP BY persons.id, people.meeting
-            """) { row in
+            """, values) { row in
             Presence(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meeting: row.int(3), samples: row.int(4),
                      words: row.isNull(5) ? nil : row.int(5), seconds: row.isNull(6) ? nil : row.double(6),
                      meetingWords: row.isNull(7) ? nil : row.int(7))
+        }
+    }
+
+    /// A person as People's list shows them: how many listed meetings they have lines in now, the last one's start, and
+    /// in how many of them a line of theirs keeps a voice sample.
+    public struct Summary: Equatable, Sendable {
+        public var person: Int
+        /// nil for You, who has no name of their own.
+        public var name: String?
+        public var you: Bool
+        public var meetings: Int
+        public var last: Date
+        public var voiceMeetings: Int
+    }
+
+    /// A row per person, without reading every line: each meeting stops at its first line (and sample) of theirs.
+    public func summaries() throws -> [Summary] {
+        try sqlite.rows("""
+            SELECT persons.id, persons.name, persons.you, count(DISTINCT people.meeting), max(meetings.start),
+              count(DISTINCT CASE WHEN EXISTS (
+                SELECT 1 FROM samples JOIN lines USING (meeting, timestamp, ord)
+                WHERE samples.meeting = people.meeting AND lines.current = people.key) THEN people.meeting END)
+            FROM people JOIN persons ON persons.id = people.person JOIN meetings ON meetings.id = people.meeting
+            WHERE EXISTS (SELECT 1 FROM lines WHERE lines.meeting = people.meeting AND lines.current = people.key)
+            GROUP BY persons.id
+            """) { row in
+            Summary(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meetings: row.int(3),
+                    last: Date(timeIntervalSince1970: row.double(4)), voiceMeetings: row.int(5))
         }
     }
 

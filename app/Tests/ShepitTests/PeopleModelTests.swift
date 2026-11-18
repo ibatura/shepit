@@ -144,16 +144,18 @@ struct PeopleModelTests {
         #expect(model.suggestions.isEmpty)
     }
 
-    @Test func talkFollowsThePeriodWhichIsRemembered() throws {
+    @Test func talkAndMeetingsFollowThePeriodWhichIsRemembered() throws {
         let defaults = try defaults()
         let (model, store, dir) = try rig(defaults)
         defer { try? FileManager.default.removeItem(at: dir) }
-        #expect(model.talk.isEmpty) // nobody chosen
+        #expect(model.talk.isEmpty && model.meetingRows.isEmpty) // nobody chosen
         model.selection = model.people[1].id
         model.period = .all
         #expect(model.talk.map(\.value) == ["1", "–", "1", "33%"])
+        #expect(model.meetingRows.map(\.talk) == ["– · 1 words"])
         model.period = .today
         #expect(model.talk.map(\.value) == ["0", "–", "–", "–"])
+        #expect(model.meetingRows.isEmpty)
         #expect(PeopleModel(store: store, settings: { .defaults }, defaults: defaults).period == .today)
     }
 

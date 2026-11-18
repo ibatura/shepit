@@ -1,6 +1,7 @@
 import Foundation
 
-/// What the People section shows (voices design §6), built from the store's presences and meetings.
+/// What the People section shows (voices design §6), built from the store's summaries, one person's presences and the
+/// meetings.
 public enum PeoplePage {
     public struct Person: Equatable, Sendable, Identifiable {
         public var id: Int
@@ -13,8 +14,6 @@ public enum PeoplePage {
         public var voiceMeetings: Int
         /// "Saved from 6 meetings", "No voice saved"; yours says where it comes from.
         public var voice: String
-        /// Newest first.
-        public var meetings: [MeetingRow]
     }
 
     public struct MeetingRow: Equatable, Sendable, Identifiable {
@@ -33,48 +32,45 @@ public enum PeoplePage {
         public var key: String
     }
 
-    /// You first, then by the last meeting, newest first. `meetings` newest first, as the store gives them; a presence in
-    /// a meeting not among them is left out. `you`: the author's name.
-    public static func people(_ presences: [MeetingStore.Presence], meetings: [MeetingStore.Meeting], you: String, now: Date,
-                              calendar: Calendar = .current) -> [Person] {
-        var order: [Int] = []
-        var found: [Int: [(meeting: MeetingStore.Meeting, presence: MeetingStore.Presence)]] = [:]
-        for (meeting, presence) in listed(presences, meetings) {
-            if found[presence.person] == nil { order.append(presence.person) }
-            found[presence.person, default: []].append((meeting, presence))
-        }
+    /// You first, then by the last meeting, newest first. `you`: the author's name.
+    public static func people(_ summaries: [MeetingStore.Summary], you: String, now: Date, calendar: Calendar = .current) -> [Person] {
         let thisYear = DateFormatter.english("d MMM", calendar), otherYear = DateFormatter.english("d MMM yyyy", calendar)
-        let describe = describing(calendar)
-        let people = order.compactMap { id -> Person? in
-            guard let seen = found[id], let (last, presence) = seen.first else { return nil }
-            let name = presence.you ? you : presence.name ?? ""
-            let date = (calendar.isDate(last.start, equalTo: now, toGranularity: .year) ? thisYear : otherYear).string(from: last.start)
-            let detail = [presence.you ? "you" : nil, count(seen.count, "meeting"), "last \(date)"].compactMap { $0 }
-            let voice = seen.filter { $0.presence.samples > 0 }.count
-            return Person(id: id, name: name, initials: MeetingPage.initials(name), isYou: presence.you,
-                          detail: detail.joined(separator: " · "), voiceMeetings: voice,
-                          voice: voice == 0 ? "No voice saved"
-                              : "Saved from \(count(voice, "meeting"))" + (presence.you ? ": your microphone and the lines given to you" : ""),
-                          meetings: seen.map { meeting, presence in
-                              let (title, date) = describe(meeting)
-                              let talk = presence.words.map { [presence.seconds.map(StatisticsPage.duration) ?? "–", "\($0.formatted()) words"] }
-                                  ?? presence.seconds.map { [StatisticsPage.duration($0)] } ?? ["–"]
-                              return MeetingRow(id: meeting.id, title: title, date: date, talk: talk.joined(separator: " · "))
-                          })
-        }
-        return people.filter(\.isYou) + people.filter { !$0.isYou }
+        return summaries.sorted { ($0.you ? 0 : 1, -$0.last.timeIntervalSince1970, $0.person) < ($1.you ? 0 : 1, -$1.last.timeIntervalSince1970, $1.person) }
+            .map { summary in
+                let name = summary.you ? you : summary.name ?? ""
+                let date = (calendar.isDate(summary.last, equalTo: now, toGranularity: .year) ? thisYear : otherYear).string(from: summary.last)
+                let detail = [summary.you ? "you" : nil, count(summary.meetings, "meeting"), "last \(date)"].compactMap { $0 }
+                let voice = summary.voiceMeetings
+                return Person(id: summary.person, name: name, initials: MeetingPage.initials(name), isYou: summary.you,
+                              detail: detail.joined(separator: " · "), voiceMeetings: voice,
+                              voice: voice == 0 ? "No voice saved"
+                                  : "Saved from \(count(voice, "meeting"))" + (summary.you ? ": your microphone and the lines given to you" : ""))
+            }
     }
 
-    /// Who talked how much (voices design §6): `person`'s meetings in `period`, their talk time and words, and their share
-    /// of all the words of those meetings. Talk time and words count the meetings that know them; "–" when none does.
-    public static func talk(_ person: Int, _ presences: [MeetingStore.Presence], meetings: [MeetingStore.Meeting], period: Period,
-                            now: Date, calendar: Calendar = .current) -> [StatisticsPage.Tile] {
-        let since = period.since(now, calendar: calendar) ?? .distantPast
-        let theirs = listed(presences, meetings).filter { $0.presence.person == person && $0.meeting.start >= since }.map(\.presence)
-        let seconds = theirs.compactMap(\.seconds), counted = theirs.filter { $0.words != nil }
+    /// A person's meetings (their `presences`, as the store gives them for a period), newest first as `meetings` are.
+    public static func meetings(_ presences: [MeetingStore.Presence], meetings: [MeetingStore.Meeting],
+                                calendar: Calendar = .current) -> [MeetingRow] {
+        let byMeeting = Dictionary(presences.map { ($0.meeting, $0) }, uniquingKeysWith: { first, _ in first })
+        let describe = describing(calendar)
+        return meetings.compactMap { meeting in
+            byMeeting[meeting.id].map { presence in
+                let (title, date) = describe(meeting)
+                let talk = presence.words.map { [presence.seconds.map(StatisticsPage.duration) ?? "–", "\($0.formatted()) words"] }
+                    ?? presence.seconds.map { [StatisticsPage.duration($0)] } ?? ["–"]
+                return MeetingRow(id: meeting.id, title: title, date: date, talk: talk.joined(separator: " · "))
+            }
+        }
+    }
+
+    /// Who talked how much (voices design §6): a person's meetings (their `presences` in a period), talk time and words,
+    /// and their share of all the words of those meetings. Talk time and words count the meetings that know them; "–"
+    /// when none does.
+    public static func talk(_ presences: [MeetingStore.Presence]) -> [StatisticsPage.Tile] {
+        let seconds = presences.compactMap(\.seconds), counted = presences.filter { $0.words != nil }
         let words = counted.compactMap(\.words).reduce(0, +), all = counted.compactMap(\.meetingWords).reduce(0, +)
         return [
-            .init(title: "Meetings", value: "\(theirs.count)"),
+            .init(title: "Meetings", value: "\(presences.count)"),
             .init(title: "Talk time", value: seconds.isEmpty ? "–" : StatisticsPage.duration(seconds.reduce(0, +))),
             .init(title: "Words", value: counted.isEmpty ? "–" : words.formatted()),
             .init(title: "Share of words", value: all == 0 ? "–" : "\(Int((Double(words) / Double(all) * 100).rounded()))%"),
@@ -91,13 +87,6 @@ public enum PeoplePage {
                 return Suggestion(id: meeting.id, title: title, date: date, key: key)
             }
         }
-    }
-
-    /// Each presence with its meeting, in the order of `meetings`; presences in meetings not among them left out.
-    private static func listed(_ presences: [MeetingStore.Presence], _ meetings: [MeetingStore.Meeting])
-        -> [(meeting: MeetingStore.Meeting, presence: MeetingStore.Presence)] {
-        let byMeeting = Dictionary(grouping: presences, by: \.meeting)
-        return meetings.flatMap { meeting in (byMeeting[meeting.id] ?? []).sorted { $0.person < $1.person }.map { (meeting, $0) } }
     }
 
     /// A meeting's title and "10 Nov 2026, 10:00".

@@ -25,15 +25,17 @@ final class PeopleModel {
             suggest()
         }
     }
-    /// Who talked how much counts this period (Dictations' periods), remembered.
+    /// The period of Who talked how much and the person's meetings (Dictations' periods), remembered.
     var period: Period {
         didSet {
             defaults.set(period.rawValue, forKey: "peoplePeriod")
             tally()
         }
     }
-    /// Who talked how much, for the chosen person.
+    /// Who talked how much, for the chosen person in `period`.
     private(set) var talk: [StatisticsPage.Tile] = []
+    /// The chosen person's meetings in `period`, newest first.
+    private(set) var meetingRows: [PeoplePage.MeetingRow] = []
     /// May also be in, for the chosen person (voices design §6): read with the list and when the choice changes.
     private(set) var suggestions: [PeoplePage.Suggestion] = []
     var question: Question?
@@ -45,9 +47,10 @@ final class PeopleModel {
     @ObservationIgnored private let store: MeetingStore
     @ObservationIgnored private let settings: () -> ShepitCore.Settings
     @ObservationIgnored private let defaults: UserDefaults
-    /// What the list was built from, for the talk of another person or period without reading the store again.
-    @ObservationIgnored private var presences: [MeetingStore.Presence] = []
+    /// Every listed meeting, for the titles of the chosen person's meetings and suggestions.
     @ObservationIgnored private var meetings: [MeetingStore.Meeting] = []
+    /// Everyone's voice prints, read with the first suggestion after `reload()`: they need every sample kept.
+    @ObservationIgnored private var prints: [Int: Voices.Print]?
     @ObservationIgnored private var wordsFilled = false
 
     /// `settings`: your name, as it is now.
@@ -62,12 +65,12 @@ final class PeopleModel {
 
     func reload() {
         do {
-            presences = try store.presences()
             meetings = try store.meetings()
-            people = PeoplePage.people(presences, meetings: meetings, you: settings().myName(), now: Date())
+            people = PeoplePage.people(try store.summaries(), you: settings().myName(), now: Date())
         } catch {
             NSLog("Shepit people: %@", String(describing: error))
         }
+        prints = nil
         tally()
         suggest()
     }
@@ -91,20 +94,31 @@ final class PeopleModel {
         reload()
     }
 
+    /// The chosen person's lines are read for `period` only: You is in every meeting.
     private func tally() {
-        talk = chosen.map { PeoplePage.talk($0.id, presences, meetings: meetings, period: period, now: Date()) } ?? []
+        var presences: [MeetingStore.Presence]?
+        if let person = chosen {
+            do {
+                presences = try store.presences(of: person.id, since: period.since(Date()))
+            } catch {
+                NSLog("Shepit people: %@", String(describing: error))
+            }
+        }
+        talk = presences.map(PeoplePage.talk) ?? []
+        meetingRows = presences.map { PeoplePage.meetings($0, meetings: meetings) } ?? []
     }
 
-    /// None for You, or while Remember voices is off: no voice is recognised then.
+    /// None for You, or while Remember voices is off: no voice is recognised then. The prints are read only when there
+    /// is an unnamed voice to compare.
     private func suggest() {
         guard let person = chosen, !person.isYou, settings().rememberVoices else {
             suggestions = []
             return
         }
         do {
-            let found = Voices.suggestions(person.id, unnamed: try store.suggestedVoices(for: person.id),
-                                           prints: Voices.prints(try store.voiceRows()))
-            suggestions = PeoplePage.suggestions(found, meetings: meetings)
+            let unnamed = try store.suggestedVoices(for: person.id)
+            if prints == nil, !unnamed.isEmpty { prints = Voices.prints(try store.voiceRows()) }
+            suggestions = PeoplePage.suggestions(Voices.suggestions(person.id, unnamed: unnamed, prints: prints ?? [:]), meetings: meetings)
         } catch {
             NSLog("Shepit suggestions: %@", String(describing: error))
             suggestions = []

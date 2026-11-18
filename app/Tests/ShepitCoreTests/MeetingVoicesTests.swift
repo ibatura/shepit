@@ -110,7 +110,10 @@ struct MeetingVoicesTests {
         try store.setName(b.id, person: "Person 1", to: "Olena")
         try store.setName(b.id, person: "Person 2", to: "OLENA") // one person twice in a meeting: one presence
         let you = try #require(try store.people(a.id)[0].person), olena = try #require(try store.people(a.id)[1].person)
-        let presences = try store.presences().sorted { ($0.meeting, $0.person) < ($1.meeting, $1.person) }
+        func sorted(_ presences: [MeetingStore.Presence]) -> [MeetingStore.Presence] {
+            presences.sorted { ($0.meeting, $0.person) < ($1.meeting, $1.person) }
+        }
+        let presences = sorted(try store.presences())
         #expect(presences == [
             .init(person: you, name: nil, you: true, meeting: a.id, samples: 0, words: 1, meetingWords: 4),
             .init(person: olena, name: "Olena", you: false, meeting: a.id, samples: 3, words: 3, meetingWords: 4),
@@ -118,6 +121,16 @@ struct MeetingVoicesTests {
             .init(person: olena, name: "Olena", you: false, meeting: b.id, samples: 0, words: 2, meetingWords: 4), // both her labels
         ])
         #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).presences().isEmpty)
+        // One person's, in meetings from a date on.
+        #expect(sorted(try store.presences(of: olena)) == presences.filter { $0.person == olena })
+        #expect(sorted(try store.presences(of: olena, since: start + 1)) == presences.filter { $0.person == olena && $0.meeting == b.id })
+        #expect(sorted(try store.presences(since: start + 1)) == presences.filter { $0.meeting == b.id })
+        // People's list: a row each, the meetings counted once.
+        #expect(try store.summaries().sorted { $0.person < $1.person } == [
+            .init(person: you, name: nil, you: true, meetings: 2, last: start + 3600, voiceMeetings: 0),
+            .init(person: olena, name: "Olena", you: false, meetings: 2, last: start + 3600, voiceMeetings: 1),
+        ])
+        #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).summaries().isEmpty)
     }
 
     @Test func deleteVoiceTakesOnlyThatPersonsSamples() throws {

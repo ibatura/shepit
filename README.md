@@ -152,8 +152,8 @@ Shepit window → **People** lists everyone you named in meetings: you first, th
 - **Merge into:** every meeting of this person goes to the person you pick, and the notes get that name (one person named twice, say "Olena" and "Olena K."). The merged person leaves People.
 - **Voice:** "Saved from 6 meetings" with **Delete voice…**, or "No voice saved".
 - **May also be in 2 meetings:** recent meetings with a `Person N` whose voice is like this person's. **Show…** lists them, all checked; **Name them** names the checked ones, as the Meetings section does; the unchecked ones are not suggested again.
-- **Who talked how much** in the period picked beside it (the periods of Dictations): meetings, talk time, words, and their share of all the words of those meetings.
-- **Meetings:** each with its date and their talk time and words; a click opens it in Meetings.
+- **Who talked how much** in the period picked beside it (the periods of Dictations, Last month by default): meetings, talk time, words, and their share of all the words of those meetings.
+- **Meetings** in that period: each with its date and their talk time and words; a click opens it in Meetings.
 
 Talk time is known for meetings recorded from this version on; older meetings and notes added with Add notes… show "–". The words of meetings listed before this version are counted from their notes the first time People opens.
 

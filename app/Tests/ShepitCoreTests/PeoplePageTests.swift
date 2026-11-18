@@ -18,8 +18,8 @@ struct PeoplePageTests {
         MeetingStore.Meeting(id: id, path: "/m/\(id).md", title: title, app: "Teams", start: start, duration: 1800, you: "Ivan")
     }
 
-    private func people(_ presences: [MeetingStore.Presence], _ meetings: [MeetingStore.Meeting]) -> [PeoplePage.Person] {
-        PeoplePage.people(presences, meetings: meetings, you: "Ivan Batura", now: day(2026, 11, 18), calendar: calendar)
+    private func people(_ summaries: [MeetingStore.Summary]) -> [PeoplePage.Person] {
+        PeoplePage.people(summaries, you: "Ivan Batura", now: day(2026, 11, 18), calendar: calendar)
     }
 
     // The store gives meetings newest first.
@@ -29,38 +29,41 @@ struct PeoplePageTests {
 
     @Test func youFirstThenByTheLastMeeting() {
         let list = people([
-            .init(person: 5, name: "Marko D.", you: false, meeting: 2, samples: 0),
-            .init(person: 1, name: nil, you: true, meeting: 1, samples: 0),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 2),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 0),
-            .init(person: 6, name: "Taras", you: false, meeting: 99, samples: 0), // not listed: left out
-        ], meetings)
-        #expect(list.map(\.name) == ["Ivan Batura", "Olena K.", "Marko D."])
-        #expect(list.map(\.initials) == ["IB", "OK", "MD"])
-        #expect(list.map(\.isYou) == [true, false, false])
-        #expect(list.map(\.detail) == ["you · 1 meeting · last 3 Dec 2025", "2 meetings · last 10 Nov", "1 meeting · last 6 Nov"])
+            .init(person: 7, name: "Taras", you: false, meetings: 1, last: day(2026, 11, 6), voiceMeetings: 0),
+            .init(person: 5, name: "Marko D.", you: false, meetings: 1, last: day(2026, 11, 6), voiceMeetings: 0),
+            .init(person: 1, name: nil, you: true, meetings: 1, last: day(2025, 12, 3), voiceMeetings: 0),
+            .init(person: 4, name: "Olena K.", you: false, meetings: 2, last: day(2026, 11, 10), voiceMeetings: 0),
+        ])
+        #expect(list.map(\.name) == ["Ivan Batura", "Olena K.", "Marko D.", "Taras"]) // the same day: by number
+        #expect(list.map(\.initials).prefix(3) == ["IB", "OK", "MD"])
+        #expect(list.map(\.isYou) == [true, false, false, false])
+        #expect(list.map(\.detail).prefix(3) == ["you · 1 meeting · last 3 Dec 2025", "2 meetings · last 10 Nov", "1 meeting · last 6 Nov"])
     }
 
-    @Test func aPersonsVoiceAndMeetings() throws {
+    @Test func aPersonsVoice() {
         let list = people([
+            .init(person: 1, name: nil, you: true, meetings: 3, last: day(2026, 11, 10), voiceMeetings: 1),
+            .init(person: 4, name: "Olena K.", you: false, meetings: 3, last: day(2026, 11, 10), voiceMeetings: 2),
+            .init(person: 5, name: "Marko D.", you: false, meetings: 2, last: day(2026, 11, 6), voiceMeetings: 1),
+            .init(person: 6, name: "Taras", you: false, meetings: 1, last: day(2026, 11, 3), voiceMeetings: 0),
+        ])
+        #expect(list.map(\.voiceMeetings) == [1, 2, 1, 0])
+        #expect(list.map(\.voice) == ["Saved from 1 meeting: your microphone and the lines given to you", "Saved from 2 meetings",
+                                     "Saved from 1 meeting", "No voice saved"])
+    }
+
+    @Test func aPersonsMeetingsNewestFirst() {
+        let rows = PeoplePage.meetings([
             .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 3), // listed before words and talk time were kept
             .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 2, words: 1240, seconds: 750, meetingWords: 4000),
             .init(person: 4, name: "Olena K.", you: false, meeting: 2, samples: 0, words: 30, meetingWords: 100),
-            .init(person: 5, name: "Marko D.", you: false, meeting: 2, samples: 0),
-        ], meetings)
-        let olena = try #require(list.first)
-        #expect(olena.voiceMeetings == 2)
-        #expect(olena.voice == "Saved from 2 meetings")
-        #expect(olena.meetings == [
+            .init(person: 4, name: "Olena K.", you: false, meeting: 99, samples: 0), // not listed: left out
+        ], meetings: meetings, calendar: calendar)
+        #expect(rows == [
             .init(id: 3, title: "Sprint planning", date: "10 Nov 2026, 10:00", talk: "12 min · \(1240.formatted()) words"),
             .init(id: 2, title: "Teams call", date: "6 Nov 2026, 10:00", talk: "– · 30 words"),
             .init(id: 1, title: "Teams call", date: "3 Dec 2025, 10:00", talk: "–"),
         ])
-        #expect(list[1].voiceMeetings == 0)
-        #expect(list[1].voice == "No voice saved")
-        #expect(people([.init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 1)], meetings)[0].voice == "Saved from 1 meeting")
-        #expect(people([.init(person: 1, name: nil, you: true, meeting: 3, samples: 4)], meetings)[0].voice
-                == "Saved from 1 meeting: your microphone and the lines given to you")
     }
 
     @Test func suggestionsAreTheirMeetingsNewestFirst() {
@@ -71,22 +74,16 @@ struct PeoplePageTests {
         #expect(PeoplePage.mayAlsoBeIn(Array(rows.prefix(1))) == "May also be in 1 meeting")
     }
 
-    @Test func whoTalkedHowMuchInAPeriod() {
-        let presences: [MeetingStore.Presence] = [
+    @Test func whoTalkedHowMuch() {
+        let olena: [MeetingStore.Presence] = [
             .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 0, words: 120, seconds: 300, meetingWords: 400),
             .init(person: 4, name: "Olena K.", you: false, meeting: 2, samples: 0, words: 30, meetingWords: 100),
             .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 0), // words not filled yet
-            .init(person: 5, name: "Marko D.", you: false, meeting: 2, samples: 0, words: 70, meetingWords: 100),
-            .init(person: 5, name: "Marko D.", you: false, meeting: 99, samples: 0, words: 70, meetingWords: 100), // not listed
         ]
-        func talk(_ person: Int, _ period: Period) -> [String] {
-            PeoplePage.talk(person, presences, meetings: meetings, period: period, now: day(2026, 11, 18), calendar: calendar).map(\.value)
-        }
-        #expect(PeoplePage.talk(4, presences, meetings: meetings, period: .all, now: day(2026, 11, 18)).map(\.title)
-                == ["Meetings", "Talk time", "Words", "Share of words"])
-        #expect(talk(4, .month) == ["2", "5 min", "150", "30%"])
-        #expect(talk(4, .all) == ["3", "5 min", "150", "30%"])
-        #expect(talk(5, .all) == ["1", "–", "70", "70%"])
-        #expect(talk(4, .today) == ["0", "–", "–", "–"])
+        #expect(PeoplePage.talk(olena).map(\.title) == ["Meetings", "Talk time", "Words", "Share of words"])
+        #expect(PeoplePage.talk(olena).map(\.value) == ["3", "5 min", "150", "30%"])
+        #expect(PeoplePage.talk([.init(person: 5, name: "Marko D.", you: false, meeting: 2, samples: 0, words: 70, meetingWords: 100)])
+                    .map(\.value) == ["1", "–", "70", "70%"])
+        #expect(PeoplePage.talk([]).map(\.value) == ["0", "–", "–", "–"])
     }
 }
