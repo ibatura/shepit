@@ -47,7 +47,7 @@ struct PeopleView: View {
                 Text("Remember voices").fontWeight(.semibold)
                 Text("Keeps a voice print for each person you name, so they are named in later meetings. Stored on this Mac only."
                      + (settings.settings.rememberVoices ? "" : " While off, no voice is saved or recognised; saved voices stay until deleted."))
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Button("Delete all voices…") { model.question = .deleteAll }
