@@ -48,6 +48,7 @@ final class PeopleModel {
     /// What the list was built from, for the talk of another person or period without reading the store again.
     @ObservationIgnored private var presences: [MeetingStore.Presence] = []
     @ObservationIgnored private var meetings: [MeetingStore.Meeting] = []
+    @ObservationIgnored private var wordsFilled = false
 
     /// `settings`: your name, as it is now.
     init(store: MeetingStore, settings: @escaping () -> ShepitCore.Settings, defaults: UserDefaults = .standard) {
@@ -69,6 +70,25 @@ final class PeopleModel {
         }
         tally()
         suggest()
+    }
+
+    /// The words of meetings listed before they were kept (voices design §7), once per run when the section first
+    /// appears: each note is read off the main thread (a note in iCloud Drive may be downloaded), then the list again.
+    func fillWords() async {
+        guard !wordsFilled else { return }
+        wordsFilled = true
+        let older = (try? store.meetingsWithoutWords()) ?? []
+        guard !older.isEmpty else { return }
+        for meeting in older {
+            let note = URL(fileURLWithPath: meeting.path)
+            guard let text = await Task.detached(operation: { try? String(contentsOf: note, encoding: .utf8) }).value else { continue }
+            do {
+                try store.fillWords(meeting.id, entries: MeetingNote.parse(text).entries)
+            } catch {
+                NSLog("Shepit meeting words: %@", String(describing: error))
+            }
+        }
+        reload()
     }
 
     private func tally() {

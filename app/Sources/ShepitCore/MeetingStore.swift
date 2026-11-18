@@ -94,8 +94,12 @@ public final class MeetingStore {
         text == MeetingQueue.failedText ? 0 : DictationStore.words(text)
     }
 
-    /// The words of a meeting listed before they were kept (voices design §7), from its note's `entries`, when the
-    /// Meetings section reads the note; only lines that have none.
+    /// Meetings listed before words were kept (voices design §7): some lines have none.
+    public func meetingsWithoutWords() throws -> [Meeting] {
+        try meetings("WHERE id IN (SELECT meeting FROM lines WHERE words IS NULL) ORDER BY start DESC, id DESC")
+    }
+
+    /// The words of a meeting listed before they were kept, from its note's `entries`; only lines that have none.
     public func fillWords(_ meeting: Int, entries: [MeetingNote.Entry]) throws {
         guard try !sqlite.rows("SELECT 1 FROM lines WHERE meeting = ? AND words IS NULL LIMIT 1", [meeting]) { $0.int(0) }.isEmpty else { return }
         let lines = try lines(meeting)
