@@ -40,7 +40,7 @@ extension AppHost {
                 forgetOldVoices()
                 return id
             }
-            return try meetingStore.meetings().first { $0.path == note.path }?.id
+            return try meetingStore.meeting(path: note.path)?.id
         } catch {
             NSLog("Shepit meetings list: %@", String(describing: error))
             mainWindow.sections.meetings.added(nil) // Name people must not open the meeting before this one
@@ -191,16 +191,15 @@ extension AppHost {
             self.meetingMute = nil
             // A transcript with entries is listed, and its people recognised, before the ready panel says how many were.
             // An empty one waits for the call offer, which removes it (no list, no statistics row) when it was a call's.
-            let id = session.entries > 0 ? self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration,
-                                                              session: session) : nil
+            let list = { self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration, session: session) }
+            var id = session.entries > 0 ? list() : nil
             let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers,
                                                recognised: id.map(self.recognisePeople) ?? 0)
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))
             guard !effects.contains(.removeEmptyNote) else { return }
-            let listed = session.entries > 0 ? id != nil
-                : self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration) != nil
+            if session.entries == 0 { id = list() }
             self.recordMeeting(record)
-            guard listed else { return } // its warning stays on screen
+            guard id != nil else { return } // its warning stays on screen
             // The call panel says "Transcript ready", unless an offer or a stop countdown is in its place.
             if case .ready = self.callOffer.panel {} else { self.panel.message("Transcript ready", detail: detail) }
         }
