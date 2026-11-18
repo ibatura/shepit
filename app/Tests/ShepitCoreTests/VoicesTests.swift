@@ -84,4 +84,17 @@ struct VoicesTests {
         #expect(Voices.check(apart, match: .mean, threshold: 0.8) == .init(recognised: 2, unknown: 1))
         #expect(Voices.check(apart, match: .mean, threshold: 0.99) == .init(missed: 2, unknown: 1))
     }
+
+    @Test func suggestionsAreTheMeetingsWhereRecognitionNamesThePerson() {
+        let prints = Voices.prints(rows(1, meeting: 1, axis: 1) + rows(2, meeting: 2, axis: 2))
+        let olena = (0..<3).map { near(1, 110 + $0) }, marko = (0..<3).map { near(2, 120 + $0) }
+        let unnamed = [
+            10: ["Person 1": olena, "Person 2": marko],
+            11: ["Person 1": marko],
+            12: ["Person 3": (0..<3).map { near(3, 130 + $0) }], // nobody
+            13: ["Person 1": olena, "Person 2": (0..<3).map { near(1, 140 + $0, by: 0.05) }], // the closer one
+        ]
+        #expect(Voices.suggestions(1, unnamed: unnamed, prints: prints) == [10: "Person 1", 13: "Person 2"])
+        #expect(Voices.suggestions(3, unnamed: unnamed, prints: prints).isEmpty) // no print
+    }
 }

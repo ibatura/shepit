@@ -225,4 +225,33 @@ struct MeetingVoicesTests {
         #expect(try store.presences().filter { $0.person == you }.map(\.meeting).sorted() == [a.id, b.id])
         #expect(try !store.presences().contains { $0.person == ivan })
     }
+
+    // MARK: May also be in (voices design §6)
+
+    @Test func suggestedVoicesLeaveOutThePersonsMeetingsNamedPeopleAndDeclinedOnes() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let three = ["Person 1", "Person 1", "Person 1"]
+        let a = try meeting(store, dir, "a", start: start, labels: three, voices: ["Person 1": 1])
+        let b = try meeting(store, dir, "b", start: start + 86_400, labels: three + ["Person 2"], voices: ["Person 1": 1, "Person 2": 2])
+        let c = try meeting(store, dir, "c", start: start + 2 * 86_400, labels: three + ["Person 2"], voices: ["Person 1": 1, "Person 2": 1])
+        try name(store, a, "Person 1", "Olena")
+        try name(store, b, "Person 2", "Marko")
+        let olena = try #require(try store.people(a.id)[0].person), marko = try #require(try store.people(b.id)[1].person)
+        func counts(_ person: Int) throws -> [Int: [String: Int]] { try store.suggestedVoices(for: person).mapValues { $0.mapValues(\.count) } }
+        #expect(try counts(olena) == [b.id: ["Person 1": 3], c.id: ["Person 1": 3, "Person 2": 1]])
+
+        try store.nameSuggested(olena, named: [b.id: "Person 1"], declined: [c.id: "Person 1"])
+        #expect(try store.people(b.id)[0] == .init(key: "Person 1", name: "Olena", person: olena)) // named by the author
+        #expect(try headers(b) == ["Olena", "Olena", "Olena", "Marko"])
+        #expect(try counts(olena) == [c.id: ["Person 2": 1]])
+        // A person named meanwhile keeps their name.
+        try name(store, c, "Person 2", "Taras")
+        try store.nameSuggested(olena, named: [c.id: "Person 2"], declined: [:])
+        #expect(try store.people(c.id)[1].name == "Taras")
+
+        // Merged into Marko, Olena's declined ones are his.
+        try store.merge(person: olena, into: marko, myName: "Me")
+        #expect(try counts(marko).isEmpty)
+    }
 }

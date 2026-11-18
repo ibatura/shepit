@@ -8,6 +8,8 @@ struct PeopleView: View {
     let settings: SettingsModel
     /// Opens a meeting in the Meetings section.
     let openMeeting: (Int) -> Void
+    /// May also be in…, Show…
+    @State private var suggesting = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -93,7 +95,8 @@ struct PeopleView: View {
                             PersonName(name: person.name) { model.rename(person, typed: $0) }.id(person.id)
                             Menu("Merge into") {
                                 ForEach(model.people.filter { $0.id != person.id }) { other in
-                                    Button(other.name) { model.question = .merge(person, into: other) }
+                                    // The detail tells apart two people with one name (Keep both).
+                                    Button("\(other.name) · \(other.detail)") { model.question = .merge(person, into: other) }
                                 }
                             }
                             .fixedSize()
@@ -103,12 +106,23 @@ struct PeopleView: View {
                         Text("You. Your name in notes is set in Settings → Meetings.").font(.caption).foregroundStyle(.secondary)
                     }
                     Caption("Voice")
-                    HStack {
-                        Text(person.voice)
-                        Spacer()
-                        if canDeleteVoice(person) { Button("Delete voice…") { model.question = .deleteVoice(person) } }
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text(person.voice)
+                            Spacer()
+                            if canDeleteVoice(person) { Button("Delete voice…") { model.question = .deleteVoice(person) } }
+                        }
+                        .padding(10)
+                        if !model.suggestions.isEmpty {
+                            Divider().padding(.leading, 10)
+                            HStack {
+                                Text(PeoplePage.mayAlsoBeIn(model.suggestions))
+                                Spacer()
+                                Button("Show…") { suggesting = true }
+                            }
+                            .padding(10)
+                        }
                     }
-                    .padding(10)
                     .boxed()
                     Caption("Meetings")
                     VStack(spacing: 0) {
@@ -130,6 +144,9 @@ struct PeopleView: View {
                     .boxed()
                 }
                 .padding(20)
+            }
+            .sheet(isPresented: $suggesting) {
+                SuggestionsSheet(person: person, suggestions: model.suggestions) { model.name(person, suggestions: $0, checked: $1) }
             }
         } else {
             ContentUnavailableView("Choose a person", systemImage: "person.crop.circle")
@@ -182,5 +199,57 @@ private struct PersonName: View {
     private func commit() {
         save(typed)
         typed = name
+    }
+}
+
+/// May also be in…, Show… (voices design §6): the meetings and their Person N, all checked. Name them names the checked
+/// ones as the Meetings section does; the unchecked ones aren't suggested again. The list stays as it was opened: a
+/// meeting suggested meanwhile isn't declined unseen.
+private struct SuggestionsSheet: View {
+    let person: PeoplePage.Person
+    let name: ([PeoplePage.Suggestion], Set<Int>) -> Void
+    @State private var suggestions: [PeoplePage.Suggestion]
+    @State private var checked: Set<Int>
+    @Environment(\.dismiss) private var dismiss
+
+    init(person: PeoplePage.Person, suggestions: [PeoplePage.Suggestion], name: @escaping ([PeoplePage.Suggestion], Set<Int>) -> Void) {
+        self.person = person
+        self.name = name
+        _suggestions = State(initialValue: suggestions)
+        _checked = State(initialValue: Set(suggestions.map(\.id)))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("\(person.name) may also be in").font(.headline)
+            Text("The checked people are named \(person.name) in their meetings; the unchecked ones aren't suggested again.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(suggestions) { suggestion in
+                        Toggle(isOn: Binding(get: { checked.contains(suggestion.id) },
+                                             set: { if $0 { checked.insert(suggestion.id) } else { checked.remove(suggestion.id) } })) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestion.meeting.title).lineLimit(1)
+                                Text("\(suggestion.meeting.date) · \(suggestion.key)").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxHeight: 320)
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Name them") {
+                    name(suggestions, checked)
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 440)
     }
 }

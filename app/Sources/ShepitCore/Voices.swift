@@ -133,6 +133,13 @@ public enum Voices {
         return links
     }
 
+    /// May also be in (voices design §6): the meetings whose unnamed people (samples by key, by meeting) recognition would
+    /// name `person`, with the key it would name; none without a print of theirs.
+    public static func suggestions(_ person: Int, unnamed: [Int: [String: [VoiceSample]]], prints: [Int: Print]) -> [Int: String] {
+        guard prints[person] != nil else { return [:] }
+        return unnamed.compactMapValues { people in recognise(people, prints: prints).first { $0.value == person }?.key }
+    }
+
     /// `Shepit voices-check` (voices design §8): each meeting's people taken as new and matched against the prints of
     /// the other meetings. `unknown`: no print elsewhere and left alone, as it should be.
     public struct CheckCount: Equatable, Sendable {

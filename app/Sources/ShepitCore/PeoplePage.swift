@@ -23,6 +23,13 @@ public enum PeoplePage {
         public var date: String
     }
 
+    /// May also be in: a meeting and its Person N whose voice is like the person's.
+    public struct Suggestion: Equatable, Sendable, Identifiable {
+        public var meeting: MeetingRow
+        public var key: String
+        public var id: Int { meeting.id }
+    }
+
     /// You first, then by the last meeting, newest first. `meetings` newest first, as the store gives them; a presence in
     /// a meeting not among them is left out. `you`: the author's name.
     public static func people(_ presences: [MeetingStore.Presence], meetings: [MeetingStore.Meeting], you: String, now: Date,
@@ -38,7 +45,7 @@ public enum PeoplePage {
             }
         }
         let thisYear = DateFormatter.english("d MMM", calendar), otherYear = DateFormatter.english("d MMM yyyy", calendar)
-        let when = DateFormatter.english("d MMM yyyy, HH:mm", calendar)
+        let row = rows(calendar)
         let people = order.compactMap { id -> Person? in
             guard let (presence, meetings, voice) = found[id], let last = meetings.first?.start else { return nil }
             let name = presence.you ? you : presence.name ?? ""
@@ -47,9 +54,26 @@ public enum PeoplePage {
             return Person(id: id, name: name, initials: MeetingPage.initials(name), isYou: presence.you,
                           detail: detail.joined(separator: " · "), voiceMeetings: voice,
                           voice: voice == 0 ? "No voice saved" : "Saved from \(count(voice, "meeting"))",
-                          meetings: meetings.map { MeetingRow(id: $0.id, title: MeetingPage.title($0.title, $0.app), date: when.string(from: $0.start)) })
+                          meetings: meetings.map(row))
         }
         return people.filter(\.isYou) + people.filter { !$0.isYou }
+    }
+
+    /// May also be in: the meetings of `found` (key by meeting), in the order of `meetings` (newest first, as the store
+    /// gives them).
+    public static func suggestions(_ found: [Int: String], meetings: [MeetingStore.Meeting], calendar: Calendar = .current) -> [Suggestion] {
+        let row = rows(calendar)
+        return meetings.compactMap { meeting in found[meeting.id].map { Suggestion(meeting: row(meeting), key: $0) } }
+    }
+
+    private static func rows(_ calendar: Calendar) -> (MeetingStore.Meeting) -> MeetingRow {
+        let when = DateFormatter.english("d MMM yyyy, HH:mm", calendar)
+        return { MeetingRow(id: $0.id, title: MeetingPage.title($0.title, $0.app), date: when.string(from: $0.start)) }
+    }
+
+    /// "May also be in 3 meetings".
+    public static func mayAlsoBeIn(_ suggestions: [Suggestion]) -> String {
+        "May also be in \(count(suggestions.count, "meeting"))"
     }
 
     private static func count(_ n: Int, _ noun: String) -> String {

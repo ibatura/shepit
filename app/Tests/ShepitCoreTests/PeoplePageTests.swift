@@ -60,4 +60,12 @@ struct PeoplePageTests {
         #expect(list[1].voice == "No voice saved")
         #expect(people([.init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 1)], meetings)[0].voice == "Saved from 1 meeting")
     }
+
+    @Test func suggestionsAreTheirMeetingsNewestFirst() {
+        let rows = PeoplePage.suggestions([1: "Person 2", 3: "Person 1", 99: "Person 1"], meetings: meetings, calendar: calendar)
+        #expect(rows == [.init(meeting: .init(id: 3, title: "Sprint planning", date: "10 Nov 2026, 10:00"), key: "Person 1"),
+                         .init(meeting: .init(id: 1, title: "Teams call", date: "3 Dec 2025, 10:00"), key: "Person 2")])
+        #expect(PeoplePage.mayAlsoBeIn(rows) == "May also be in 2 meetings")
+        #expect(PeoplePage.mayAlsoBeIn(Array(rows.prefix(1))) == "May also be in 1 meeting")
+    }
 }

@@ -265,6 +265,34 @@ public final class MeetingStore {
         return applied.count
     }
 
+    /// May also be in (voices design §6): the samples of each unnamed person (by key) of each meeting `person` isn't in,
+    /// leaving out the ones declined for `person`.
+    public func suggestedVoices(for person: Int) throws -> [Int: [String: [VoiceSample]]] {
+        let rows = try sqlite.rows("""
+            SELECT samples.meeting, lines.current, samples.vector FROM samples JOIN lines USING (meeting, timestamp, ord)
+            JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
+            WHERE people.person IS NULL AND samples.meeting NOT IN (SELECT meeting FROM people WHERE person = ?)
+              AND NOT EXISTS (SELECT 1 FROM declined WHERE declined.meeting = people.meeting AND declined.key = people.key AND declined.person = ?)
+            """, [person, person]) { row in
+            VoiceSample(blob: row.blob(2)).map { (meeting: row.int(0), key: row.text(1) ?? "", sample: $0) }
+        }
+        return Dictionary(grouping: rows, by: \.meeting).mapValues { Dictionary(grouping: $0, by: \.key).mapValues { $0.map(\.sample) } }
+    }
+
+    /// Name them (voices design §6): the suggested people (key by meeting) become `person`, in the notes too, unless they
+    /// were named meanwhile; the `declined` ones aren't suggested for `person` again.
+    public func nameSuggested(_ person: Int, named: [Int: String], declined: [Int: String]) throws {
+        try change(try meetings().filter { named[$0.id] != nil }) {
+            for (meeting, key) in named {
+                try sqlite.run("UPDATE people SET person = ?, name = NULL, recognised = 0 WHERE meeting = ? AND key = ? AND person IS NULL",
+                               [person, meeting, key])
+            }
+            for (meeting, key) in declined {
+                try sqlite.run("INSERT OR IGNORE INTO declined (meeting, key, person) VALUES (?, ?, ?)", [meeting, key, person])
+            }
+        }
+    }
+
     /// The samples of lines that belong to nobody named, in meetings started before `date` (voices design §4: 30 days).
     public func forgetUnnamedVoices(before date: Date) throws {
         try sqlite.runIfExists("""
@@ -356,6 +384,8 @@ public final class MeetingStore {
                     target = key
                 }
             }
+            try sqlite.run("UPDATE OR IGNORE declined SET person = ? WHERE person = ?", [other, person])
+            try sqlite.run("DELETE FROM declined WHERE person = ?", [person])
             try dropUnlistedPersons()
         }
     }

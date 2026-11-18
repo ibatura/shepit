@@ -112,4 +112,35 @@ struct PeopleModelTests {
         #expect(model.chosen?.name == "Marko")
         #expect(model.notice == nil)
     }
+
+    @Test func suggestionsForTheChosenPersonWhileRememberVoicesIsOn() throws {
+        let dir = FileManager.default.temporaryDirectory.appending(path: "people-model-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = MeetingStore(file: dir.appending(path: "meetings.sqlite"))
+        let times = ["2026-07-31 10:00:01", "2026-07-31 10:00:02", "2026-07-31 10:00:03"]
+        var ids: [Int] = []
+        for name in ["old", "new"] {
+            let file = dir.appending(path: "\(name).md")
+            try Data(times.map { "[Person 1] \($0)\nyes\n" }.joined(separator: "\n").utf8).write(to: file)
+            let samples = Dictionary(uniqueKeysWithValues: MeetingNote.places(times).map { ($0, voice(1)) })
+            ids.append(try #require(try store.add(note: file, you: "Ivan", samples: samples)))
+        }
+        try store.setName(ids[0], person: "Person 1", to: "Olena")
+        var settings = Settings.defaults
+        let model = PeopleModel(store: store, settings: { settings }, defaults: try defaults())
+        model.reload()
+        model.selection = try #require(model.people.first { $0.name == "Olena" }).id
+        #expect(model.suggestions.isEmpty) // Remember voices is off
+        settings.rememberVoices = true
+        model.reload()
+        #expect(model.suggestions.map(\.key) == ["Person 1"])
+        model.selection = nil
+        #expect(model.suggestions.isEmpty)
+        model.selection = model.people.first { $0.name == "Olena" }?.id
+        let olena = try #require(model.chosen)
+        model.name(olena, suggestions: model.suggestions, checked: [ids[1]])
+        #expect(try store.people(ids[1])[0].person == olena.id)
+        #expect(model.suggestions.isEmpty)
+    }
 }

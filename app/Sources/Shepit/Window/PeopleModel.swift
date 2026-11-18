@@ -18,7 +18,14 @@ final class PeopleModel {
     }
 
     private(set) var people: [PeoplePage.Person] = []
-    var selection: Int? { didSet { defaults.set(selection ?? 0, forKey: "peopleSelection") } }
+    var selection: Int? {
+        didSet {
+            defaults.set(selection ?? 0, forKey: "peopleSelection")
+            suggest()
+        }
+    }
+    /// May also be in, for the chosen person (voices design §6): read with the list and when the choice changes.
+    private(set) var suggestions: [PeoplePage.Suggestion] = []
     var question: Question?
     /// A change that could not be made, for an alert.
     var notice: MeetingsModel.Notice?
@@ -43,6 +50,33 @@ final class PeopleModel {
             people = PeoplePage.people(try store.presences(), meetings: try store.meetings(), you: settings().myName(), now: Date())
         } catch {
             NSLog("Shepit people: %@", String(describing: error))
+        }
+        suggest()
+    }
+
+    /// None for You, or while Remember voices is off: no voice is recognised then.
+    private func suggest() {
+        guard let person = chosen, !person.isYou, settings().rememberVoices else {
+            suggestions = []
+            return
+        }
+        do {
+            let found = Voices.suggestions(person.id, unnamed: try store.suggestedVoices(for: person.id),
+                                           prints: Voices.prints(try store.voiceRows()))
+            suggestions = PeoplePage.suggestions(found, meetings: try store.meetings())
+        } catch {
+            NSLog("Shepit suggestions: %@", String(describing: error))
+            suggestions = []
+        }
+    }
+
+    /// Name them: of the `suggestions` shown, the people in the `checked` meetings become `person`; the rest aren't
+    /// suggested again.
+    func name(_ person: PeoplePage.Person, suggestions: [PeoplePage.Suggestion], checked: Set<Int>) {
+        let keys = Dictionary(uniqueKeysWithValues: suggestions.map { ($0.id, $0.key) })
+        apply("Can't name \(person.name)") {
+            try store.nameSuggested(person.id, named: keys.filter { checked.contains($0.key) },
+                                    declined: keys.filter { !checked.contains($0.key) })
         }
     }
 
