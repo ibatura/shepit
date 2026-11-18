@@ -54,10 +54,10 @@ struct PeoplePageTests {
 
     @Test func aPersonsMeetingsNewestFirst() {
         let rows = PeoplePage.meetings([
-            .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 3), // listed before words and talk time were kept
-            .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 2, words: 1240, seconds: 750, meetingWords: 4000),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 2, samples: 0, words: 30, meetingWords: 100),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 99, samples: 0), // not listed: left out
+            .init(meeting: 1), // listed before words and talk time were kept
+            .init(meeting: 3, words: 1240, seconds: 750, meetingWords: 4000),
+            .init(meeting: 2, words: 30, meetingWords: 100),
+            .init(meeting: 99), // not listed: left out
         ], meetings: meetings, calendar: calendar)
         #expect(rows == [
             .init(id: 3, title: "Sprint planning", date: "10 Nov 2026, 10:00", talk: "12 min · \(1240.formatted()) words"),
@@ -76,13 +76,13 @@ struct PeoplePageTests {
 
     @Test func whoTalkedHowMuch() {
         let olena: [MeetingStore.Presence] = [
-            .init(person: 4, name: "Olena K.", you: false, meeting: 3, samples: 0, words: 120, seconds: 300, meetingWords: 400),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 2, samples: 0, words: 30, meetingWords: 100),
-            .init(person: 4, name: "Olena K.", you: false, meeting: 1, samples: 0), // words not filled yet
+            .init(meeting: 3, words: 120, seconds: 300, meetingWords: 400),
+            .init(meeting: 2, words: 30, meetingWords: 100),
+            .init(meeting: 1), // words not filled yet
         ]
         #expect(PeoplePage.talk(olena).map(\.title) == ["Meetings", "Talk time", "Words", "Share of words"])
         #expect(PeoplePage.talk(olena).map(\.value) == ["3", "5 min", "150", "30%"])
-        #expect(PeoplePage.talk([.init(person: 5, name: "Marko D.", you: false, meeting: 2, samples: 0, words: 70, meetingWords: 100)])
+        #expect(PeoplePage.talk([.init(meeting: 2, words: 70, meetingWords: 100)])
                     .map(\.value) == ["1", "–", "70", "70%"])
         #expect(PeoplePage.talk([]).map(\.value) == ["0", "–", "–", "–"])
     }

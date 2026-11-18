@@ -98,7 +98,7 @@ struct MeetingVoicesTests {
 
     // MARK: People (voices design §6)
 
-    @Test func presencesAreThePeopleWithLinesInEachMeeting() throws {
+    @Test func summariesAndPresencesAreThePeopleWithLinesInEachMeeting() throws {
         let (store, dir) = setUp()
         defer { try? FileManager.default.removeItem(at: dir) }
         let a = try meeting(store, dir, "a", start: start, labels: ["Me", "Person 1", "Person 1", "Person 2"],
@@ -110,22 +110,15 @@ struct MeetingVoicesTests {
         try store.setName(b.id, person: "Person 1", to: "Olena")
         try store.setName(b.id, person: "Person 2", to: "OLENA") // one person twice in a meeting: one presence
         let you = try #require(try store.people(a.id)[0].person), olena = try #require(try store.people(a.id)[1].person)
-        func sorted(_ presences: [MeetingStore.Presence]) -> [MeetingStore.Presence] {
-            presences.sorted { ($0.meeting, $0.person) < ($1.meeting, $1.person) }
+        func presences(_ person: Int, since: Date? = nil) throws -> [MeetingStore.Presence] {
+            try store.presences(of: person, since: since).sorted { $0.meeting < $1.meeting }
         }
-        let presences = sorted(try store.presences())
-        #expect(presences == [
-            .init(person: you, name: nil, you: true, meeting: a.id, samples: 0, words: 1, meetingWords: 4),
-            .init(person: olena, name: "Olena", you: false, meeting: a.id, samples: 3, words: 3, meetingWords: 4),
-            .init(person: you, name: nil, you: true, meeting: b.id, samples: 0, words: 1, meetingWords: 4),
-            .init(person: olena, name: "Olena", you: false, meeting: b.id, samples: 0, words: 2, meetingWords: 4), // both her labels
-        ])
-        #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).presences().isEmpty)
-        // One person's, in meetings from a date on.
-        #expect(sorted(try store.presences(of: olena)) == presences.filter { $0.person == olena })
-        #expect(sorted(try store.presences(of: olena, since: start + 1)) == presences.filter { $0.person == olena && $0.meeting == b.id })
-        #expect(sorted(try store.presences(since: start + 1)) == presences.filter { $0.meeting == b.id })
-        // People's list: a row each, the meetings counted once.
+        #expect(try presences(you) == [.init(meeting: a.id, words: 1, meetingWords: 4), .init(meeting: b.id, words: 1, meetingWords: 4)])
+        #expect(try presences(olena) == [.init(meeting: a.id, words: 3, meetingWords: 4),
+                                         .init(meeting: b.id, words: 2, meetingWords: 4)]) // both her labels in b: once
+        #expect(try presences(olena, since: start + 1) == [.init(meeting: b.id, words: 2, meetingWords: 4)])
+        #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).presences(of: you).isEmpty)
+        // People's list: a row each, the meetings counted once; Marko has no line left.
         #expect(try store.summaries().sorted { $0.person < $1.person } == [
             .init(person: you, name: nil, you: true, meetings: 2, last: start + 3600, voiceMeetings: 0),
             .init(person: olena, name: "Olena", you: false, meetings: 2, last: start + 3600, voiceMeetings: 1),
@@ -143,7 +136,7 @@ struct MeetingVoicesTests {
         try store.setName(b.id, person: "Person 1", to: "Olena")
         let olena = try #require(try store.people(a.id)[0].person)
         try store.deleteVoice(olena)
-        #expect(try store.presences().filter { $0.person == olena }.map(\.samples) == [0, 0]) // she stays in both meetings
+        #expect(try store.summaries().first { $0.person == olena }.map { [$0.meetings, $0.voiceMeetings] } == [2, 0]) // she stays
         #expect(try store.voiceRows().count == 1) // Marko's
         #expect(try store.unnamedVoices(b.id).mapValues(\.count) == ["Person 2": 1])
         try store.deleteAllVoices()
@@ -240,7 +233,7 @@ struct MeetingVoicesTests {
         #expect(try headers(b) == ["Marko", "Me"])
         #expect(try store.people(b.id)[0].person == marko)
         #expect(try store.voiceRows().filter { $0.person == marko }.count == 3) // her samples count for him
-        #expect(try !store.presences().contains { $0.person == olena })
+        #expect(try !store.summaries().contains { $0.person == olena })
         #expect(try !store.knownNames().contains("Olena")) // she is gone
     }
 
@@ -257,8 +250,8 @@ struct MeetingVoicesTests {
         #expect(try headers(b) == ["Ivan B.", "Person 1"])
         #expect(try store.meeting(b.id)?.you == "Ivan")
         #expect(try store.people(b.id)[0] == .init(key: "Ivan", name: "Ivan B.", person: you))
-        #expect(try store.presences().filter { $0.person == you }.map(\.meeting).sorted() == [a.id, b.id])
-        #expect(try !store.presences().contains { $0.person == ivan })
+        #expect(try store.presences(of: you).map(\.meeting).sorted() == [a.id, b.id])
+        #expect(try !store.summaries().contains { $0.person == ivan })
     }
 
     // MARK: May also be in (voices design §6)
@@ -303,7 +296,8 @@ struct MeetingVoicesTests {
         let places = MeetingNote.places(times)
         let id = try #require(try store.add(note: file, you: "Me", seconds: [places[0]: 2.5, places[1]: 1.5]))
         try store.setName(id, person: "Person 1", to: "Olena")
-        func presences() throws -> [MeetingStore.Presence] { try store.presences().sorted { $0.person < $1.person } }
+        let people = try store.people(id).compactMap(\.person) // you, Olena
+        func presences() throws -> [MeetingStore.Presence] { try people.flatMap { try store.presences(of: $0) } }
         #expect(try presences().map(\.words) == [3, 2]) // a line not recognised has no words
         #expect(try presences().map(\.seconds) == [2.5, 1.5])
         #expect(try presences().map(\.meetingWords) == [6, 6])

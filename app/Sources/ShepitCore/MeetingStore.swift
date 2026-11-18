@@ -55,7 +55,7 @@ public final class MeetingStore {
         }
     }
 
-    private let sqlite: SQLiteFile
+    let sqlite: SQLiteFile
 
     public init(file: URL) {
         sqlite = SQLiteFile(file: file, schema: Self.schema, upgrades: Self.upgrades, functions: ["name_key": Names.key])
@@ -94,24 +94,6 @@ public final class MeetingStore {
         text == MeetingQueue.failedText ? 0 : DictationStore.words(text)
     }
 
-    /// Meetings listed before words were kept (voices design §7): some lines have none.
-    public func meetingsWithoutWords() throws -> [Meeting] {
-        try meetings("WHERE id IN (SELECT meeting FROM lines WHERE words IS NULL) ORDER BY start DESC, id DESC")
-    }
-
-    /// The words of a meeting listed before they were kept, from its note's `entries`; only lines that have none.
-    public func fillWords(_ meeting: Int, entries: [MeetingNote.Entry]) throws {
-        guard try !sqlite.rows("SELECT 1 FROM lines WHERE meeting = ? AND words IS NULL LIMIT 1", [meeting]) { $0.int(0) }.isEmpty else { return }
-        let lines = try lines(meeting)
-        try transaction {
-            for (entry, line) in zip(entries, MeetingPage.pair(entries, lines)) {
-                guard let line else { continue }
-                try sqlite.run("UPDATE lines SET words = ? WHERE meeting = ? AND timestamp = ? AND ord = ? AND words IS NULL",
-                               [Self.words(entry.text), meeting, line.place.timestamp, line.place.order])
-            }
-        }
-    }
-
     /// A file with no entry headers.
     public struct NotATranscript: LocalizedError {
         public var errorDescription: String? { "not a meeting transcript (no entries)" }
@@ -140,7 +122,11 @@ public final class MeetingStore {
         try meetings("WHERE id = ?", [id]).first
     }
 
-    private func meetings(_ clause: String, _ values: [Any?] = []) throws -> [Meeting] {
+    public func meeting(path: String) throws -> Meeting? {
+        try meetings("WHERE path = ?", [path]).first
+    }
+
+    func meetings(_ clause: String, _ values: [Any?] = []) throws -> [Meeting] {
         try sqlite.rows("SELECT id, path, title, app, start, duration, you FROM meetings \(clause)", values) { row in
             Meeting(id: row.int(0), path: row.text(1) ?? "", title: row.text(2), app: row.text(3), start: Date(timeIntervalSince1970: row.double(4)),
                     duration: row.isNull(5) ? nil : row.double(5), you: row.text(6))
@@ -194,12 +180,12 @@ public final class MeetingStore {
         }
     }
 
-    private func link(_ meeting: Int, key: String, to person: Int?) throws {
+    func link(_ meeting: Int, key: String, to person: Int?) throws {
         // A name of version 1 that is no person's ("Person 5") stays on its row until the row is named again.
         try sqlite.run("UPDATE people SET person = ?, name = NULL, recognised = 0 WHERE meeting = ? AND key = ?", [person, meeting, key])
     }
 
-    private func youID() throws -> Int {
+    func youID() throws -> Int {
         try sqlite.rows("SELECT id FROM persons WHERE you = 1") { $0.int(0) }[0]
     }
 
@@ -218,7 +204,7 @@ public final class MeetingStore {
     }
 
     /// A person left with no meeting goes; You stays.
-    private func dropUnlistedPersons() throws {
+    func dropUnlistedPersons() throws {
         try sqlite.run("DELETE FROM persons WHERE you = 0 AND id NOT IN (SELECT person FROM people WHERE person IS NOT NULL)")
     }
 
@@ -245,169 +231,6 @@ public final class MeetingStore {
         try sqlite.run("UPDATE lines SET current = original WHERE meeting = ?", [meeting])
     }
 
-    // MARK: Voices (voices design §4, §5)
-
-    /// Every sample of a line that belongs to a person now, for prints; `except` leaves one meeting out.
-    public func voiceRows(except meeting: Int? = nil) throws -> [Voices.Row] {
-        try sqlite.rows("""
-            SELECT people.person, samples.meeting, samples.vector FROM samples JOIN lines USING (meeting, timestamp, ord)
-            JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
-            WHERE people.person IS NOT NULL AND samples.meeting IS NOT ?
-            """, [meeting]) { row in
-            VoiceSample(blob: row.blob(2)).map { Voices.Row(person: row.int(0), meeting: row.int(1), sample: $0) }
-        }
-    }
-
-    /// The samples of each person of `meeting` that has no person yet, by key.
-    public func unnamedVoices(_ meeting: Int) throws -> [String: [VoiceSample]] {
-        let rows = try sqlite.rows("""
-            SELECT lines.current, samples.vector FROM samples JOIN lines USING (meeting, timestamp, ord)
-            JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
-            WHERE samples.meeting = ? AND people.person IS NULL
-            """, [meeting]) { row in VoiceSample(blob: row.blob(1)).map { (key: row.text(0) ?? "", sample: $0) } }
-        return Dictionary(grouping: rows, by: \.key).mapValues { $0.map(\.sample) }
-    }
-
-    /// Names the people of `meeting` a print recognises, as the window names them (the note's headers and the store
-    /// together), marked as recognised; a match with You merges that person into "you". Returns how many.
-    public func recognise(_ meeting: Meeting) throws -> Int {
-        let links = Voices.recognise(try unnamedVoices(meeting.id), prints: Voices.prints(try voiceRows(except: meeting.id)))
-        let you = try youID()
-        let applied = links.filter { $0.value != you || meeting.you != nil }
-        guard !applied.isEmpty else { return 0 }
-        try change([meeting]) {
-            for (key, person) in applied {
-                if person == you, let label = meeting.you {
-                    try merge(meeting.id, person: key, into: label)
-                } else {
-                    try link(meeting.id, key: key, to: person)
-                    try sqlite.run("UPDATE people SET recognised = 1 WHERE meeting = ? AND key = ?", [meeting.id, key])
-                }
-            }
-        }
-        return applied.count
-    }
-
-    /// May also be in (voices design §6): the samples of each unnamed person (by key) of each meeting `person` isn't in,
-    /// leaving out the ones declined for `person`.
-    public func suggestedVoices(for person: Int) throws -> [Int: [String: [VoiceSample]]] {
-        let rows = try sqlite.rows("""
-            SELECT samples.meeting, lines.current, samples.vector FROM samples JOIN lines USING (meeting, timestamp, ord)
-            JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
-            WHERE people.person IS NULL AND samples.meeting NOT IN (SELECT meeting FROM people WHERE person = ?)
-              AND NOT EXISTS (SELECT 1 FROM declined WHERE declined.meeting = people.meeting AND declined.key = people.key AND declined.person = ?)
-            """, [person, person]) { row in
-            VoiceSample(blob: row.blob(2)).map { (meeting: row.int(0), key: row.text(1) ?? "", sample: $0) }
-        }
-        return Dictionary(grouping: rows, by: \.meeting).mapValues { Dictionary(grouping: $0, by: \.key).mapValues { $0.map(\.sample) } }
-    }
-
-    /// Name them (voices design §6): the suggested people (key by meeting) become `person`, in the notes too, unless they
-    /// were named meanwhile; the `declined` ones aren't suggested for `person` again.
-    public func nameSuggested(_ person: Int, named: [Int: String], declined: [Int: String]) throws {
-        try change(try meetings().filter { named[$0.id] != nil }) {
-            for (meeting, key) in named {
-                try sqlite.run("UPDATE people SET person = ?, name = NULL, recognised = 0 WHERE meeting = ? AND key = ? AND person IS NULL",
-                               [person, meeting, key])
-            }
-            for (meeting, key) in declined {
-                try sqlite.run("INSERT OR IGNORE INTO declined (meeting, key, person) VALUES (?, ?, ?)", [meeting, key, person])
-            }
-        }
-    }
-
-    /// The samples of lines that belong to nobody named, in meetings started before `date` (voices design §4: 30 days).
-    public func forgetUnnamedVoices(before date: Date) throws {
-        try sqlite.runIfExists("""
-            DELETE FROM samples WHERE meeting IN (SELECT id FROM meetings WHERE start < ?) AND NOT EXISTS (
-              SELECT 1 FROM lines JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
-              WHERE lines.meeting = samples.meeting AND lines.timestamp = samples.timestamp AND lines.ord = samples.ord
-                AND people.person IS NOT NULL)
-            """, [date.timeIntervalSince1970])
-    }
-
-    // MARK: People (voices design §6)
-
-    /// A person in a listed meeting where they have lines now, and how many of those lines keep a voice sample.
-    public struct Presence: Hashable, Sendable {
-        public var person: Int
-        /// nil for You, who has no name of their own.
-        public var name: String?
-        public var you: Bool
-        public var meeting: Int
-        public var samples: Int
-        /// Their words in the meeting; nil while the meeting's words aren't known (listed before they were kept).
-        public var words: Int? = nil
-        /// Their talk time; nil when none of their lines has one (Add notes…, meetings before talk time was kept).
-        public var seconds: Double? = nil
-        /// The words of the whole meeting, everyone's.
-        public var meetingWords: Int? = nil
-    }
-
-    /// Every person (or only `person`) in every meeting (or those started `since`) where they have lines now, once per
-    /// meeting. Reads every line of those meetings: People reads one person's, for a period.
-    public func presences(of person: Int? = nil, since: Date? = nil) throws -> [Presence] {
-        var filters = ["1"], values: [Any?] = []
-        if let person { filters.append("people.person = ?"); values.append(person) }
-        if let since { filters.append("meetings.start >= ?"); values.append(since.timeIntervalSince1970) }
-        return try sqlite.rows("""
-            SELECT persons.id, persons.name, persons.you, people.meeting, count(samples.ord), sum(lines.words), sum(lines.seconds),
-              (SELECT sum(words) FROM lines AS everyone WHERE everyone.meeting = people.meeting)
-            FROM people JOIN persons ON persons.id = people.person JOIN meetings ON meetings.id = people.meeting
-            JOIN lines ON lines.meeting = people.meeting AND lines.current = people.key
-            LEFT JOIN samples ON samples.meeting = lines.meeting AND samples.timestamp = lines.timestamp AND samples.ord = lines.ord
-            WHERE \(filters.joined(separator: " AND "))
-            GROUP BY persons.id, people.meeting
-            """, values) { row in
-            Presence(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meeting: row.int(3), samples: row.int(4),
-                     words: row.isNull(5) ? nil : row.int(5), seconds: row.isNull(6) ? nil : row.double(6),
-                     meetingWords: row.isNull(7) ? nil : row.int(7))
-        }
-    }
-
-    /// A person as People's list shows them: how many listed meetings they have lines in now, the last one's start, and
-    /// in how many of them a line of theirs keeps a voice sample.
-    public struct Summary: Equatable, Sendable {
-        public var person: Int
-        /// nil for You, who has no name of their own.
-        public var name: String?
-        public var you: Bool
-        public var meetings: Int
-        public var last: Date
-        public var voiceMeetings: Int
-    }
-
-    /// A row per person, without reading every line: each meeting stops at its first line (and sample) of theirs.
-    public func summaries() throws -> [Summary] {
-        try sqlite.rows("""
-            SELECT persons.id, persons.name, persons.you, count(DISTINCT people.meeting), max(meetings.start),
-              count(DISTINCT CASE WHEN EXISTS (
-                SELECT 1 FROM samples JOIN lines USING (meeting, timestamp, ord)
-                WHERE samples.meeting = people.meeting AND lines.current = people.key) THEN people.meeting END)
-            FROM people JOIN persons ON persons.id = people.person JOIN meetings ON meetings.id = people.meeting
-            WHERE EXISTS (SELECT 1 FROM lines WHERE lines.meeting = people.meeting AND lines.current = people.key)
-            GROUP BY persons.id
-            """) { row in
-            Summary(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meetings: row.int(3),
-                    last: Date(timeIntervalSince1970: row.double(4)), voiceMeetings: row.int(5))
-        }
-    }
-
-    /// Delete voice…: the samples of the lines that are `person`'s now. The person and their names stay.
-    public func deleteVoice(_ person: Int) throws {
-        try sqlite.runIfExists("""
-            DELETE FROM samples WHERE EXISTS (
-              SELECT 1 FROM lines JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
-              WHERE lines.meeting = samples.meeting AND lines.timestamp = samples.timestamp AND lines.ord = samples.ord
-                AND people.person = ?)
-            """, [person])
-    }
-
-    /// Delete all voices…: every sample, named or not.
-    public func deleteAllVoices() throws {
-        try sqlite.runIfExists("DELETE FROM samples")
-    }
-
     /// Every real name of every meeting, for the name fields: names given in the window, and labels that are names
     /// ("you", the labels of notes added by hand), not "Person N" or the live label. Newest meeting first, each once.
     public func knownNames() throws -> [String] {
@@ -417,50 +240,6 @@ public final class MeetingStore {
             """) { $0.text(0) }
         var seen = Set<String>()
         return names.filter { Names.key($0) != nil && seen.insert($0).inserted }
-    }
-
-    /// Rename (voices design §6): the person's one name, in every meeting and in the headers of their notes.
-    public func rename(person: Int, to name: String) throws {
-        try change(try meetings(of: person)) {
-            try sqlite.run("UPDATE persons SET name = ? WHERE id = ? AND you = 0", [name, person])
-        }
-    }
-
-    /// Merge into… (voices design §6): every meeting of `person` moves to `other`, and `person` is deleted. In a meeting
-    /// with both, `person`'s lines go to the other, as a merge in one meeting does. Into You, a meeting without "you"
-    /// gets this person as its "you", named `myName`.
-    public func merge(person: Int, into other: Int, myName: String) throws {
-        let meetings = try meetings(of: person)
-        let you = try youID()
-        try change(meetings) {
-            for meeting in meetings {
-                var target = other == you ? meeting.you : try keys(of: other, in: meeting.id).first
-                for key in try keys(of: person, in: meeting.id) {
-                    if let target {
-                        try merge(meeting.id, person: key, into: target)
-                        try link(meeting.id, key: key, to: nil)
-                        continue
-                    }
-                    if other == you {
-                        try sqlite.run("UPDATE meetings SET you = ? WHERE id = ?", [key, meeting.id])
-                        try sqlite.run("UPDATE people SET name = ? WHERE meeting = ? AND key = ?", [myName, meeting.id, key])
-                    }
-                    try sqlite.run("UPDATE people SET person = ? WHERE meeting = ? AND key = ?", [other, meeting.id, key])
-                    target = key
-                }
-            }
-            try sqlite.run("UPDATE OR IGNORE declined SET person = ? WHERE person = ?", [other, person])
-            try sqlite.run("DELETE FROM declined WHERE person = ?", [person])
-            try dropUnlistedPersons()
-        }
-    }
-
-    private func meetings(of person: Int) throws -> [Meeting] {
-        try meetings("WHERE id IN (SELECT meeting FROM people WHERE person = ?) ORDER BY start DESC, id DESC", [person])
-    }
-
-    private func keys(of person: Int, in meeting: Int) throws -> [String] {
-        try sqlite.rows("SELECT key FROM people WHERE meeting = ? AND person = ? ORDER BY rowid", [meeting, person]) { $0.text(0) ?? "" }
     }
 
     /// A note a change could not read or write: nothing was changed.
@@ -543,6 +322,7 @@ public final class MeetingStore {
     static let schema = [
         // Runs on every open. Deleted voice samples are overwritten; macOS's default (FAST) leaves freed pages as they were.
         "PRAGMA secure_delete = ON",
+        lineVoices,
         """
         CREATE TABLE IF NOT EXISTS meetings (
           id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, title TEXT, app TEXT, start REAL NOT NULL, duration REAL, you TEXT)
