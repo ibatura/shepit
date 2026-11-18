@@ -254,6 +254,16 @@ public final class MeetingStore {
         public var errorDescription: String? { "\(path)\n\(reason)" }
     }
 
+    /// A change that failed after some notes were written, of which `paths` could not be put back: they keep the new
+    /// names while the store doesn't.
+    public struct NotesNotPutBack: LocalizedError {
+        public var reason: String
+        public var paths: [String]
+        public var errorDescription: String? {
+            "\(reason)\nThese notes could not be put back and keep the new names: \(paths.joined(separator: ", "))"
+        }
+    }
+
     /// A change to the people or lines of `meetings` made by `body` (Meetings design §8): the store and the notes' headers
     /// together, or none of them. Each note is read right before it is written, so edits made in Obsidian meanwhile stay;
     /// only the headers whose shown name changed are rewritten. A missing note changes only the store.
@@ -278,7 +288,11 @@ public final class MeetingStore {
                     }
                 }
             } catch {
-                for (note, text) in written.reversed() { try? Data(text.utf8).write(to: note, options: .atomic) }
+                var notPutBack: [String] = []
+                for (note, text) in written.reversed() {
+                    do { try Data(text.utf8).write(to: note, options: .atomic) } catch { notPutBack.append(note.path) }
+                }
+                guard notPutBack.isEmpty else { throw NotesNotPutBack(reason: error.localizedDescription, paths: notPutBack) }
                 throw error
             }
         }

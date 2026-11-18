@@ -41,10 +41,12 @@ public enum PeoplePage {
                 let date = (calendar.isDate(summary.last, equalTo: now, toGranularity: .year) ? thisYear : otherYear).string(from: summary.last)
                 let detail = [summary.you ? "you" : nil, count(summary.meetings, "meeting"), "last \(date)"].compactMap { $0 }
                 let voice = summary.voiceMeetings
+                let saved = "Saved from \(count(voice, "meeting"))"
                 return Person(id: summary.person, name: name, initials: MeetingPage.initials(name), isYou: summary.you,
                               detail: detail.joined(separator: " · "), voiceMeetings: voice,
                               voice: voice == 0 ? "No voice saved"
-                                  : "Saved from \(count(voice, "meeting"))" + (summary.you ? ": your microphone and the lines given to you" : ""))
+                                  : summary.voiceSamples < Voices.enough ? saved + ", too little speech to recognise yet"
+                                  : saved + (summary.you ? ": your microphone and the lines given to you" : ""))
             }
     }
 

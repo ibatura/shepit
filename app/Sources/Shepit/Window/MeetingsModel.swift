@@ -230,6 +230,14 @@ final class MeetingsModel {
 
     private func change(_ id: Int, _ body: () throws -> Void) {
         guard let meeting = meetings.first(where: { $0.id == id }), !missing.contains(id) else { return }
+        // Moved or deleted since it was opened: nothing changes (the store's change would skip the note and change only
+        // the database), and the meeting shows "note not found".
+        guard FileManager.default.fileExists(atPath: meeting.path) else {
+            missing.insert(id)
+            failed("Can't change", meeting.path, CocoaError(.fileNoSuchFile))
+            load()
+            return
+        }
         do {
             try store.change([meeting], body)
         } catch {

@@ -39,21 +39,26 @@ extension MeetingStore {
         public var meetings: Int
         public var last: Date
         public var voiceMeetings: Int
+        /// Samples of their lines, counted up to `Voices.enough`: fewer, and their print isn't compared yet.
+        public var voiceSamples: Int
     }
 
-    /// A row per person, without reading every line: each meeting stops at its first line (and sample) of theirs.
+    /// A row per person, without reading every line: each meeting stops at its first line of theirs, and at their first
+    /// `Voices.enough` samples.
     public func summaries() throws -> [Summary] {
         try sqlite.rows("""
-            SELECT persons.id, persons.name, persons.you, count(DISTINCT people.meeting), max(meetings.start),
-              count(DISTINCT CASE WHEN EXISTS (
-                SELECT 1 FROM line_voices WHERE line_voices.meeting = people.meeting AND line_voices.key = people.key)
-                THEN people.meeting END)
-            FROM people JOIN persons ON persons.id = people.person JOIN meetings ON meetings.id = people.meeting
-            WHERE EXISTS (SELECT 1 FROM lines WHERE lines.meeting = people.meeting AND lines.current = people.key)
-            GROUP BY persons.id
-            """) { row in
+            SELECT id, name, you, count(DISTINCT meeting), max(start), count(DISTINCT CASE WHEN voiced > 0 THEN meeting END),
+              min(sum(voiced), ?)
+            FROM (
+              SELECT persons.id, persons.name, persons.you, people.meeting, meetings.start,
+                (SELECT count(*) FROM (SELECT 1 FROM line_voices
+                  WHERE line_voices.meeting = people.meeting AND line_voices.key = people.key LIMIT ?)) AS voiced
+              FROM people JOIN persons ON persons.id = people.person JOIN meetings ON meetings.id = people.meeting
+              WHERE EXISTS (SELECT 1 FROM lines WHERE lines.meeting = people.meeting AND lines.current = people.key))
+            GROUP BY id
+            """, [Voices.enough, Voices.enough]) { row in
             Summary(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meetings: row.int(3),
-                    last: Date(timeIntervalSince1970: row.double(4)), voiceMeetings: row.int(5))
+                    last: Date(timeIntervalSince1970: row.double(4)), voiceMeetings: row.int(5), voiceSamples: row.int(6))
         }
     }
 

@@ -77,6 +77,16 @@ struct MeetingsModelTests {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)
     }
 
+    @Test func aNoteGoneSinceItWasOpenedChangesNothing() throws {
+        let (model, store, id, file, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.removeItem(at: file)
+        model.name(id, person: "Person 1", typed: "Olena")
+        #expect(model.notice?.title == "Can't change n.md")
+        #expect(try store.people(id).first { $0.key == "Person 1" }?.name == nil)
+        #expect(model.missing.contains(id))
+    }
+
     @Test func removeFromListKeepsTheNote() throws {
         let (model, store, id, file, dir) = try rig()
         defer { try? FileManager.default.removeItem(at: dir) }

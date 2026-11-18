@@ -29,10 +29,10 @@ struct PeoplePageTests {
 
     @Test func youFirstThenByTheLastMeeting() {
         let list = people([
-            .init(person: 7, name: "Taras", you: false, meetings: 1, last: day(2026, 11, 6), voiceMeetings: 0),
-            .init(person: 5, name: "Marko D.", you: false, meetings: 1, last: day(2026, 11, 6), voiceMeetings: 0),
-            .init(person: 1, name: nil, you: true, meetings: 1, last: day(2025, 12, 3), voiceMeetings: 0),
-            .init(person: 4, name: "Olena K.", you: false, meetings: 2, last: day(2026, 11, 10), voiceMeetings: 0),
+            .init(person: 7, name: "Taras", you: false, meetings: 1, last: day(2026, 11, 6), voiceMeetings: 0, voiceSamples: 0),
+            .init(person: 5, name: "Marko D.", you: false, meetings: 1, last: day(2026, 11, 6), voiceMeetings: 0, voiceSamples: 0),
+            .init(person: 1, name: nil, you: true, meetings: 1, last: day(2025, 12, 3), voiceMeetings: 0, voiceSamples: 0),
+            .init(person: 4, name: "Olena K.", you: false, meetings: 2, last: day(2026, 11, 10), voiceMeetings: 0, voiceSamples: 0),
         ])
         #expect(list.map(\.name) == ["Ivan Batura", "Olena K.", "Marko D.", "Taras"]) // the same day: by number
         #expect(list.map(\.initials).prefix(3) == ["IB", "OK", "MD"])
@@ -42,14 +42,16 @@ struct PeoplePageTests {
 
     @Test func aPersonsVoice() {
         let list = people([
-            .init(person: 1, name: nil, you: true, meetings: 3, last: day(2026, 11, 10), voiceMeetings: 1),
-            .init(person: 4, name: "Olena K.", you: false, meetings: 3, last: day(2026, 11, 10), voiceMeetings: 2),
-            .init(person: 5, name: "Marko D.", you: false, meetings: 2, last: day(2026, 11, 6), voiceMeetings: 1),
-            .init(person: 6, name: "Taras", you: false, meetings: 1, last: day(2026, 11, 3), voiceMeetings: 0),
+            .init(person: 1, name: nil, you: true, meetings: 3, last: day(2026, 11, 10), voiceMeetings: 1, voiceSamples: 3),
+            .init(person: 4, name: "Olena K.", you: false, meetings: 3, last: day(2026, 11, 10), voiceMeetings: 2, voiceSamples: 3),
+            .init(person: 5, name: "Marko D.", you: false, meetings: 2, last: day(2026, 11, 6), voiceMeetings: 1, voiceSamples: 3),
+            .init(person: 6, name: "Taras", you: false, meetings: 1, last: day(2026, 11, 3), voiceMeetings: 0, voiceSamples: 0),
+            .init(person: 7, name: "Iryna", you: false, meetings: 1, last: day(2026, 11, 2), voiceMeetings: 1, voiceSamples: 2),
         ])
-        #expect(list.map(\.voiceMeetings) == [1, 2, 1, 0])
+        #expect(list.map(\.voiceMeetings) == [1, 2, 1, 0, 1])
         #expect(list.map(\.voice) == ["Saved from 1 meeting: your microphone and the lines given to you", "Saved from 2 meetings",
-                                     "Saved from 1 meeting", "No voice saved"])
+                                     "Saved from 1 meeting", "No voice saved",
+                                     "Saved from 1 meeting, too little speech to recognise yet"]) // a print needs 3 samples
     }
 
     @Test func aPersonsMeetingsNewestFirst() {

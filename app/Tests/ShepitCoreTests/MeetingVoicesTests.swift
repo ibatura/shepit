@@ -120,8 +120,8 @@ struct MeetingVoicesTests {
         #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).presences(of: you).isEmpty)
         // People's list: a row each, the meetings counted once; Marko has no line left.
         #expect(try store.summaries().sorted { $0.person < $1.person } == [
-            .init(person: you, name: nil, you: true, meetings: 2, last: start + 3600, voiceMeetings: 0),
-            .init(person: olena, name: "Olena", you: false, meetings: 2, last: start + 3600, voiceMeetings: 1),
+            .init(person: you, name: nil, you: true, meetings: 2, last: start + 3600, voiceMeetings: 0, voiceSamples: 0),
+            .init(person: olena, name: "Olena", you: false, meetings: 2, last: start + 3600, voiceMeetings: 1, voiceSamples: 3),
         ])
         #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).summaries().isEmpty)
     }
