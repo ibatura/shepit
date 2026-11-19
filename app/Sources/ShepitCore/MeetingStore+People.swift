@@ -122,7 +122,7 @@ extension MeetingStore {
 
     /// The words of a meeting listed before they were kept, from its note's `entries`; only lines that have none.
     public func fillWords(_ meeting: Int, entries: [MeetingNote.Entry]) throws {
-        guard try !sqlite.rows("SELECT 1 FROM lines WHERE meeting = ? AND words IS NULL LIMIT 1", [meeting]) { $0.int(0) }.isEmpty else { return }
+        guard try !sqlite.rows("SELECT 1 FROM lines WHERE meeting = ? AND words IS NULL LIMIT 1", [meeting], read: { $0.int(0) }).isEmpty else { return }
         let lines = try lines(meeting)
         try transaction {
             for (entry, line) in zip(entries, MeetingPage.pair(entries, lines)) {
