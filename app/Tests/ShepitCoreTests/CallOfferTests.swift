@@ -199,6 +199,33 @@ struct CallOfferTests {
         #expect(m.panel == nil)
     }
 
+    @Test func aCallThatStartsWhileTheLastTranscriptIsFinishingIsOfferedOnceItHas() {
+        var m = Machine()
+        m.teamsCall()
+        m.send(.pressedMain, at: 4)
+        m.send(.sessionStarted(byPanel: true), at: 4.2)
+        m.send(.sessionStopping, at: 100)
+        m.send(.released(pid: 1), at: 101)
+        m.send(.took(.app(.teams), pid: 2), at: 110)
+        m.send(.tick, at: 113)
+        #expect(m.panel == nil && m.offer.current == nil)
+        #expect(m.send(.sessionFinished(entries: 4, detail: "d"), at: 150) == [.lookForName])
+        #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 15))
+        #expect(m.send(.pressedMain, at: 151) == [.start(title: nil, app: .teams)])
+    }
+
+    @Test func aCallThatEndsBeforeTheLastTranscriptHasFinishedGetsNoOffer() {
+        var m = Machine()
+        m.send(.sessionStarted(byPanel: false), at: 0)
+        m.send(.sessionStopping, at: 100)
+        m.send(.took(.app(.teams), pid: 2), at: 110)
+        m.send(.tick, at: 113)
+        m.send(.released(pid: 2), at: 120)
+        m.send(.tick, at: 123)
+        m.send(.sessionFinished(entries: 4, detail: "d"), at: 150)
+        #expect(m.panel == .ready(detail: "d"))
+    }
+
     @Test func aShortGapIsTheSameCall() {
         var m = Machine()
         m.teamsCall()

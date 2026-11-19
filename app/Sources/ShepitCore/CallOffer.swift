@@ -90,6 +90,8 @@ public struct CallOffer: Sendable {
         case pending
         /// `next` nil: waiting for the answer.
         case checkingMeet(next: Date?)
+        /// Confirmed while the last transcript was finishing: offered once it has.
+        case held
         case offered(since: Date)
         /// Nothing more to show for this call.
         case quiet
@@ -141,7 +143,7 @@ public struct CallOffer: Sendable {
         guard let call, let app = call.app, call.releasedAt == nil else { return nil }
         switch call.phase {
         case .offered, .quiet: return Current(name: call.name, app: app)
-        case .pending, .checkingMeet: return nil
+        case .pending, .checkingMeet, .held: return nil
         }
     }
 
@@ -224,6 +226,7 @@ public struct CallOffer: Sendable {
                 ready = (now + Self.readySeconds, detail)
             }
             session = nil
+            if call?.phase == .held { effects += offer(now, settings) }
         case .tick:
             break
         }
@@ -242,10 +245,15 @@ public struct CallOffer: Sendable {
         return .start(title: call?.name, app: app)
     }
 
-    /// The call is confirmed: offer it, unless offers are off or a transcript already runs.
+    /// The call is confirmed: offer it, unless offers are off or a transcript already runs. A transcript that is finishing
+    /// no longer records: the call waits for it, back-to-back calls (the author, 2026-11-19).
     private mutating func offer(_ now: Date, _ settings: Settings) -> [Effect] {
         if session?.endingSince != nil { session?.end = .open } // a new call while the stop countdown runs: the transcript goes on
         if session?.awaitsCall == true { session?.ours = true }
+        if session?.end == .stopping {
+            call?.phase = .held
+            return []
+        }
         guard settings.callOffer, session == nil else {
             call?.phase = .quiet
             return session == nil ? [.lookForName] : [] // Home still offers Start for the call, with its name

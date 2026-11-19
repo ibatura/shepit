@@ -105,7 +105,7 @@ P releases the microphone for 3 s ──▶ call ended ──▶ stop panel ─�
 A state machine fed with events (app took or released the microphone, Meet found, name found, button pressed, time passed, session started or finished) and the settings. It returns what the panel shows and whether to start or stop a session.
 
 - One call lasts from the 3 s mark until the app has released the microphone for 3 s. A shorter gap (a device switch) is the same call.
-- **Offer:** shown once per call, if `callOffer` is on and no meeting transcript is running or finishing.
+- **Offer:** shown once per call, if `callOffer` is on and no meeting transcript is running. A call that starts while the last transcript is finishing gets its offer once that transcript has finished (back-to-back calls, the author, 2026-11-19); until then it is held.
 - **Not this call / Don't record / the offer hides by time:** no more panels for this call. Start from the menu still works.
 - **Automatic start** (`callAutoStart`): the same panel with the `callAutoStartSeconds` countdown; when it ends the transcript starts.
 - **Shepit starts while a call is already running:** treated as a call that has just begun.
@@ -141,6 +141,7 @@ One row per offer in `stats.sqlite`: time, app, and how it ended (started by cli
 | Headphones switched mid-call | A gap under 3 s is the same call |
 | Call ends during the offer | The panel closes |
 | Call ends during "finishing" or "detecting speakers" | Nothing |
+| Next call starts during "finishing" or "detecting speakers" | Its offer comes when the transcript has finished (2026-11-19) |
 | Mac sleeps mid-call | On wake the state is read again; a released microphone ends the call |
 
 ## 7. Testing
