@@ -72,15 +72,10 @@ struct VoicesTests {
         // they are taken for her (wrong); in meetings 1 and 2 Olena is too close to person 3's print to tell (missed).
         // Marko has no print elsewhere and is left alone.
         let alike = rows(1, meeting: 1, axis: 1) + rows(1, meeting: 2, axis: 1) + rows(2, meeting: 2, axis: 2) + rows(3, meeting: 3, axis: 1)
-        #expect(Voices.check(alike, match: .mean, threshold: 0.8) == .init(wrong: 1, missed: 2, unknown: 1))
+        #expect(Voices.check(alike, threshold: 0.8) == .init(wrong: 1, missed: 2, unknown: 1))
         let apart = rows(1, meeting: 1, axis: 1) + rows(1, meeting: 2, axis: 1) + rows(2, meeting: 2, axis: 2)
-        #expect(Voices.check(apart, match: .mean, threshold: 0.8) == .init(recognised: 2, unknown: 1))
-        #expect(Voices.check(apart, match: .mean, threshold: 0.99) == .init(missed: 2, unknown: 1))
-        // Nearest sample: in meeting 2 a voice like one sample of meeting 1's spread print, not like its mean.
-        let spread = [near(5, 6, by: 0), near(6, 5, by: 0), near(7, 5, by: 0)].map { Voices.Row(person: 5, meeting: 1, sample: $0) }
-            + (0..<3).map { Voices.Row(person: 5, meeting: 2, sample: near(5, 150 + $0, by: 0.1)) }
-        #expect(Voices.check(spread, match: .mean, threshold: 0.8) == .init(missed: 2))
-        #expect(Voices.check(spread, match: .nearest, threshold: 0.8) == .init(recognised: 1, missed: 1))
+        #expect(Voices.check(apart, threshold: 0.8) == .init(recognised: 2, unknown: 1))
+        #expect(Voices.check(apart, threshold: 0.99) == .init(missed: 2, unknown: 1))
     }
 
     @Test func yourSamplesAreTheVoiceOfMostOfYourLines() {

@@ -163,9 +163,9 @@ You have no Rename, Merge into or Delete voice: your name in notes is Settings �
 
 **Remember voices** (the switch at the top of People, off by default, `rememberVoices`). While it is on:
 
-- Each line of a meeting Shepit records keeps a **voice sample**: 256 numbers that describe the voice, made by speaker detection after Stop. A sample is not audio; it can't be turned back into sound or words. Your own lines get theirs from your microphone: your first 10 minutes of speech, wherever in the meeting you speak.
+- Each line of a meeting Shepit records keeps a **voice sample**: 256 numbers that describe the voice, made by speaker detection after Stop. A sample is not audio; it can't be turned back into sound or words. Your own lines get theirs from your microphone: your first 10 minutes of speech, wherever in the meeting you speak. Your voice is only those: a call line you give to yourself keeps no voice of yours.
 - A person's **voice print** is the samples of the lines that are theirs now. Naming a person, merging two, giving a line to someone else or Reset people… moves the samples with the lines, so prints learn from your corrections, and undoing one takes its samples back out.
-- When a transcript is ready, each `Person N` is compared with the saved voices. A clear match gets that person's name, in the window and in the note, with **recognised by voice** under the name in Meetings; the Transcript ready panel says how many ("42 min · 3 people · 2 recognised"). Change the name, merge or give lines as for anyone. A match with your own voice (heard from your speakers) is merged into you.
+- When a transcript is ready, each `Person N` is compared with the saved voices. A clear match gets that person's name, in the window and in the note, with **recognised by voice** under the name in Meetings; the Transcript ready panel says how many ("42 min · 3 people · 2 recognised"). Change the name, merge or give lines as for anyone. A match needs 0.7 similarity and a lead of 0.1 over the next voice.
 
 Samples are kept only on this Mac, in `meetings.sqlite`, and are deleted:
 

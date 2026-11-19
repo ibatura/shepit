@@ -86,8 +86,8 @@ A person with no meeting left (the last one removed from the list) is deleted wi
 A print is used for recognition once it has samples from at least one meeting and enough speech (how much: §12).
 
 **Recognition** runs when a transcript is ready, after speaker detection, while Remember voices is on:
-- Each Person N of the new meeting is compared with every print (the mean of Person N's line samples against each print, or against each print's nearest samples: §12).
-- A person whose best match passes the threshold, clearly ahead of the second best, is linked to that person and gets their name. Two people of one meeting can't be linked to the same person: the closer one is.
+- Each Person N of the new meeting is compared with every print (the mean of Person N's line samples against each print's mean; the nearest sample was tried and set aside on 2026-11-19, §12).
+- A person whose best match passes the threshold (0.7), clearly ahead of the second best (by 0.1), is linked to that person and gets their name. Two people of one meeting can't be linked to the same person: the closer one is.
 - A match with You merges that person into the author's row (the author's voice heard through the call audio), as the meetings spec's merge does.
 - The note's headers get the names, as when the author names someone (meetings spec §8), and the person is marked "recognised by voice" in the database.
 
@@ -109,7 +109,7 @@ Mockup 6, grown into a section with a list and a person.
 - **Meetings:** the meetings the person was in during that period, newest first, with date, name, talk time and words; a click opens the meeting in the Meetings section. The period keeps the list short: You is in every meeting (the author, 2026-11-18). Only that person's lines of that period are read, and the list draws only the rows on screen.
 - **May also be in:** when the print matches an unnamed person of other meetings (those still holding samples, so at most 30 days old), a line "May also be in 3 meetings" with **Show…**: a list of those meetings with the Person N each, a checkbox each (all on), and **Name them**, which names the checked ones as the Meetings section does. A suggestion turned down by unchecking isn't shown again for that meeting's person.
 
-**You** has no Merge into, no Delete and no Rename: the name in each note comes from Settings → Meetings (`meetingMyName`), as today; its Voice line says "From your microphone and the lines given to you". Its talk time and words are the author's.
+**You** has no Merge into, no Delete and no Rename: the name in each note comes from Settings → Meetings (`meetingMyName`), as today; its Voice line says "Saved from N meetings, from your microphone". Your print is only your lines from the microphone: a call line given to you doesn't count, and its sample goes after 30 days like an unnamed one (the author, 2026-11-19: such lines were 0.14 alike the microphone). Its talk time and words are the author's.
 
 Changes are written like every change of the meetings spec: the database and the notes together, or neither; a note that can't be written stops the change and says which.
 
@@ -162,7 +162,7 @@ Renaming a person changes one row; merging moves the `people` rows of one person
 
 ## 12. To find out in the plan (on the author's meetings)
 
-- The threshold and the margin, and whether a print matches better as one mean or as the nearest of its samples across Teams, Zoom and Meet audio. Start from FluidAudio's own defaults; settle with `voices-check` after a few weeks.
+- The threshold and the margin, and whether a print matches better as one mean or as the nearest of its samples across Teams, Zoom and Meet audio. Start from FluidAudio's own defaults; settle with `voices-check` after a few weeks. Settled on 2026-11-19 (Teams calls only so far): the mean, 0.7 and 0.1; see `docs/future-ideas.md`, "Voices: left open".
 - How much speech a print needs before it is used.
 - How many minutes of the author's speech give a good print without slowing Stop.
 - How long speaker detection takes with window embeddings on, and how big `samples` grows per hour of meeting.

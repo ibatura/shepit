@@ -12,15 +12,12 @@ enum VoicesCheck {
             let rows = try store.voiceRows()
             let meetings = Dictionary(grouping: rows, by: \.person).mapValues { Set($0.map(\.meeting)).count }
             print("\(rows.count) samples of \(meetings.count) people; \(meetings.values.filter { $0 > 1 }.count) of them in two meetings or more")
-            print("match    threshold  recognised  wrong  missed  new, left alone")
-            for match in Voices.Match.allCases {
-                for threshold in stride(from: Float(0.3), through: 0.951, by: 0.05) {
-                    let count = Voices.check(rows, match: match, threshold: threshold)
-                    print(String(format: "%-8@ %9.2f  %10d  %5d  %6d  %d", "\(match)", threshold, count.recognised, count.wrong,
-                                 count.missed, count.unknown))
-                }
+            print("threshold  recognised  wrong  missed  new, left alone")
+            for threshold in stride(from: Float(0.3), through: 0.951, by: 0.05) {
+                let count = Voices.check(rows, threshold: threshold)
+                print(String(format: "%9.2f  %10d  %5d  %6d  %d", threshold, count.recognised, count.wrong, count.missed, count.unknown))
             }
-            print("Now: \(Voices.threshold) with a margin of \(Voices.margin), by the mean.")
+            print("Now: \(Voices.threshold) with a margin of \(Voices.margin).")
             return 0
         } catch {
             FileHandle.standardError.write(Data("voices-check: \(error.localizedDescription)\n".utf8))

@@ -120,9 +120,10 @@ public enum Voices {
         public var samples: Int
     }
 
-    /// Starting values, to be settled with `Shepit voices-check` on the author's meetings (voices plan Task 10). On the
-    /// first meeting kept with voices (2026-11-18) two different voices had means 0.76 alike, so the bar is high.
-    public static let threshold: Float = 0.8
+    /// Settled with `Shepit voices-check` on the author's meetings (2026-11-19, 918 samples of 12 people): a known
+    /// person's voice was 0.78-0.95 like their print, no other print came closer than 0.55, so 0.7 names every one of
+    /// them and nobody wrong; 0.8 missed a third. To check again as meetings add up.
+    public static let threshold: Float = 0.7
     /// How far the best print must lead the second best.
     public static let margin: Float = 0.1
     /// Samples a voice or a print needs before it is compared at all.
@@ -144,16 +145,10 @@ public enum Voices {
     /// second best by `margin`; never one print for two keys (the closer key gets it).
     public static func recognise<Key: Hashable>(_ people: [Key: [VoiceSample]], prints: [Int: Print], threshold: Float = threshold,
                                                 margin: Float = margin) -> [Key: Int] {
-        recognise(people, threshold: threshold, margin: margin) { voice in prints.mapValues { voice.similarity($0.mean) } }
-    }
-
-    /// `recognise` with how alike a voice is to each person (`scores`).
-    private static func recognise<Key: Hashable>(_ people: [Key: [VoiceSample]], threshold: Float, margin: Float,
-                                                 scores: (VoiceSample) -> [Int: Float]) -> [Key: Int] {
         var candidates: [(key: Key, person: Int, score: Float)] = []
         for (key, samples) in people where samples.count >= enough {
             guard let voice = VoiceSample.mean(samples) else { continue }
-            let ranked = scores(voice).sorted { $0.value > $1.value }
+            let ranked = prints.mapValues { voice.similarity($0.mean) }.sorted { $0.value > $1.value }
             guard let best = ranked.first, best.value >= threshold, best.value - (ranked.dropFirst().first?.value ?? -1) >= margin else { continue }
             candidates.append((key, best.key, best.value))
         }
@@ -171,10 +166,6 @@ public enum Voices {
         return unnamed.compactMapValues { people in recognise(people, prints: prints).first { $0.value == person }?.key }
     }
 
-    /// How `Shepit voices-check` compares a voice with a person: with the mean of their samples (as recognition does), or
-    /// with their nearest sample. Which works better is settled on the author's meetings (voices plan Task 10).
-    public enum Match: Sendable, CaseIterable { case mean, nearest }
-
     /// `Shepit voices-check` (voices design §8): each meeting's people taken as new and matched against the prints of
     /// the other meetings. `unknown`: no print elsewhere and left alone, as it should be.
     public struct CheckCount: Equatable, Sendable {
@@ -188,19 +179,12 @@ public enum Voices {
         }
     }
 
-    public static func check(_ rows: [Row], match: Match, threshold: Float, margin: Float = margin) -> CheckCount {
+    public static func check(_ rows: [Row], threshold: Float, margin: Float = margin) -> CheckCount {
         var count = CheckCount()
         for meeting in Set(rows.map(\.meeting)) {
             let here = Dictionary(grouping: rows.filter { $0.meeting == meeting }, by: \.person).mapValues { $0.map(\.sample) }
-            let others = rows.filter { $0.meeting != meeting }
-            let prints = prints(others)
-            let nearest = Dictionary(grouping: others, by: \.person).filter { prints[$0.key] != nil }.mapValues { $0.map(\.sample) }
-            let links = recognise(here, threshold: threshold, margin: margin) { voice in
-                switch match {
-                case .mean: prints.mapValues { voice.similarity($0.mean) }
-                case .nearest: nearest.mapValues { $0.map(voice.similarity).max() ?? -1 }
-                }
-            }
+            let prints = prints(rows.filter { $0.meeting != meeting })
+            let links = recognise(here, prints: prints, threshold: threshold, margin: margin)
             for (person, samples) in here where samples.count >= enough {
                 switch links[person] {
                 case person?: count.recognised += 1

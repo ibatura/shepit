@@ -49,7 +49,7 @@ struct PeoplePageTests {
             .init(person: 7, name: "Iryna", you: false, meetings: 1, last: day(2026, 11, 2), voiceMeetings: 1, voiceSamples: 2),
         ])
         #expect(list.map(\.voiceMeetings) == [1, 2, 1, 0, 1])
-        #expect(list.map(\.voice) == ["Saved from 1 meeting: your microphone and the lines given to you", "Saved from 2 meetings",
+        #expect(list.map(\.voice) == ["Saved from 1 meeting, from your microphone", "Saved from 2 meetings",
                                      "Saved from 1 meeting", "No voice saved",
                                      "Saved from 1 meeting, too little speech to recognise yet"]) // a print needs 3 samples
     }

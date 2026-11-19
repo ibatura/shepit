@@ -67,16 +67,17 @@ struct MeetingVoicesTests {
         let three = ["Person 1", "Person 1", "Person 1", "Person 2", "Person 2", "Person 2"]
         let old = try meeting(store, dir, "old", start: start, labels: ["Me"] + three, voices: ["Person 1": 1, "Person 2": 2])
         try store.setName(old.id, person: "Person 1", to: "Olena")
-        try store.merge(old.id, person: "Person 2", into: "Me") // your voice heard through the call
+        try store.merge(old.id, person: "Person 2", into: "Me") // a call voice given to you is not your voice
+        #expect(try store.voiceRows().count == 3) // Olena's; your print is your microphone
         let new = try meeting(store, dir, "new", start: start.addingTimeInterval(86_400),
                               labels: ["Me"] + three + ["Person 3", "Person 3", "Person 3"],
                               voices: ["Person 1": 1, "Person 2": 2, "Person 3": 3])
-        #expect(try store.recognise(new) == 2)
+        #expect(try store.recognise(new) == 1)
         let people = try store.people(new.id)
         #expect(people.first { $0.key == "Person 1" }.map { ($0.name, $0.recognised) } ?? (nil, false) == ("Olena", true))
-        #expect(try store.lines(new.id).filter { $0.original == "Person 2" }.allSatisfy { $0.current == "Me" })
+        #expect(people.first { $0.key == "Person 2" }?.person == nil)
         #expect(people.first { $0.key == "Person 3" }?.person == nil) // nobody like that
-        #expect(try headers(new) == ["Me", "Olena", "Olena", "Olena", "Me", "Me", "Me", "Person 3", "Person 3", "Person 3"])
+        #expect(try headers(new) == ["Me", "Olena", "Olena", "Olena", "Person 2", "Person 2", "Person 2", "Person 3", "Person 3", "Person 3"])
         #expect(try store.recognise(new) == 0) // only people with no person yet
         // A name changed by the author drops the mark.
         try store.setName(new.id, person: "Person 1", to: "Olena K.")

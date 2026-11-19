@@ -46,7 +46,7 @@ public enum PeoplePage {
                               detail: detail.joined(separator: " · "), voiceMeetings: voice,
                               voice: voice == 0 ? "No voice saved"
                                   : summary.voiceSamples < Voices.enough ? saved + ", too little speech to recognise yet"
-                                  : saved + (summary.you ? ": your microphone and the lines given to you" : ""))
+                                  : saved + (summary.you ? ", from your microphone" : ""))
             }
     }
 
