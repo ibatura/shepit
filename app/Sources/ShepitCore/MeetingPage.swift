@@ -94,15 +94,17 @@ public enum MeetingPage {
         return labels.isEmpty ? note : Speakers.setLabels(note, labels)
     }
 
-    /// The note without the entries paired with `places`, each from its header up to the next entry, and the places taken
-    /// out. An entry that isn't paired with the store stays, and so does the rest of the note.
+    /// The note without the entries paired with `places`, each from its header up to the next entry or the first empty line
+    /// (text added in Obsidian after a blank line stays), and the places taken out. An entry that isn't paired with the
+    /// store stays, and so does the rest of the note.
     public static func removing(_ places: Set<MeetingNote.Place>, from note: String, lines: [Line]) -> (note: String, removed: Set<MeetingNote.Place>) {
         let text = note.components(separatedBy: "\n")
         let entries = MeetingNote.parse(note).entries
         var drop = IndexSet(), removed = Set<MeetingNote.Place>()
         for (i, (entry, line)) in zip(entries, pair(entries, lines)).enumerated() {
             guard let place = line?.place, places.contains(place) else { continue }
-            let end = i + 1 < entries.count ? entries[i + 1].line : text.count - (text.last == "" ? 1 : 0) // the note's last newline stays
+            let next = i + 1 < entries.count ? entries[i + 1].line : text.count
+            let end = text[(entry.line + 1)..<next].firstIndex { $0.trimmingCharacters(in: .whitespaces).isEmpty } ?? next
             drop.insert(integersIn: entry.line..<end)
             removed.insert(place)
         }

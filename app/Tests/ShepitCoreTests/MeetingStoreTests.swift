@@ -379,6 +379,9 @@ struct MeetingStoreTests {
         [Person 1] 2026-07-31 10:00:07
         ok
 
+        ## My notes
+        keep this
+
         """.utf8).write(to: file)
         func at(_ second: Int, _ order: Int) -> MeetingNote.Place { .init(timestamp: "2026-07-31 10:00:0\(second)", order: order) }
         func sample(_ axis: Int) -> VoiceSample {
@@ -398,14 +401,14 @@ struct MeetingStoreTests {
         try store.delete(meeting, lines: [at(3, 0), at(9, 0)]) // a place with no line deletes nothing
         let text = try String(contentsOf: file, encoding: .utf8)
         #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Person 2] 2026-07-31 10:00:03", "[Person 1] 2026-07-31 10:00:07"])
-        #expect(!text.components(separatedBy: "\n").contains("hi") && text.hasSuffix("ok\n"))
+        #expect(!text.components(separatedBy: "\n").contains("hi") && text.hasSuffix("ok\n\n## My notes\nkeep this\n"))
         #expect(try store.lines(id).map { "\($0.place.timestamp.suffix(2))/\($0.place.order) \($0.current)" } == ["01/0 Ivan", "03/0 Person 2", "07/0 Person 1"])
         #expect(try samples() == ["01/0 1", "03/0 4"]) // Person 2's sample moved up with the line
         let page = MeetingPage.page(people: try store.people(id), lines: try store.lines(id), you: "Ivan", entries: MeetingNote.parse(text).entries)
         #expect(page.rows.map(\.person) == ["Ivan", "Person 2", "Person 1"])
 
         try store.delete(meeting, lines: [at(7, 0)]) // all of Person 1's lines: Person 1 leaves the meeting's people
-        #expect(try String(contentsOf: file, encoding: .utf8).hasSuffix("hey\n"))
+        #expect(try String(contentsOf: file, encoding: .utf8).hasSuffix("hey\n\n## My notes\nkeep this\n")) // text added after a blank line stays
         let after = MeetingPage.page(people: try store.people(id), lines: try store.lines(id), you: "Ivan",
                                      entries: MeetingNote.parse(try String(contentsOf: file, encoding: .utf8)).entries)
         #expect(after.people.map(\.key) == ["Ivan", "Person 2"])

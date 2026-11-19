@@ -266,11 +266,12 @@ private struct FinishedMeeting: View {
                 }
                 .fixedSize()
             }
+            let theirs = Set(page.rows.filter { $0.person == person.key }.compactMap(\.place))
             Menu {
                 Button("Delete all their lines…", role: .destructive) {
-                    model.question = .deleteLines(meeting: meeting.id, name: person.name,
-                                                  lines: Set(page.rows.filter { $0.person == person.key }.compactMap(\.place)))
+                    model.question = .deleteLines(meeting: meeting.id, name: person.name, lines: theirs)
                 }
+                .disabled(theirs.isEmpty) // none paired with the note
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
