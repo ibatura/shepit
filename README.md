@@ -136,11 +136,13 @@ Open a finished meeting to:
 - **Rename it:** click its name (or ✎), type, and press **Save** or Enter; **Cancel** or Esc leaves it as it was. The note's `title` and its file name change too (the `meetingFileName` template is filled again, in the folder the note is in now). Links to the note from other Obsidian notes are not updated: Obsidian does that only for renames made inside it.
 - **Name people:** type a name next to `Person 1`; names given in earlier meetings are suggested. Every line of that person gets the name in the note. A name another person of the meeting already has asks to merge the two.
 - **Merge into:** all lines of one person go to another (for one voice that speaker detection split in two). Your own voice heard through the call can be merged into you.
+- **See who said what:** click a person (their initials, their share or an empty spot on the row) to highlight every line of theirs in the transcript; click again to turn it off.
 - **Give a line to another person:** click the line. **New person** makes a `Person N` for a voice that speaker detection put under someone else.
+- **Delete lines:** click a line and choose **Delete line** (at once), or in a person's **⋯** choose **Delete all their lines…** (asks first, with the count). The lines leave the note and Shepit, with their voice samples; this can't be undone. Useful for "hello" and "bye" that everyone says, or a person speaker detection made of one stray word.
 - **Reset people…** puts every line back to the person speaker detection gave it; the names you typed stay.
 - **Copy** (the note without its front matter), **Open note**, and in **⋯**: **Remove note from list…** (the note stays) and **Move file to Trash…**.
 
-The transcript is read only here; edit it in Obsidian. Shepit changes only the `[name] time` lines and the `title` line, and reads the note again right before each change, so your edits stay. If you add or delete a line in Obsidian, the lines with the same time (to the second) can no longer be given to someone else. A label typed by hand in a `[name] time` line is not read back.
+The transcript's text is not edited here; edit it in Obsidian. Shepit changes only the `[name] time` lines, the `title` line and the lines you delete, and reads the note again right before each change, so your edits stay. If you add or delete a line in Obsidian, the lines with the same time (to the second) can no longer be given to someone else. A label typed by hand in a `[name] time` line is not read back.
 
 A meeting whose note was moved, renamed or deleted shows **note not found**, with **Locate note…** to point at the file. Notes made before this version are not in the list: **Add notes…** under the list adds them (pick several, or ⌘A in the folder); a file with no transcript lines is skipped.
 

@@ -107,6 +107,10 @@ struct MeetingsView: View {
             let shown: String
             if case .page(let page) = model.open?.content { shown = page.people.first { $0.key == person }?.name ?? person } else { shown = person }
             return ("\(name) is already in this meeting", "Merge \(shown) into \(name)?", "Merge", false)
+        case .deleteLines(_, let name, let lines):
+            return ("Delete all lines of \(name)?",
+                    "\(lines.count == 1 ? "1 line leaves" : "\(lines.count) lines leave") the note and Shepit, with their voice samples. This can't be undone.",
+                    "Delete", true)
         case .reset:
             return ("Reset people?", "Every line goes back to the person speaker detection gave it. Names given to people stay.", "Reset", false)
         case .remove(let meeting):
@@ -168,6 +172,8 @@ private struct FinishedMeeting: View {
     let actions: WindowActions
     /// The transcript row whose "Give this line to" is open.
     @State private var giving: Int?
+    /// The person whose lines are highlighted (the author, 2026-11-19).
+    @State private var highlighted: String?
 
     private var meeting: MeetingStore.Meeting { open.meeting }
     private var missing: Bool { open.content == .missing }
@@ -203,10 +209,10 @@ private struct FinishedMeeting: View {
                     }
                 case .page(let page):
                     people(page)
-                    Caption("Transcript (read only) · click a line to give it to another person")
+                    Caption("Transcript · click a line to give it to someone else or delete it")
                     LazyVStack(alignment: .leading, spacing: 4) {
                         ForEach(Array(page.rows.enumerated()), id: \.offset) { index, row in
-                            transcriptRow(row, index: index, people: page.people)
+                            transcriptRow(row, index: index, page: page)
                         }
                     }
                 case .reading:
@@ -219,7 +225,7 @@ private struct FinishedMeeting: View {
 
     private func people(_ page: MeetingPage.Page) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Caption("People")
+            Caption("People · click a person to highlight their lines")
             VStack(spacing: 0) {
                 ForEach(Array(page.people.enumerated()), id: \.element.key) { index, person in
                     if index > 0 { Divider().padding(.leading, 46) }
@@ -239,8 +245,9 @@ private struct FinishedMeeting: View {
     }
 
     private func personRow(_ person: MeetingPage.PersonRow, color: Color, page: MeetingPage.Page) -> some View {
-        HStack(spacing: 10) {
-            Avatar(initials: person.initials, color: color)
+        let highlight = { highlighted = highlighted == person.key ? nil : person.key }
+        return HStack(spacing: 10) {
+            Avatar(initials: person.initials, color: color).onTapGesture(perform: highlight)
             VStack(alignment: .leading, spacing: 2) {
                 NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
                     model.name(meeting.id, person: person.key, typed: $0)
@@ -250,7 +257,7 @@ private struct FinishedMeeting: View {
             .frame(width: 230)
             Spacer()
             let share = "\(Int((person.share * 100).rounded()))%"
-            Text(person.isYou ? "you · \(share)" : share).foregroundStyle(.secondary).monospacedDigit()
+            Text(person.isYou ? "you · \(share)" : share).foregroundStyle(.secondary).monospacedDigit().onTapGesture(perform: highlight)
             if !person.mergeTargets.isEmpty {
                 Menu("Merge into") {
                     ForEach(person.mergeTargets, id: \.self) { target in
@@ -259,15 +266,29 @@ private struct FinishedMeeting: View {
                 }
                 .fixedSize()
             }
+            Menu {
+                Button("Delete all their lines…", role: .destructive) {
+                    model.question = .deleteLines(meeting: meeting.id, name: person.name,
+                                                  lines: Set(page.rows.filter { $0.person == person.key }.compactMap(\.place)))
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        // Behind the name field and the menus, which keep their clicks: a click on the row's empty space.
+        .background((highlighted == person.key ? color.opacity(0.15) : Color.clear).contentShape(Rectangle()).onTapGesture(perform: highlight))
     }
 
-    @ViewBuilder private func transcriptRow(_ row: MeetingPage.Row, index: Int, people: [MeetingPage.PersonRow]) -> some View {
+    @ViewBuilder private func transcriptRow(_ row: MeetingPage.Row, index: Int, page: MeetingPage.Page) -> some View {
+        let shade: Color = if giving == index { Color.accentColor.opacity(0.15) }
+            else if let person = row.person, person == highlighted { color(of: person, in: page).opacity(0.18) }
+            else { .clear }
         let entry = EntryRow(name: row.name, time: row.time, text: row.text)
             .padding(.horizontal, 6).padding(.vertical, 3)
-            .background(giving == index ? Color.accentColor.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 6))
+            .background(shade, in: RoundedRectangle(cornerRadius: 6))
         if let place = row.place {
             entry
                 .contentShape(Rectangle())
@@ -275,11 +296,13 @@ private struct FinishedMeeting: View {
                 .popover(isPresented: Binding(get: { giving == index }, set: { if !$0 { giving = nil } }), arrowEdge: .trailing) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Give this line to").font(.caption).foregroundStyle(.secondary).padding(.bottom, 4)
-                        ForEach(people.filter { $0.key != row.person }, id: \.key) { person in
+                        ForEach(page.people.filter { $0.key != row.person }, id: \.key) { person in
                             Button(person.name) { giving = nil; model.give(meeting.id, line: place, to: person.key) }
                         }
                         Divider().padding(.vertical, 4)
                         Button("New person") { giving = nil; model.giveToNewPerson(meeting.id, line: place) }
+                        Divider().padding(.vertical, 4)
+                        Button("Delete line", role: .destructive) { giving = nil; model.delete(meeting.id, lines: [place]) }
                     }
                     .buttonStyle(.borderless)
                     .padding(12)

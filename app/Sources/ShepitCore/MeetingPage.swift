@@ -94,6 +94,21 @@ public enum MeetingPage {
         return labels.isEmpty ? note : Speakers.setLabels(note, labels)
     }
 
+    /// The note without the entries paired with `places`, each from its header up to the next entry, and the places taken
+    /// out. An entry that isn't paired with the store stays, and so does the rest of the note.
+    public static func removing(_ places: Set<MeetingNote.Place>, from note: String, lines: [Line]) -> (note: String, removed: Set<MeetingNote.Place>) {
+        let text = note.components(separatedBy: "\n")
+        let entries = MeetingNote.parse(note).entries
+        var drop = IndexSet(), removed = Set<MeetingNote.Place>()
+        for (i, (entry, line)) in zip(entries, pair(entries, lines)).enumerated() {
+            guard let place = line?.place, places.contains(place) else { continue }
+            let end = i + 1 < entries.count ? entries[i + 1].line : text.count - (text.last == "" ? 1 : 0) // the note's last newline stays
+            drop.insert(integersIn: entry.line..<end)
+            removed.insert(place)
+        }
+        return (text.indices.filter { !drop.contains($0) }.map { text[$0] }.joined(separator: "\n"), removed)
+    }
+
     /// Another person of the meeting (with lines) that already shows `name`, ignoring case, accents and script; nil when none.
     public static func clash(people: [Person], lines: [Line], person: String, name: String) -> String? {
         guard let name = self.name(name).map(Names.fold) else { return nil }

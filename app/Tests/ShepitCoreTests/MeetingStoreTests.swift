@@ -360,6 +360,68 @@ struct MeetingStoreTests {
         #expect(try headers(file)[1] == "[Person 1] 2026-07-31 10:00:03")
     }
 
+    @Test func deletedLinesLeaveTheNoteAndTheStoreAndLaterLinesOfTheirSecondMoveUp() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appending(path: "d.md")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("""
+        ---
+        date: 2026-07-31
+        time: "10:00"
+        ---
+        [Ivan] 2026-07-31 10:00:01
+        hello all
+        [Person 1] 2026-07-31 10:00:03
+        hi
+        [Person 2] 2026-07-31 10:00:03
+        hey
+        [Person 1] 2026-07-31 10:00:07
+        ok
+
+        """.utf8).write(to: file)
+        func at(_ second: Int, _ order: Int) -> MeetingNote.Place { .init(timestamp: "2026-07-31 10:00:0\(second)", order: order) }
+        func sample(_ axis: Int) -> VoiceSample {
+            var vector = [Float](repeating: 0, count: VoiceSample.size)
+            vector[axis] = 1
+            return VoiceSample(vector)!
+        }
+        let id = try #require(try store.add(note: file, you: "Ivan", samples: [at(1, 0): sample(1), at(3, 0): sample(3), at(3, 1): sample(4)]))
+        let meeting = try #require(try store.meeting(id))
+        /// "second/order axis" of each sample kept.
+        func samples() throws -> [String] {
+            try store.sqlite.rows("SELECT timestamp, ord, vector FROM samples ORDER BY timestamp, ord") { row in
+                VoiceSample(blob: row.blob(2)).map { "\(row.text(0)!.suffix(2))/\(row.int(1)) \($0.vector.firstIndex(of: 1)!)" }
+            }
+        }
+
+        try store.delete(meeting, lines: [at(3, 0), at(9, 0)]) // a place with no line deletes nothing
+        let text = try String(contentsOf: file, encoding: .utf8)
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Person 2] 2026-07-31 10:00:03", "[Person 1] 2026-07-31 10:00:07"])
+        #expect(!text.components(separatedBy: "\n").contains("hi") && text.hasSuffix("ok\n"))
+        #expect(try store.lines(id).map { "\($0.place.timestamp.suffix(2))/\($0.place.order) \($0.current)" } == ["01/0 Ivan", "03/0 Person 2", "07/0 Person 1"])
+        #expect(try samples() == ["01/0 1", "03/0 4"]) // Person 2's sample moved up with the line
+        let page = MeetingPage.page(people: try store.people(id), lines: try store.lines(id), you: "Ivan", entries: MeetingNote.parse(text).entries)
+        #expect(page.rows.map(\.person) == ["Ivan", "Person 2", "Person 1"])
+
+        try store.delete(meeting, lines: [at(7, 0)]) // all of Person 1's lines: Person 1 leaves the meeting's people
+        #expect(try String(contentsOf: file, encoding: .utf8).hasSuffix("hey\n"))
+        let after = MeetingPage.page(people: try store.people(id), lines: try store.lines(id), you: "Ivan",
+                                     entries: MeetingNote.parse(try String(contentsOf: file, encoding: .utf8)).entries)
+        #expect(after.people.map(\.key) == ["Ivan", "Person 2"])
+    }
+
+    @Test func aLineNotPairedWithTheNoteIsNotDeleted() throws {
+        let (store, meeting, file, dir) = try withNote()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        // A second entry at 10:00:03 added in Obsidian: that second no longer pairs.
+        let edited = note.replacingOccurrences(of: "yes\n", with: "yes\n[Olena] 2026-07-31 10:00:03\nme too\n")
+        try Data(edited.utf8).write(to: file)
+        try store.delete(meeting, lines: [.init(timestamp: "2026-07-31 10:00:03", order: 0)])
+        #expect(try String(contentsOf: file, encoding: .utf8) == edited)
+        #expect(try store.lines(meeting.id).count == 4)
+    }
+
     @Test func removingKeepsTheNoteAndAFailedTrashKeepsTheRow() throws {
         let (store, meeting, file, dir) = try withNote()
         defer { try? FileManager.default.removeItem(at: dir) }

@@ -56,6 +56,21 @@ struct MeetingsModelTests {
         #expect(try store.lines(id).map(\.current) == ["Ivan", "Person 1", "Person 1", "Person 1"])
     }
 
+    @Test func aLineIsDeletedAtOnceAndAllOfAPersonsLinesAfterTheQuestion() throws {
+        let (model, store, id, file, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        model.delete(id, lines: [.init(timestamp: "2026-07-31 10:00:05", order: 0)])
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Person 1] 2026-07-31 10:00:03", "[Person 1] 2026-07-31 10:00:07"])
+        let theirs: Set<MeetingNote.Place> = [.init(timestamp: "2026-07-31 10:00:03", order: 0), .init(timestamp: "2026-07-31 10:00:07", order: 0)]
+        model.question = .deleteLines(meeting: id, name: "Person 1", lines: theirs)
+        model.answer(model.question!, yes: false)
+        #expect(try headers(file).count == 3)
+        model.question = .deleteLines(meeting: id, name: "Person 1", lines: theirs)
+        model.answer(model.question!, yes: true)
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01"])
+        #expect(try store.lines(id).map(\.current) == ["Ivan"])
+    }
+
     @Test func aNoteThatCannotBeWrittenChangesNothing() throws {
         let (model, store, id, file, dir) = try rig()
         defer {

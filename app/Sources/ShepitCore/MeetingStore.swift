@@ -298,6 +298,34 @@ public final class MeetingStore {
         }
     }
 
+    /// Deletes lines from a meeting (the author, 2026-11-19): their entries leave the note, and their rows, with words and
+    /// voice samples, leave the store, together or not at all. Only lines paired with the note as it is now are deleted. A
+    /// later line of the same second moves up, as its place in the note does.
+    public func delete(_ meeting: Meeting, lines places: Set<Place>) throws {
+        let note = URL(fileURLWithPath: meeting.path)
+        try transaction {
+            let text: String
+            do { text = try String(contentsOf: note, encoding: .utf8) } catch { throw NoteNotChanged(path: meeting.path, reason: error.localizedDescription) }
+            let (kept, removed) = MeetingPage.removing(places, from: text, lines: try lines(meeting.id))
+            for place in removed {
+                for table in ["lines", "samples"] {
+                    try sqlite.run("DELETE FROM \(table) WHERE meeting = ? AND timestamp = ? AND ord = ?", [meeting.id, place.timestamp, place.order])
+                }
+            }
+            for timestamp in Set(removed.map(\.timestamp)) {
+                let left = try sqlite.rows("SELECT ord FROM lines WHERE meeting = ? AND timestamp = ? ORDER BY ord", [meeting.id, timestamp]) { $0.int(0) }
+                // In order, each to a place already free.
+                for (order, old) in left.enumerated() where order != old {
+                    for table in ["lines", "samples"] {
+                        try sqlite.run("UPDATE \(table) SET ord = ? WHERE meeting = ? AND timestamp = ? AND ord = ?", [order, meeting.id, timestamp, old])
+                    }
+                }
+            }
+            guard kept != text else { return }
+            do { try Data(kept.utf8).write(to: note, options: .atomic) } catch { throw NoteNotChanged(path: meeting.path, reason: error.localizedDescription) }
+        }
+    }
+
     /// Remove note from list (the note stays), or with `trash` Move file to Trash: the row and the file go together.
     public func remove(_ meeting: Meeting, trash: Bool) throws {
         try transaction {

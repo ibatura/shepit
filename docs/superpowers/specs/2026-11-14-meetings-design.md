@@ -14,7 +14,7 @@ Today a meeting is only a file. Shepit writes the note, labels the remote voices
 
 2026-11-11 (style spec §2, §5.2, §8; `docs/future-ideas.md` "The main window"):
 - A local database of meetings next to the Markdown notes. The note stays the transcript itself; the database keeps the link to the file, the name, the app, the start and the duration.
-- The transcript is read only in the window. Editing happens in Obsidian. No search across transcripts.
+- The transcript is read only in the window. Editing happens in Obsidian. No search across transcripts. (2026-11-19, the author: a line, or all of a person's lines, can be deleted in the window; see Transcript.)
 - People are named in the window. Two people can be merged into one. A single line can be given to another person.
 - "Reset people" puts every line back to the person speaker detection gave it; the database keeps that first labelling.
 - Renaming a meeting renames its note file: the `meetingFileName` template is filled again with the new name, in the same folder, with ` (2)` added when that name is taken. Links to the note from other Obsidian notes are not updated.
@@ -89,7 +89,8 @@ The section has two columns: the list on the left, the chosen meeting on the rig
 - Copy (the note without its front matter, as the menu's Copy did), Open note (in the app that opens `.md` files), and a ⋯ menu with Remove note from list… and Move file to Trash….
 
 **People**
-- One row per person who has lines, in order of their first line: a colour dot with initials ("P1" for Person 1), a name field, the share of words, and Merge into.
+- One row per person who has lines, in order of their first line: a colour dot with initials ("P1" for Person 1), a name field, the share of words, Merge into, and a ⋯ menu with **Delete all their lines…** (2026-11-19).
+- A click on the row (the dot, the share or an empty spot; not the name field or the menus) highlights every line of that person in the transcript with their colour; a second click, or a click on another person, changes it (2026-11-19, the author's pick over showing only their lines).
 - The name field shows the label as its placeholder ("Person 1"). While typing, a list opens with the names Shepit knows from all meetings (names given here, labels that are names, "you"), newest meeting first, matched also across scripts. It is saved on Enter or when it loses focus; empty puts the label back.
 - A name another person of this meeting already has asks: "Olena K. is already in this meeting. Merge Person 3 into Olena K.?" with Merge and Cancel.
 - **Merge into** lists the other people of the meeting. All lines of this person go to the chosen one, and the row goes away.
@@ -97,9 +98,10 @@ The section has two columns: the list on the left, the chosen meeting on the rig
 - **Reset people…** under the rows asks first, then puts every line back to the person speaker detection gave it (for a note added by hand: as it was when added). Names given to people stay. It is off when nothing differs.
 - The share is the person's words over all words; ⚠ lines and failed chunks (`⚠ не вдалося розпізнати`) don't count.
 
-**Transcript** (read only)
+**Transcript** (its text read only)
 - Every entry as "Name · 10:00:19" in small type, then its text. ⚠ lines (a capture that stopped, an interruption) are shown as plain notes.
 - A click on an entry opens "Give this line to": the other people of the meeting, and **New person**, which makes the next free "Person N" and gives the line to them (for two voices that speaker detection put under one person).
+- Under them, **Delete line** deletes it at once; **Delete all their lines…** on a person's row asks first: "Delete all lines of Person 3? 12 lines leave the note and Shepit, with their voice samples. This can't be undone." (the author's pick, 2026-11-19: a hello that everyone said can't be given to anyone.) A deleted entry leaves the note from its header to the next entry; its row, words and voice sample leave the database in the same transaction, and a later line of the same second moves up to the place it now has in the note. Only lines paired with the note as it is then are deleted.
 - An entry the window can't pair with the database (§8) is shown with the label the note has and can't be given.
 - The text is the note as it is now: read when the meeting is opened, when the window becomes active again, and after every change.
 

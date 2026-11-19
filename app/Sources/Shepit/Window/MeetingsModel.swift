@@ -27,6 +27,8 @@ final class MeetingsModel {
     enum Question: Equatable {
         case merge(meeting: Int, person: String, into: String, name: String)
         case reset(meeting: Int)
+        /// Delete all their lines…: the lines shown as theirs, by `name`.
+        case deleteLines(meeting: Int, name: String, lines: Set<MeetingNote.Place>)
         case remove(MeetingStore.Meeting)
         case trash(MeetingStore.Meeting)
     }
@@ -154,6 +156,11 @@ final class MeetingsModel {
         change(meeting) { try store.give(meeting, line: line, to: try store.newPerson(meeting)) }
     }
 
+    /// Delete line, and the answer to Delete all their lines… (the author, 2026-11-19).
+    func delete(_ meeting: Int, lines: Set<MeetingNote.Place>) {
+        edit(meeting) { try store.delete($0, lines: lines) }
+    }
+
     /// The meeting's name (§8): the store, the note's title and file name, `meeting-names.json`. False when it failed.
     @discardableResult func rename(_ meeting: MeetingStore.Meeting, typed: String) -> Bool {
         let title = MeetingPage.name(typed)
@@ -213,6 +220,7 @@ final class MeetingsModel {
         switch question {
         case .merge(let meeting, let person, let into, _): merge(meeting, person: person, into: into)
         case .reset(let meeting): change(meeting) { try store.reset(meeting) }
+        case .deleteLines(let meeting, _, let lines): delete(meeting, lines: lines)
         case .remove(let meeting): remove(meeting, trash: false)
         case .trash(let meeting): remove(meeting, trash: true)
         }
@@ -229,6 +237,10 @@ final class MeetingsModel {
     }
 
     private func change(_ id: Int, _ body: () throws -> Void) {
+        edit(id) { try store.change([$0], body) }
+    }
+
+    private func edit(_ id: Int, _ body: (MeetingStore.Meeting) throws -> Void) {
         guard let meeting = meetings.first(where: { $0.id == id }), !missing.contains(id) else { return }
         // Moved or deleted since it was opened: nothing changes (the store's change would skip the note and change only
         // the database), and the meeting shows "note not found".
@@ -239,7 +251,7 @@ final class MeetingsModel {
             return
         }
         do {
-            try store.change([meeting], body)
+            try body(meeting)
         } catch {
             failed("Can't change", meeting.path, error)
         }

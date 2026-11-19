@@ -112,6 +112,8 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 | L12 | Quit Shepit during a transcript, start it again | The meeting is in the list; the note ends with "Запис перервано" || ✅ 2026-11-16
 | L13 | Open the 🎙 menu | No Copy last meeting transcript, Rename speakers or Open meetings folder; Start / Stop meeting transcript is there ||
 | L14 | Reveal in Finder and Copy path from a meeting's right-click menu and its ⋯ menu; the same on a meeting whose note is not found | Finder shows the note's folder with the file selected; the path is on the clipboard with 📋 Скопійовано; Reveal in Finder is off for a note not found ||
+| L15 | In a finished meeting, click a person's initials, then their share, then another person | Their lines are highlighted in their colour; a second click turns it off; the name field still edits on a click ||
+| L16 | Click a line → Delete line; in a person's ⋯ → Delete all their lines…, Cancel, then Delete | The line leaves the note at once (Open note); the question says how many lines; after Delete the person leaves People and their lines leave the note; the other lines of the same second can still be given ||
 
 2026-11-16: the author looked through L4–L10 briefly without renaming or removing anything, and will check them in use.
 
