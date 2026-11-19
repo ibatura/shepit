@@ -158,7 +158,7 @@ Design: `docs/superpowers/specs/2026-11-17-voices-design.md`. On real calls; sam
 | # | Scenario | Expected | Result |
 |---|---|---|---|
 | V1 | Remember voices off; a meeting with two remote people; name them | The meeting keeps no samples; People lists both with "No voice saved" ||
-| V2 | Remember voices on (People); a meeting with two remote people; name both in Meetings | People lists them with the waveform and "Saved from 1 meeting"; You says "Saved from 1 meeting: your microphone and the lines given to you" ||
+| V2 | Remember voices on (People); a meeting with two remote people where you mute and unmute a few times and speak first after some minutes; name both in Meetings | People lists them with the waveform and "Saved from 1 meeting"; You says "Saved from 1 meeting: your microphone and the lines given to you" ||
 | V3 | A second meeting with one of them | After Stop the person has the name on their own, "recognised by voice" under it in Meetings, the name in the note's headers; the Transcript ready panel says "1 recognised" ||
 | V4 | `voices-check`; give a recognised line to someone else, then Reset people…; `voices-check` again | The line goes to the other person and back; the counts after Reset are the same as before ||
 | V5 | People → Merge into: a person into another named in older meetings | It asks first; every meeting of the first goes to the second, the older notes get the kept name; the first leaves People and the second is chosen ||

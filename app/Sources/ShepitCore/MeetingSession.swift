@@ -51,9 +51,10 @@ public struct MeetingConfig: Sendable {
     /// Mic entries repeating the call within this many seconds are dropped; entries wait this long (MeetingQueue).
     public var echoWindow: TimeInterval = 5
     public var calendar = Calendar.current
-    /// Remember voices was on at Start (voices design §4): the microphone's first `micVoiceSeconds` are kept in mic.wav
-    /// too, for samples of your own lines.
+    /// Remember voices was on at Start (voices design §4): the microphone is kept in mic.wav too, for samples of your own
+    /// lines.
     public var rememberVoices = false
+    /// How much of your speech gives your samples: your first lines up to this many seconds, wherever in the meeting.
     public var micVoiceSeconds: Double = 600
 
     public init(noteFile: URL, frontMatter: String, myName: String, sessionDir: URL, stateDir: URL, engine: EngineChoice) {
@@ -176,9 +177,8 @@ public final class MeetingSession {
     private var queue = MeetingQueue()
     private var transcription: Task<Void, Never>?
     private var callWAV: WAVFileWriter?
-    /// The microphone's first `micVoiceSeconds`, while Remember voices is on; nil after a write error (no samples of yours).
+    /// The microphone, while Remember voices is on; nil after a write error (no samples of yours).
     private var micWAV: WAVFileWriter?
-    private var micKept = 0
     private var capturing = false
     public private(set) var startedAt = Date.distantPast
     private var lastSpeech = Date.distantPast
@@ -309,19 +309,15 @@ public final class MeetingSession {
                 }
             }
         } else if let micWAV {
-            let take = min(block.count, Int(config.micVoiceSeconds * 16_000) - micKept)
-            if take > 0 {
-                var kept = Array(block.prefix(take))
-                for skipped in micSkipped {
-                    let silent = max(skipped.lowerBound, end)..<min(skipped.upperBound, end + take)
-                    if !silent.isEmpty { kept.replaceSubrange((silent.lowerBound - end)..<(silent.upperBound - end), with: repeatElement(0, count: silent.count)) }
-                }
-                do {
-                    try micWAV.append(kept)
-                    micKept += take
-                } catch {
-                    self.micWAV = nil // later offsets would no longer match your lines
-                }
+            var kept = block
+            for skipped in micSkipped {
+                let silent = skipped.clamped(to: end..<end + block.count) // empty when it isn't in this block
+                kept.replaceSubrange((silent.lowerBound - end)..<(silent.upperBound - end), with: repeatElement(0, count: silent.count))
+            }
+            do {
+                try micWAV.append(kept)
+            } catch {
+                self.micWAV = nil // later offsets would no longer match your lines
             }
         }
         // Mutated in place: copying the state out would copy the whole buffer on every block.
@@ -537,10 +533,13 @@ public final class MeetingSession {
         micWAV = nil
         if let detect = services.speakers, micWhole, written.contains(where: { $0.stream == .mine }) {
             state = .detectingSpeakers
-            // Without your voice from the microphone the transcript is still whole: nothing to say.
-            if let diarization = try? await detect(try WAV.read(config.sessionDir.appending(path: "mic.wav"))) {
+            // Only your lines' audio is detected, up to micVoiceSeconds of it. Without your voice from the microphone the
+            // transcript is still whole: nothing to say.
+            let speech = Voices.speech(of: written.filter { $0.stream == .mine }.map(\.offsets), upTo: config.micVoiceSeconds)
+            if let diarization = try? await detect(try WAV.read(config.sessionDir.appending(path: "mic.wav"), speech.ranges)) {
                 guard !interrupted else { return }
-                samples.merge(lineSamples(of: .mine, until: config.micVoiceSeconds) { Voices.yourSamples($0, diarization) }) { call, _ in call }
+                // The samples of the lines `speech` took, your first ones.
+                samples.merge(lineSamples(of: .mine) { _ in Voices.yourSamples(speech.lines, diarization) }) { call, _ in call }
             }
         }
         cleanUpAudio()
@@ -564,10 +563,10 @@ public final class MeetingSession {
         return Set(labels.compactMap { $0 }).count
     }
 
-    /// The samples `sample` gives the lines of `stream` that end by `end` (offsets in seconds), by their place in the note.
-    private func lineSamples(of stream: MeetingStream, until end: Double = .infinity,
-                         _ sample: ([Range<Double>]) -> [VoiceSample?]) -> [MeetingNote.Place: VoiceSample] {
-        let lines = zip(written, places).filter { $0.0.stream == stream && $0.0.offsets.upperBound <= end }
+    /// The samples `sample` gives the lines of `stream` (offsets in seconds), by their place in the note; fewer samples
+    /// than lines are the first lines'.
+    private func lineSamples(of stream: MeetingStream, _ sample: ([Range<Double>]) -> [VoiceSample?]) -> [MeetingNote.Place: VoiceSample] {
+        let lines = zip(written, places).filter { $0.0.stream == stream }
         return Dictionary(uniqueKeysWithValues: zip(lines.map(\.1), sample(lines.map(\.0.offsets))).compactMap { place, sample in
             sample.map { (place, $0) }
         })

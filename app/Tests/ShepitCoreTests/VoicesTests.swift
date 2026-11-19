@@ -98,6 +98,13 @@ struct VoicesTests {
         #expect(Voices.yourSamples([], diarization).isEmpty)
     }
 
+    @Test func yourSpeechIsYourFirstLinesUpToTheLimitWhereverTheyAre() {
+        let speech = Voices.speech(of: [1000..<1001.5, 1200..<1201, 1300..<1302], upTo: 2)
+        #expect(speech.ranges == [16_000_000..<16_024_000, 19_200_000..<19_216_000]) // 2.5 s: the third isn't needed
+        #expect(speech.lines == [0..<1.5, 1.5..<2.5])
+        #expect(Voices.speech(of: [], upTo: 600).ranges.isEmpty)
+    }
+
     @Test func suggestionsAreTheMeetingsWhereRecognitionNamesThePerson() {
         let prints = Voices.prints(rows(1, meeting: 1, axis: 1) + rows(2, meeting: 2, axis: 2))
         let olena = (0..<3).map { near(1, 110 + $0) }, marko = (0..<3).map { near(2, 120 + $0) }

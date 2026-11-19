@@ -248,7 +248,8 @@ struct MeetingSessionTests {
         #expect(Set(windows.session.talk.keys) == [mine, theirs] && windows.session.talk.values.allSatisfy { $0 > 0 })
     }
 
-    /// The microphone's speaker detection: you (Y) up to 4 s, someone in the room (R) after; the audio it was given.
+    /// The microphone's speaker detection on the audio it is given: a run of 0.5 is you (Y), of 0.45 someone in the
+    /// room (R), each with one window.
     private final class MicSpeakers: @unchecked Sendable {
         var heard: [[Float]] = []
         let you: VoiceSample, room: VoiceSample
@@ -260,10 +261,19 @@ struct MeetingSessionTests {
 
         func detect(_ audio: [Float]) -> Diarization {
             heard.append(audio)
-            return Diarization(turns: [SpeakerTurn(speaker: "Y", start: 0, end: 4), SpeakerTurn(speaker: "R", start: 4, end: 6)],
-                               windows: [VoiceWindow(speaker: "Y", start: 0.3, end: 1.7, sample: you),
-                                         VoiceWindow(speaker: "Y", start: 2.3, end: 3.7, sample: you),
-                                         VoiceWindow(speaker: "R", start: 4.3, end: 5.7, sample: room)])
+            var turns: [SpeakerTurn] = [], windows: [VoiceWindow] = []
+            var i = 0
+            while i < audio.count {
+                guard audio[i] > 0.1 else { i += 1; continue }
+                let isRoom = audio[i] < 0.475
+                var j = i
+                while j < audio.count, audio[j] > 0.1, (audio[j] < 0.475) == isRoom { j += 1 }
+                let start = Double(i) / 16_000, end = Double(j) / 16_000
+                turns.append(SpeakerTurn(speaker: isRoom ? "R" : "Y", start: start, end: end))
+                windows.append(VoiceWindow(speaker: isRoom ? "R" : "Y", start: start, end: end, sample: isRoom ? room : you))
+                i = j
+            }
+            return Diarization(turns: turns, windows: windows)
         }
     }
 
@@ -279,14 +289,14 @@ struct MeetingSessionTests {
         let on = rig(speakers: detect, change: { $0.rememberVoices = true })
         let off = rig(speakers: detect)
         let blocked = rig(speakers: detect, change: { $0.rememberVoices = true })
-        let short = rig(speakers: detect, change: { $0.rememberVoices = true; $0.micVoiceSeconds = 1 })
+        let short = rig(speakers: detect, change: { $0.rememberVoices = true; $0.micVoiceSeconds = 0.5 })
         defer { for r in [on, off, blocked, short] { try? FileManager.default.removeItem(at: r.root) } }
         try FileManager.default.createDirectory(at: blocked.config.sessionDir.appending(path: "mic.wav"), withIntermediateDirectories: true)
         var kept: [[String]] = []
         for r in [on, off, blocked, short] {
             try r.session.start()
             // Your lines at 0.5–1.5 and 2.5–3.5 s, someone in the room at 4.5–5.5 s; the call is silent.
-            r.mic.push(seconds(0.5) + seconds(1, 0.5) + seconds(1) + seconds(1, 0.5) + seconds(1) + seconds(1, 0.5) + seconds(0.5))
+            r.mic.push(seconds(0.5) + seconds(1, 0.5) + seconds(1) + seconds(1, 0.5) + seconds(1) + seconds(1, 0.45) + seconds(0.5))
             r.call.push(seconds(6))
             await r.session.settle()
             kept.append(try FileManager.default.contentsOfDirectory(atPath: r.config.sessionDir.path).sorted())
@@ -297,11 +307,30 @@ struct MeetingSessionTests {
         let yours = ["2026-07-31 18:22:30", "2026-07-31 18:22:32"].map { MeetingNote.Place(timestamp: $0, order: 0) }
         #expect(on.session.samples == [yours[0]: try axis(1), yours[1]: try axis(1)]) // the room's line isn't your voice
         #expect(off.session.samples.isEmpty && blocked.session.samples.isEmpty)
-        #expect(short.session.samples.isEmpty) // your line ends after the first second
-        #expect(speakers.heard.map(\.count) == [6 * 16_000, 16_000]) // on, then only the first second of short
+        #expect(short.session.samples == [yours[0]: try axis(1)]) // half a second of speech: your first line only
+        // Detection hears only the lines from the microphone, one after another: all three, then the first of short.
+        let lines = on.session.talk.sorted { $0.key.timestamp < $1.key.timestamp }.map { Int(($0.value * 16_000).rounded()) }
+        #expect(speakers.heard.count == 2 && lines.count == 3)
+        #expect(abs(speakers.heard[0].count - lines.reduce(0, +)) <= 3 && abs(speakers.heard[1].count - lines[0]) <= 1)
         #expect(!FileManager.default.fileExists(atPath: on.config.sessionDir.path))
     }
 
+    /// The author spoke first 17 minutes into a call (2026-11-19): the limit counts your speech, not the meeting's time.
+    @Test func yourFirstWordsLateInTheMeetingStillGetSamples() async throws {
+        let speakers = MicSpeakers(try axis(1), try axis(2))
+        let r = rig(speakers: { speakers.detect($0) }, change: { $0.rememberVoices = true; $0.micVoiceSeconds = 1 })
+        defer { try? FileManager.default.removeItem(at: r.root) }
+        try r.session.start()
+        r.mic.push(seconds(3.5) + seconds(1, 0.5) + seconds(0.5))
+        r.call.push(seconds(5))
+        await r.session.settle()
+        r.clock.now += 5
+        await r.session.stop()
+        #expect(r.session.samples == [MeetingNote.Place(timestamp: "2026-07-31 18:22:33", order: 0): try axis(1)])
+    }
+
+    /// The microphone arrives in blocks: one after you unmute crashed Shepit on 2026-11-19 (a range with its bounds
+    /// reversed for a muted part that had ended before the block).
     @Test func theMicrophoneKeptForYourVoiceIsSilentWhileYouAreMutedOrDictating() async throws {
         let speakers = MicSpeakers(try axis(1), try axis(2))
         let r = rig(speakers: { speakers.detect($0) }, change: { $0.rememberVoices = true })
@@ -310,15 +339,17 @@ struct MeetingSessionTests {
         r.session.micMuted(true, at: 16_000)
         r.session.micMuted(false, at: 2 * 16_000)
         r.session.dictationStarted(at: 3 * 16_000)
-        r.mic.push(seconds(1, 0.5) + seconds(1, 0.5) + seconds(1, 0.5) + seconds(1, 0.5)) // still dictating at the end
+        for _ in 0..<4 { r.mic.push(seconds(1, 0.5)) } // still dictating at the end
         r.call.push(seconds(4))
         await r.session.settle()
+        let kept = try WAV.read(r.config.sessionDir.appending(path: "mic.wav")) // the header's sizes come at Stop
         r.clock.now += 4
         await r.session.stop()
-        let heard = try #require(speakers.heard.first)
-        func second(_ s: Int) -> ArraySlice<Float> { heard[(s * 16_000)..<((s + 1) * 16_000)] }
+        #expect(kept.count == 4 * 16_000)
+        func second(_ s: Int) -> ArraySlice<Float> { kept[(s * 16_000)..<((s + 1) * 16_000)] }
         #expect(second(0).allSatisfy { abs($0 - 0.5) < 0.01 } && second(2).allSatisfy { abs($0 - 0.5) < 0.01 }) // kept as 16-bit
         #expect(second(1).allSatisfy { $0 == 0 } && second(3).allSatisfy { $0 == 0 })
+        #expect(speakers.heard.allSatisfy { $0.allSatisfy { $0 == 0 || abs($0 - 0.5) < 0.01 } })
     }
 
     @Test func failedSpeakerDetectionKeepsLiveLabelsAndStillDeletesAudio() async throws {

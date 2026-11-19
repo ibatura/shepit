@@ -76,6 +76,21 @@ public enum Voices {
         }
     }
 
+    /// Your speech for the microphone's speaker detection (voices design §4): your first `lines` (offsets in seconds, in
+    /// order) until `seconds` of them are taken, wherever in the meeting you spoke. `ranges`: their audio in the
+    /// microphone's (16 kHz samples); `lines`: where each one is once they are put one after another.
+    public static func speech(of lines: [Range<Double>], upTo seconds: Double) -> (ranges: [Range<Int>], lines: [Range<Double>]) {
+        var ranges: [Range<Int>] = [], taken: [Range<Double>] = [], length = 0
+        for line in lines {
+            guard Double(length) < seconds * 16_000 else { break }
+            let from = Int((line.lowerBound * 16_000).rounded()), to = max(from, Int((line.upperBound * 16_000).rounded()))
+            ranges.append(from..<to)
+            taken.append(Double(length) / 16_000..<Double(length + to - from) / 16_000)
+            length += to - from
+        }
+        return (ranges, taken)
+    }
+
     /// Your lines' samples from the microphone (voices plan Task 8): the samples of the voice that speaks most of `lines`;
     /// a line of another voice (someone in the room) gets none. On a tie, the first voice by name, so the same audio
     /// always gives the same voice.
