@@ -12,7 +12,7 @@ Build order agreed on 2026-11-11:
 4. **Meetings**: the database, names, merging people, giving a line to another person. Built on branch `meetings`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-16. Left: the list under "Meetings: left open" below.
 5. **Dictations and Dictionary**: `dictations.sqlite` with the app of each dictation instead of `history.log`, the Dictations section with a period menu, the Dictionary section as in mockup 5, one `databasesFolder` setting. Built on branch `dictations-dictionary`; the three end-of-branch reviews are done and the author's picks fixed. Merged into `main` on 2026-11-17. Left: the list under "Dictations and Dictionary: left open" below.
 6. **Statistics** with the new numbers: the period menu shared with Dictations plus Custom…, the Overview, Dictation and Meetings views, the meeting's call app in `stats.sqlite`. Built on branch `statistics`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-17. Left: the list under "Statistics: left open" below.
-7. **Voices**: voice prints and the People section; merging voices, and prints that learn from the author's corrections (see "Voice prints that learn" under "New ideas").
+7. **Voices**: voice samples in `meetings.sqlite`, prints that follow the author's corrections, recognition when a transcript is ready, and the People section (rename and merge across meetings, Delete voice, May also be in, who talked how much, your voice from the microphone). Built on branch `voices`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-19). Not merged yet: it waits for the checks with real calls. Left: the list under "Voices: left open" below.
 8. **Import names** from a transcript; the Meet `.txt` format last.
 9. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open".
 10. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
@@ -52,7 +52,7 @@ Found by the reviews of the branch and by the author's checks, and left as they 
 
 - Manual checks: L1, L2, L11 and L12 pass (2026-11-16). L3 found the Cancel bug, fixed in commit 8211d5d, to look at again. L4–L10 the author will check in use. Not seen on screen: the name list opening while typing, Escape on it, the warning when a finished transcript can't be listed.
 - Notes edited by other tools: a `title` written as a multi-line YAML block, YAML escapes other than `\"` and `\\`, and a UTF-8 BOM before the front matter are not read as Shepit writes them.
-- A change to people or lines reads and writes the note on the main thread (opening a meeting reads it off the main thread). A note in iCloud Drive that macOS offloaded would hold the window, and dictation hotkeys, while it downloads.
+- A change to people or lines reads and writes the note on the main thread (opening a meeting reads it off the main thread). A note in iCloud Drive that macOS offloaded would hold the window, and dictation hotkeys, while it downloads. (People's changes read their notes off the main thread first since the Voices part, 2026-11-19; a change in Meetings still doesn't.)
 - Locate note… compares paths as written: the same note picked through a symlink or another letter case reaches the store, which refuses it with SQLite's own message.
 - Word shares count only entries paired with the store: a second edited in Obsidian drops out of every share.
 - `MeetingStore.add` uses `INSERT OR IGNORE`, so any constraint failure would read as "already listed".
@@ -76,8 +76,23 @@ Found by the reviews of the branch and not changed: the author had all eight poi
 
 - Manual checks: the author looked at the views on the installed app while they were built; S1–S8 not checked one by one yet.
 - The previous period's call offers are read with the rest but not used: the Call offers table has no change against the previous period (`/code-review` of Task 4).
-- Words per saved person (style spec §5.6) needs voice prints: part 7 (Voices).
+- Words per saved person (style spec §5.6) needs voice prints: part 7 (Voices). Decided in the voices spec (§3): Statistics → Meetings stays as it is; who talked how much is in People.
 - Statistics → Meetings counts only what `stats.sqlite` recorded: notes added with Add notes… aren't in it, and meetings from before this part have no call app (Unknown in By app).
+
+### Voices: left open (2026-11-19)
+
+Found by the reviews of the branch and not changed: the author had all eight picked points of the thermo-nuclear review and all ten of `/code-review` fixed (one only in the README, one not a bug); `/security-review` found nothing.
+
+- **Checks with real calls (before the merge).** Manual checks V1–V10: V5, V6 and V10 in the window; V1–V4, V7 and V9 need calls (V9 on speakers, not headphones); V8 after the measurement below, since Delete all voices deletes the samples it needs.
+- **How much of the microphone.** `micVoiceSeconds` is 600 (10 minutes) for now: Stop gets slower by the speaker detection of that audio (8.5 s for 5 minutes and 16.3 s for 10 on synthetic speech). After the author's next real meeting with Remember voices on: count the microphone samples (read-only, numbers only) and settle the minutes with the author.
+- **Threshold, margin, mean or nearest.** Recognition uses the mean of a print, 0.8 and 0.1, and needs 3 samples. The author's store had 200 samples of 2 people and nobody in two meetings (2026-11-18), too few to settle them. Run `Shepit voices-check` after the meetings of the checks; then remove the losing match mode from `Voices.Match`, which only `voices-check` uses now (thermo-nuclear point 4).
+- **Stop runs the two speaker detections one after the other** (call, then microphone). Running them side by side would shorten Stop, at the cost of memory; measure on a real meeting first (thermo-nuclear point 9, not picked).
+- **The SQLite journal.** `secure_delete` overwrites deleted samples in `meetings.sqlite` itself, but the rollback journal held copies of the pages until it was deleted, and its blocks stay on disk until reused; so do Time Machine's local snapshots. An app can't overwrite them; FileVault encrypts them. The README says so. The same holds for deleted dictations in `dictations.sqlite`. `journal_mode = MEMORY` would keep the copies off disk at the cost of a damaged file after a crash mid-write.
+- **One voice split into two `Person N`.** A print names at most one key per meeting, so when speaker detection splits a voice in two (the author's echo as Person 1 and Person 4), only the closer one is named.
+- **Narrow window.** At the narrowest window long names in the People list are cut short, and the sidebar's "Meetings" can break as "Meet-ings".
+- **Notes and labels** (from `/code-review` of Task 1): a label that is a name shows the person's spelling, which can differ from the note's header ("[olena]" shown as "ОЛЕНА"); clearing the name field of a person added from a note's label unlinks them, but the row still shows the label, so the field seems to do nothing; `personID` folds every person's name through `name_key` on each lookup (a full scan; fine at today's sizes).
+- **Store and structure** (from `/code-review` of Tasks 3 and 5): `MeetingStore.merge` and `rename` don't refuse You as the source (only the view hides the controls); `PeopleModel` uses `MeetingsModel.Notice` for its alerts (a shared notice next to `WindowSections` would serve both); a failed change in Meetings shows the note's path twice (in the title and in the reason); the order of listing, recognition and the empty-note decision in `AppHost`'s `onFinished` has no test; nor has putting notes back when that fails (`NotesNotPutBack`), which a test can't cause without a hook in the middle of `change`.
+- **Two people with one name** (Keep both) differ in People and in Merge into only by their meetings line ("6 meetings · last 10 Nov"); typing that name in a meeting goes to the one with the latest meeting. A way to pick between them in the name field is for a later part.
 
 ### New ideas (the author, 2026-11-15; not ordered yet)
 
