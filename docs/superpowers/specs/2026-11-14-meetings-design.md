@@ -90,7 +90,7 @@ The section has two columns: the list on the left, the chosen meeting on the rig
 
 **People**
 - One row per person who has lines, in order of their first line: a colour dot with initials ("P1" for Person 1), a name field, the share of words, Merge into, and a ⋯ menu with **Delete all their lines…** (2026-11-19).
-- A click on the row (the dot, the share or an empty spot; not the name field or the menus) highlights every line of that person in the transcript with their colour; a second click, or a click on another person, changes it (2026-11-19, the author's pick over showing only their lines).
+- A click on the row (the dot, the share or an empty spot; not the name field or the menus) highlights every line of that person in the transcript with their colour, and a second click turns it off; several people can be highlighted at once. **Only highlighted people**, a checkbox above the transcript (off while nobody is highlighted), hides the other lines and the ⚠ lines (2026-11-19, the author).
 - The name field shows the label as its placeholder ("Person 1"). While typing, a list opens with the names Shepit knows from all meetings (names given here, labels that are names, "you"), newest meeting first, matched also across scripts. It is saved on Enter or when it loses focus; empty puts the label back.
 - A name another person of this meeting already has asks: "Olena K. is already in this meeting. Merge Person 3 into Olena K.?" with Merge and Cancel.
 - **Merge into** lists the other people of the meeting. All lines of this person go to the chosen one, and the row goes away.

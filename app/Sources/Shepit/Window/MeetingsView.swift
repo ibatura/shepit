@@ -172,8 +172,10 @@ private struct FinishedMeeting: View {
     let actions: WindowActions
     /// The transcript row whose "Give this line to" is open.
     @State private var giving: Int?
-    /// The person whose lines are highlighted (the author, 2026-11-19).
-    @State private var highlighted: String?
+    /// The people whose lines are highlighted (the author, 2026-11-19).
+    @State private var highlighted: Set<String> = []
+    /// Only highlighted people: the other lines are hidden while someone is highlighted.
+    @State private var onlyHighlighted = false
 
     private var meeting: MeetingStore.Meeting { open.meeting }
     private var missing: Bool { open.content == .missing }
@@ -209,9 +211,15 @@ private struct FinishedMeeting: View {
                     }
                 case .page(let page):
                     people(page)
-                    Caption("Transcript · click a line to give it to someone else or delete it")
+                    HStack(alignment: .firstTextBaseline) {
+                        Caption("Transcript · click a line to give it to someone else or delete it")
+                        Spacer()
+                        Toggle("Only highlighted people", isOn: $onlyHighlighted).toggleStyle(.checkbox).disabled(highlighted.isEmpty)
+                    }
+                    let only = onlyHighlighted && !highlighted.isEmpty
                     LazyVStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(page.rows.enumerated()), id: \.offset) { index, row in
+                        ForEach(Array(page.rows.enumerated()).filter { !only || $0.element.person.map(highlighted.contains) == true },
+                                id: \.offset) { index, row in
                             transcriptRow(row, index: index, page: page)
                         }
                     }
@@ -225,7 +233,7 @@ private struct FinishedMeeting: View {
 
     private func people(_ page: MeetingPage.Page) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Caption("People · click a person to highlight their lines")
+            Caption("People · click people to highlight their lines")
             VStack(spacing: 0) {
                 ForEach(Array(page.people.enumerated()), id: \.element.key) { index, person in
                     if index > 0 { Divider().padding(.leading, 46) }
@@ -245,7 +253,7 @@ private struct FinishedMeeting: View {
     }
 
     private func personRow(_ person: MeetingPage.PersonRow, color: Color, page: MeetingPage.Page) -> some View {
-        let highlight = { highlighted = highlighted == person.key ? nil : person.key }
+        let highlight = { if highlighted.contains(person.key) { highlighted.remove(person.key) } else { highlighted.insert(person.key) } }
         return HStack(spacing: 10) {
             Avatar(initials: person.initials, color: color).onTapGesture(perform: highlight)
             VStack(alignment: .leading, spacing: 2) {
@@ -280,12 +288,12 @@ private struct FinishedMeeting: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         // Behind the name field and the menus, which keep their clicks: a click on the row's empty space.
-        .background((highlighted == person.key ? color.opacity(0.15) : Color.clear).contentShape(Rectangle()).onTapGesture(perform: highlight))
+        .background((highlighted.contains(person.key) ? color.opacity(0.15) : Color.clear).contentShape(Rectangle()).onTapGesture(perform: highlight))
     }
 
     @ViewBuilder private func transcriptRow(_ row: MeetingPage.Row, index: Int, page: MeetingPage.Page) -> some View {
         let shade: Color = if giving == index { Color.accentColor.opacity(0.15) }
-            else if let person = row.person, person == highlighted { color(of: person, in: page).opacity(0.18) }
+            else if let person = row.person, highlighted.contains(person) { color(of: person, in: page).opacity(0.18) }
             else { .clear }
         let entry = EntryRow(name: row.name, time: row.time, text: row.text)
             .padding(.horizontal, 6).padding(.vertical, 3)
