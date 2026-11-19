@@ -109,7 +109,7 @@ Mockup 6, grown into a section with a list and a person.
 - **Meetings:** the meetings the person was in during that period, newest first, with date, name, talk time and words; a click opens the meeting in the Meetings section. The period keeps the list short: You is in every meeting (the author, 2026-11-18). Only that person's lines of that period are read, and the list draws only the rows on screen.
 - **May also be in:** when the print matches an unnamed person of other meetings (those still holding samples, so at most 30 days old), a line "May also be in 3 meetings" with **Show…**: a list of those meetings with the Person N each, a checkbox each (all on), and **Name them**, which names the checked ones as the Meetings section does. A suggestion turned down by unchecking isn't shown again for that meeting's person.
 
-**You** has no Merge into, no Delete and no Rename: the name in each note comes from Settings → Meetings (`meetingMyName`), as today; its Voice line says "Saved from N meetings, from your microphone". Your print is only your lines from the microphone: a call line given to you doesn't count, and its sample goes after 30 days like an unnamed one (the author, 2026-11-19: such lines were 0.14 alike the microphone). Its talk time and words are the author's.
+**You** has no Merge into, no Delete and no Rename: the name in each note comes from Settings → Meetings (`meetingMyName`), as today; its Voice line says "Saved from N meetings, from your microphone". Your print is only your lines from the microphone: a call line given to you doesn't count, and its sample goes after 30 days like an unnamed one (the author, 2026-11-19: such lines were 0.14 alike the microphone). The same holds the other way: a line of your microphone given to someone else is not their voice (review of 2026-11-19). Its talk time and words are the author's.
 
 Changes are written like every change of the meetings spec: the database and the notes together, or neither; a note that can't be written stops the change and says which.
 
@@ -142,7 +142,7 @@ Renaming a person changes one row; merging moves the `people` rows of one person
 
 - **ShepitCore:** `VoiceSample` (256 floats, from and to a blob, cosine similarity, mean); `Voices` (pure: a line's sample from window embeddings, prints from samples, recognition with threshold and margin, suggestions); `MeetingStore` gains persons, samples, recognised, words and seconds, rename and merge across meetings; `PeoplePage` builds the section's list, a person, talk time and words.
 - **ShepitEngines:** `Diarizer` returns turns and window embeddings (`exposeChunkEmbeddings`); a call for the microphone's samples.
-- **Shepit:** `MeetingSession` keeps `mic.wav` while Remember voices is on; `AppHost+Meetings` recognises and stores samples when a transcript is ready; `PeopleModel` / `PeopleView` in `Window/`; `Shepit voices-check`.
+- **Shepit:** `MeetingSession` keeps `mic.wav` while Remember voices is on, until your written lines hold `micVoiceSeconds` of speech (review of 2026-11-19: a whole call's microphone was kept for 10 minutes of use); `AppHost+Meetings` recognises and stores samples when a transcript is ready; `PeopleModel` / `PeopleView` in `Window/`; `Shepit voices-check`.
 
 ## 11. Tests and manual checks
 

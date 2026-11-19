@@ -179,6 +179,9 @@ public final class MeetingSession {
     private var callWAV: WAVFileWriter?
     /// The microphone, while Remember voices is on; nil after a write error (no samples of yours).
     private var micWAV: WAVFileWriter?
+    /// Seconds of your lines written so far: once they reach `micVoiceSeconds`, the microphone is no longer kept. A line is
+    /// written after its audio has come, so the audio of the lines your samples need is in mic.wav by then.
+    private var micSpeech = 0.0
     private var capturing = false
     public private(set) var startedAt = Date.distantPast
     private var lastSpeech = Date.distantPast
@@ -308,7 +311,7 @@ public final class MeetingSession {
                     onNotice?("Can't keep call audio, speakers won't be detected: \(error.localizedDescription)")
                 }
             }
-        } else if let micWAV {
+        } else if let micWAV, micSpeech < config.micVoiceSeconds {
             var kept = block
             for skipped in micSkipped {
                 let silent = skipped.clamped(to: end..<end + block.count) // empty when it isn't in this block
@@ -430,6 +433,7 @@ public final class MeetingSession {
             }
             let timestamp = MeetingNote.timestamp(entry.wallStart, calendar: config.calendar)
             written.append((MeetingNote.Entry(label: label, timestamp: timestamp, text: text, line: written.count), entry.stream, entry.offsets))
+            if entry.stream == .mine { micSpeech += entry.offsets.upperBound - entry.offsets.lowerBound }
             if !entry.failed { words[entry.stream, default: 0] += text.split(whereSeparator: \.isWhitespace).count }
         }
     }
@@ -529,13 +533,14 @@ public final class MeetingSession {
                 onNotice?("Speakers not detected: \(error.localizedDescription)")
             }
         }
+        let micKept = micWAV?.samples ?? 0
         let micWhole = micWAV.map { (try? $0.finish()) != nil } ?? false
         micWAV = nil
         if let detect = services.speakers, micWhole, written.contains(where: { $0.stream == .mine }) {
             state = .detectingSpeakers
             // Only your lines' audio is detected, up to micVoiceSeconds of it. Without your voice from the microphone the
             // transcript is still whole: nothing to say.
-            let speech = Voices.speech(of: written.filter { $0.stream == .mine }.map(\.offsets), upTo: config.micVoiceSeconds)
+            let speech = Voices.speech(of: written.filter { $0.stream == .mine }.map(\.offsets), upTo: config.micVoiceSeconds, within: micKept)
             if let diarization = try? await detect(try WAV.read(config.sessionDir.appending(path: "mic.wav"), speech.ranges)) {
                 guard !interrupted else { return }
                 // The samples of the lines `speech` took, your first ones.

@@ -172,7 +172,8 @@ Samples are kept only on this Mac, in `meetings.sqlite`, and are deleted:
 - one person's: **Delete voice…** (their name stays in the meetings);
 - all of them, yours too: **Delete all voices…** beside the switch;
 - a meeting's: **Remove note from list…** or **Move file to Trash…**;
-- a `Person N` you never named: 30 days after the meeting.
+- a `Person N` you never named: 30 days after the meeting;
+- a call line you gave to yourself, or a line of your microphone you gave to someone else: 30 days after the meeting (a voice counts only on its own channel).
 
 Turning Remember voices off stops samples and recognition; saved voices stay until you delete them. Meetings recorded while it was off, before this version, or added with Add notes… have no samples, as their audio is gone.
 
@@ -391,7 +392,7 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | Meeting notes | `meetingsFolder` (`~/.local/share/dictation/meetings` by default, local) | Until you delete them. A synced folder (iCloud Drive, an Obsidian vault in iCloud) uploads the notes to that service |
 | Meeting names | `~/.local/share/dictation/meeting-names.json` | The names you gave meetings, with app and start time, to suggest them again (last 300) |
 | Meetings list | `~/.local/share/dictation/meetings.sqlite` | Each meeting's note path, name, app, start and duration, the people you named (one name each, shared by their meetings), who said each line and each line's word count and talk time — **not** what was said, which stays in the note. Remove note from list… deletes a meeting from it; `uninstall.sh --purge` deletes it |
-| Voice samples | `meetings.sqlite`, only while **Remember voices** is on | 256 numbers per transcript line describing the voice, not audio; see [People in the window](#people-in-the-window). Until Delete voice…, Delete all voices… or the meeting leaves the list; for people you never named, 30 days. A deleted sample is overwritten in the file; copies macOS keeps in freed disk space or local Time Machine snapshots are out of Shepit's reach (FileVault encrypts them) |
+| Voice samples | `meetings.sqlite`, only while **Remember voices** is on | 256 numbers per transcript line describing the voice, not audio; see [People in the window](#people-in-the-window). Until Delete voice…, Delete all voices… or the meeting leaves the list; for people you never named, and for lines given across channels (a call line to you, your microphone to someone else), 30 days. A deleted sample is overwritten in the file; copies macOS keeps in freed disk space or local Time Machine snapshots are out of Shepit's reach (FileVault encrypts them) |
 | Meeting audio | a private temporary folder | Only during the meeting and speaker detection (with Remember voices on, your microphone too, silent where you were muted or dictating), then deleted — also after a failure, and at the next launch after a crash |
 
 **Shepit's permissions:** Accessibility lets it send ⌘V, read a selected word (⌘C, for ⌃⌥D) and read window and tab titles and the call's mute button, to suggest a meeting name and leave out what you say while muted (it also asks Teams and Chrome to keep their accessibility information built, which they otherwise do only for assistive apps); Microphone lets it record while you dictate or during a meeting transcript; System Audio Recording lets it record the call, only between Start and Stop. It uses them for nothing else.

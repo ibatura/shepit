@@ -84,6 +84,22 @@ struct MeetingVoicesTests {
         #expect(try store.people(new.id).first { $0.key == "Person 1" }?.recognised == false)
     }
 
+    /// Your microphone given to someone in the room, or a call line given to you, blurs a print (the author, 2026-11-19).
+    @Test func aVoiceCountsOnlyOnItsOwnChannel() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = try meeting(store, dir, "a", start: start, labels: ["Me", "Me", "Me", "Person 1", "Person 1", "Person 1"],
+                            voices: ["Me": 1, "Person 1": 2])
+        try store.setName(a.id, person: "Person 1", to: "Olena")
+        let olena = try #require(try store.people(a.id).first { $0.key == "Person 1" }?.person), you = try store.youID()
+        func count(_ person: Int) throws -> Int { try store.voiceRows().filter { $0.person == person }.count }
+        #expect(try count(olena) == 3 && count(you) == 3)
+        try store.give(a.id, line: .init(timestamp: "2026-07-31 10:00:01", order: 0), to: "Person 1") // your microphone to Olena
+        try store.give(a.id, line: .init(timestamp: "2026-07-31 10:00:04", order: 0), to: "Me") // a call line to you
+        #expect(try count(olena) == 2 && count(you) == 2)
+        #expect(try store.unnamedVoices(a.id).isEmpty) // nobody's, not an unnamed voice
+    }
+
     @Test func unnamedVoicesGoAfterThirtyDays() throws {
         let (store, dir) = setUp()
         defer { try? FileManager.default.removeItem(at: dir) }

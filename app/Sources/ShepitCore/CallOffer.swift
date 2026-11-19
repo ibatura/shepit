@@ -149,7 +149,7 @@ public struct CallOffer: Sendable {
 
     /// Whether time alone can change anything: without it no timer needs to run.
     public var needsTick: Bool {
-        (call.map { $0.phase != .quiet || $0.releasedAt != nil } ?? false) || session?.endingSince != nil || ready != nil
+        (call.map { ($0.phase != .quiet && $0.phase != .held) || $0.releasedAt != nil } ?? false) || session?.endingSince != nil || ready != nil
     }
 
     public mutating func handle(_ event: Event, at now: Date, settings: Settings) -> [Effect] {

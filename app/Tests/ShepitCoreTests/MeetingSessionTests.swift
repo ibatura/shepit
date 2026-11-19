@@ -329,6 +329,25 @@ struct MeetingSessionTests {
         #expect(r.session.samples == [MeetingNote.Place(timestamp: "2026-07-31 18:22:33", order: 0): try axis(1)])
     }
 
+    /// Once your lines hold the speech your samples need, the rest of the microphone isn't kept (review of 2026-11-19).
+    @Test func theMicrophoneIsKeptOnlyUntilYourSpeechIsEnough() async throws {
+        let speakers = MicSpeakers(try axis(1), try axis(2))
+        let r = rig(speakers: { speakers.detect($0) }, change: { $0.rememberVoices = true; $0.micVoiceSeconds = 0.5 })
+        defer { try? FileManager.default.removeItem(at: r.root) }
+        try r.session.start()
+        r.mic.push(seconds(0.5) + seconds(1, 0.5) + seconds(1))
+        r.call.push(seconds(2.5))
+        await r.session.settle() // your first line is written: a second of speech
+        r.mic.push(seconds(1, 0.5) + seconds(1))
+        r.call.push(seconds(2))
+        await r.session.settle()
+        let kept = try WAV.read(r.config.sessionDir.appending(path: "mic.wav"))
+        r.clock.now += 5
+        await r.session.stop()
+        #expect(kept.count == Int(2.5 * 16_000))
+        #expect(r.session.samples == [MeetingNote.Place(timestamp: "2026-07-31 18:22:30", order: 0): try axis(1)])
+    }
+
     /// The microphone arrives in blocks: one after you unmute crashed Shepit on 2026-11-19 (a range with its bounds
     /// reversed for a muted part that had ended before the block).
     @Test func theMicrophoneKeptForYourVoiceIsSilentWhileYouAreMutedOrDictating() async throws {

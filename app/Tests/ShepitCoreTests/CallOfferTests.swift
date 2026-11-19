@@ -208,7 +208,7 @@ struct CallOfferTests {
         m.send(.released(pid: 1), at: 101)
         m.send(.took(.app(.teams), pid: 2), at: 110)
         m.send(.tick, at: 113)
-        #expect(m.panel == nil && m.offer.current == nil)
+        #expect(m.panel == nil && m.offer.current == nil && !m.offer.needsTick) // nothing to count while it waits
         #expect(m.send(.sessionFinished(entries: 4, detail: "d"), at: 150) == [.lookForName])
         #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 15))
         #expect(m.send(.pressedMain, at: 151) == [.start(title: nil, app: .teams)])

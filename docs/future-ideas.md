@@ -52,7 +52,7 @@ Found by the reviews of the branch and by the author's checks, and left as they 
 
 - Manual checks: L1, L2, L11 and L12 pass (2026-11-16). L3 found the Cancel bug, fixed in commit 8211d5d, to look at again. L4–L10 the author will check in use. Not seen on screen: the name list opening while typing, Escape on it, the warning when a finished transcript can't be listed.
 - Notes edited by other tools: a `title` written as a multi-line YAML block, YAML escapes other than `\"` and `\\`, and a UTF-8 BOM before the front matter are not read as Shepit writes them.
-- A change to people or lines reads and writes the note on the main thread (opening a meeting reads it off the main thread). A note in iCloud Drive that macOS offloaded would hold the window, and dictation hotkeys, while it downloads. (People's changes read their notes off the main thread first since the Voices part, 2026-11-19; a change in Meetings still doesn't.)
+- A change to people or lines reads and writes the note on the main thread (opening a meeting reads it off the main thread). A note in iCloud Drive that macOS offloaded would hold the window, and dictation hotkeys, while it downloads. (People's changes read their notes off the main thread first since the Voices part, and Meetings' since the review of 2026-11-19; Rename, Add notes… and Locate note… still don't.)
 - Locate note… compares paths as written: the same note picked through a symlink or another letter case reaches the store, which refuses it with SQLite's own message.
 - Word shares count only entries paired with the store: a second edited in Obsidian drops out of every share.
 - `MeetingStore.add` uses `INSERT OR IGNORE`, so any constraint failure would read as "already listed".

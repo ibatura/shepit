@@ -77,13 +77,15 @@ public enum Voices {
     }
 
     /// Your speech for the microphone's speaker detection (voices design §4): your first `lines` (offsets in seconds, in
-    /// order) until `seconds` of them are taken, wherever in the meeting you spoke. `ranges`: their audio in the
+    /// order) until `seconds` of them are taken, wherever in the meeting you spoke, and only the audio the microphone's
+    /// file has (`available` samples): a line cut short would move every later one. `ranges`: their audio in the
     /// microphone's (16 kHz samples); `lines`: where each one is once they are put one after another.
-    public static func speech(of lines: [Range<Double>], upTo seconds: Double) -> (ranges: [Range<Int>], lines: [Range<Double>]) {
+    public static func speech(of lines: [Range<Double>], upTo seconds: Double, within available: Int) -> (ranges: [Range<Int>], lines: [Range<Double>]) {
         var ranges: [Range<Int>] = [], taken: [Range<Double>] = [], length = 0
         for line in lines {
-            guard Double(length) < seconds * 16_000 else { break }
-            let from = Int((line.lowerBound * 16_000).rounded()), to = max(from, Int((line.upperBound * 16_000).rounded()))
+            let from = Int((line.lowerBound * 16_000).rounded())
+            guard Double(length) < seconds * 16_000, from < available else { break }
+            let to = min(available, max(from, Int((line.upperBound * 16_000).rounded())))
             ranges.append(from..<to)
             taken.append(Double(length) / 16_000..<Double(length + to - from) / 16_000)
             length += to - from

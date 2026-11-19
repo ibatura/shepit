@@ -25,10 +25,10 @@ struct MeetingsView: View {
         }
         .onAppear { model.reload() }
         .alert(model.question.map { text($0).title } ?? "",
-               isPresented: Binding(get: { model.question != nil }, set: { if !$0, let q = model.question { model.answer(q, yes: false) } }),
+               isPresented: Binding(get: { model.question != nil }, set: { if !$0, let q = model.question { Task { await model.answer(q, yes: false) } } }),
                presenting: model.question) { question in
-            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { model.answer(question, yes: true) }
-            Button("Cancel", role: .cancel) { model.answer(question, yes: false) }
+            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { Task { await model.answer(question, yes: true) } }
+            Button("Cancel", role: .cancel) { Task { await model.answer(question, yes: false) } }
         } message: { question in
             Text(text(question).message)
         }
@@ -214,11 +214,14 @@ private struct FinishedMeeting: View {
                     HStack(alignment: .firstTextBaseline) {
                         Caption("Transcript · click a line to give it to someone else or delete it")
                         Spacer()
-                        Toggle("Only highlighted people", isOn: $onlyHighlighted).toggleStyle(.checkbox).disabled(highlighted.isEmpty)
+                        Toggle("Only highlighted people", isOn: $onlyHighlighted).toggleStyle(.checkbox)
+                            .disabled(highlighted.isDisjoint(with: page.people.map(\.key)))
                     }
-                    let only = onlyHighlighted && !highlighted.isEmpty
+                    // People who have left the meeting (deleted, merged, reset) still in `highlighted` don't count.
+                    let shown = highlighted.intersection(page.people.map(\.key))
+                    let only = onlyHighlighted && !shown.isEmpty
                     LazyVStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(page.rows.enumerated()).filter { !only || $0.element.person.map(highlighted.contains) == true },
+                        ForEach(Array(page.rows.enumerated()).filter { !only || $0.element.person.map(shown.contains) == true },
                                 id: \.offset) { index, row in
                             transcriptRow(row, index: index, page: page)
                         }
@@ -258,7 +261,8 @@ private struct FinishedMeeting: View {
             Avatar(initials: person.initials, color: color).onTapGesture(perform: highlight)
             VStack(alignment: .leading, spacing: 2) {
                 NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
-                    model.name(meeting.id, person: person.key, typed: $0)
+                    let typed = $0
+                    Task { await model.name(meeting.id, person: person.key, typed: typed) }
                 }
                 if person.recognised { Text("recognised by voice").font(.caption).foregroundStyle(.secondary) }
             }
@@ -269,7 +273,7 @@ private struct FinishedMeeting: View {
             if !person.mergeTargets.isEmpty {
                 Menu("Merge into") {
                     ForEach(person.mergeTargets, id: \.self) { target in
-                        Button(page.people.first { $0.key == target }?.name ?? target) { model.merge(meeting.id, person: person.key, into: target) }
+                        Button(page.people.first { $0.key == target }?.name ?? target) { Task { await model.merge(meeting.id, person: person.key, into: target) } }
                     }
                 }
                 .fixedSize()
@@ -306,12 +310,12 @@ private struct FinishedMeeting: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Give this line to").font(.caption).foregroundStyle(.secondary).padding(.bottom, 4)
                         ForEach(page.people.filter { $0.key != row.person }, id: \.key) { person in
-                            Button(person.name) { giving = nil; model.give(meeting.id, line: place, to: person.key) }
+                            Button(person.name) { giving = nil; Task { await model.give(meeting.id, line: place, to: person.key) } }
                         }
                         Divider().padding(.vertical, 4)
-                        Button("New person") { giving = nil; model.giveToNewPerson(meeting.id, line: place) }
+                        Button("New person") { giving = nil; Task { await model.giveToNewPerson(meeting.id, line: place) } }
                         Divider().padding(.vertical, 4)
-                        Button("Delete line", role: .destructive) { giving = nil; model.delete(meeting.id, lines: [place]) }
+                        Button("Delete line", role: .destructive) { giving = nil; Task { await model.delete(meeting.id, lines: [place]) } }
                     }
                     .buttonStyle(.borderless)
                     .padding(12)

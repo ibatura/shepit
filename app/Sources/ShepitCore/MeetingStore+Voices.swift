@@ -5,15 +5,16 @@ extension MeetingStore {
     /// Each kept sample with the line it belongs to now: its meeting, place and label (`key`), and that label's person
     /// (nil: nobody named). A print is the samples of the lines a person has now (voices design §5); every read and
     /// deletion of voices goes through this one definition. Temporary: made on every open, so changing it needs no upgrade.
-    /// Your voice is only your lines from the microphone (the author, 2026-11-19): a call line given to you was 0.14
-    /// alike your microphone in the author's meetings, so it would only blur your print. Such a sample is nobody's voice,
-    /// and goes after 30 days like an unnamed one.
+    /// A sample counts only for a voice of its own channel (the author, 2026-11-19): yours is only your lines from the
+    /// microphone (a line whose first label is the meeting's "you"), everyone else's only lines from the call. A call line
+    /// given to you was 0.14 alike your microphone in the author's meetings and would only blur a print; so would your
+    /// microphone given to someone in the room. Such a sample is nobody's voice, and goes after 30 days like an unnamed one.
     static let lineVoices = """
         CREATE TEMP VIEW IF NOT EXISTS line_voices AS
           SELECT lines.meeting, lines.timestamp, lines.ord, samples.vector, lines.current AS key, people.person
           FROM lines JOIN people ON people.meeting = lines.meeting AND people.key = lines.current
-          JOIN samples USING (meeting, timestamp, ord)
-          WHERE people.person IS NOT (SELECT id FROM persons WHERE you = 1) OR lines.original = lines.current
+          JOIN samples USING (meeting, timestamp, ord) JOIN meetings ON meetings.id = lines.meeting
+          WHERE (people.person IS (SELECT id FROM persons WHERE you = 1)) = (lines.original IS meetings.you)
         """
 
     /// Every sample of a line that belongs to a person now, for prints; `except` leaves one meeting out.

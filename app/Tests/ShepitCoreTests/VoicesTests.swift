@@ -94,10 +94,14 @@ struct VoicesTests {
     }
 
     @Test func yourSpeechIsYourFirstLinesUpToTheLimitWhereverTheyAre() {
-        let speech = Voices.speech(of: [1000..<1001.5, 1200..<1201, 1300..<1302], upTo: 2)
+        let speech = Voices.speech(of: [1000..<1001.5, 1200..<1201, 1300..<1302], upTo: 2, within: .max)
         #expect(speech.ranges == [16_000_000..<16_024_000, 19_200_000..<19_216_000]) // 2.5 s: the third isn't needed
         #expect(speech.lines == [0..<1.5, 1.5..<2.5])
-        #expect(Voices.speech(of: [], upTo: 600).ranges.isEmpty)
+        #expect(Voices.speech(of: [], upTo: 600, within: .max).ranges.isEmpty)
+        // A file that ends in the second line: it is cut there, and nothing after it is taken.
+        let short = Voices.speech(of: [1000..<1001.5, 1200..<1201, 1300..<1302], upTo: 600, within: 19_208_000)
+        #expect(short.ranges == [16_000_000..<16_024_000, 19_200_000..<19_208_000])
+        #expect(short.lines == [0..<1.5, 1.5..<2])
     }
 
     @Test func suggestionsAreTheMeetingsWhereRecognitionNamesThePerson() {

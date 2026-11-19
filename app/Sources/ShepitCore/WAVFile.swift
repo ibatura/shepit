@@ -6,6 +6,8 @@ public final class WAVFileWriter: @unchecked Sendable {
     public let file: URL
     private let handle: FileHandle
     private var dataBytes: UInt32 = 0
+    /// Samples written so far.
+    public var samples: Int { Int(dataBytes) / 2 }
 
     public init(file: URL) throws {
         self.file = file
