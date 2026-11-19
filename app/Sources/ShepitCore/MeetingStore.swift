@@ -176,7 +176,7 @@ public final class MeetingStore {
     /// its label. "you" keeps the name for this note only: the author is You whatever the name.
     public func setName(_ meeting: Int, person key: String, to name: String?) throws {
         try transaction {
-            if try sqlite.rows("SELECT 1 FROM meetings WHERE id = ? AND you = ?", [meeting, key]) { $0.int(0) }.isEmpty {
+            if try sqlite.rows("SELECT 1 FROM meetings WHERE id = ? AND you = ?", [meeting, key], read: { $0.int(0) }).isEmpty {
                 try link(meeting, key: key, to: name.flatMap(personID(named:)))
                 try dropUnlistedPersons()
             } else {
