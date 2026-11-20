@@ -4,7 +4,7 @@ What comes next, and what was set aside and why. Reviewed with the author on 202
 
 ## Planned, in this order
 
-Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-11-20:
+Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-11-20, item 9 put first on 2026-11-21:
 
 1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
 2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Merged into `main` on 2026-11-13. Left: the list under "Call offer: left open" below.
@@ -14,11 +14,12 @@ Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-1
 6. **Statistics** with the new numbers: the period menu shared with Dictations plus Custom…, the Overview, Dictation and Meetings views, the meeting's call app in `stats.sqlite`. Built on branch `statistics`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-17. Left: the list under "Statistics: left open" below.
 7. **Voices**: voice samples in `meetings.sqlite`, prints that follow the author's corrections, recognition when a transcript is ready, and the People section (rename and merge across meetings, Delete voice, May also be in, who talked how much, your voice from the microphone). Built on branch `voices`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-19). Merged into `main` on 2026-11-20. Left: the list under "Voices: left open" below.
 8. **Import names** from a transcript: Teams and Zoom `.vtt` in this part (spec `docs/superpowers/specs/2026-11-20-import-names-design.md`), Teams `.docx` and the Meet `.txt` format later. Built on branch `import-names`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-20). Left: the list under "Import names: left open" below.
-9. **Every setting reviewed** with the author, with automatic start per app, rules by meeting name, what each engine is for and the voice numbers: see "Every setting reviewed" under "New ideas".
-10. **L3 again** with the author (Cancel on the merge question): see "Meetings: left open".
-11. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open".
-12. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
-13. **Back and forward in the window** (the author, 2026-11-20): see the item under "New ideas".
+9. **Version and About Shepit** (the author, 2026-11-21: next, before everything else below): see "Version and About Shepit" under "New ideas".
+10. **Every setting reviewed** with the author, with automatic start per app, rules by meeting name, what each engine is for and the voice numbers: see "Every setting reviewed" under "New ideas".
+11. **L3 again** with the author (Cancel on the merge question): see "Meetings: left open".
+12. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open".
+13. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
+14. **Back and forward in the window** (the author, 2026-11-20): see the item under "New ideas".
 
 Each gets its own spec and plan.
 
@@ -111,6 +112,10 @@ Found by the reviews of the branch and not changed: the author had all five poin
 - **The name** stays Import names… with a hint on hover (the author, 2026-11-20: the name alone didn't say where the names come from).
 
 ### New ideas (the author, 2026-11-15; not ordered yet)
+
+- **Version and About Shepit** (the author, 2026-11-21; next to build, the highest priority). Shepit must show which version it is: an About Shepit item, perhaps in the 🎙 menu, with the version. The version is kept on GitHub too, so each installed build can be found there. Checking for a new version with a request to GitHub is in question: it would be the first network call that isn't a model download the user asked for ("Everything stays local" in `CLAUDE.md`), so at most a button that asks GitHub only when clicked; to decide with the author in the spec.
+  - Today: `app/Resources/Info.plist` says `0.1.0` and never changes, and the repository has no tags.
+  - How it could be done (for the spec): the version in one place (`CFBundleShortVersionString`, or a `VERSION` file that `build-app.sh` writes into it), and the commit (`git describe`) as `CFBundleVersion`, so a build tells which commit it is; About as macOS's standard About panel (`orderFrontStandardAboutPanel`: name, version, build), in the 🎙 menu and the app menu; on GitHub a tag such as `v0.2.0` on `main` after each merged part, perhaps a release with notes; a check would read `https://api.github.com/repos/ibatura/shepit/releases/latest` (public, no sign-in) and compare.
 
 Done 2026-11-16: Open Shepit brings an open window to the front (W11); Reveal in Finder and Copy path in a meeting's menus (L14). Other dialogs (Add word, the meeting name, Quit during a meeting) still call `NSApp.activate()`, which macOS 26.4 refuses while another app is active; no trouble reported with them so far.
 
