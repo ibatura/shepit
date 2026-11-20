@@ -76,6 +76,7 @@ The menu has the quick actions; everything else is in [the window](#the-window).
 | Mode | Toggle or Hold to talk |
 | Language | Ukrainian, English or Auto-detect |
 | Dictation engine | The engine for the pasted text — only downloaded ones are listed |
+| About Shepit | The version, and the commit it was built from: "Version 0.2.0 (ff170a9)" |
 | Settings… (⌘,) | Opens the window on Settings |
 | Quit Shepit | Quits Shepit |
 

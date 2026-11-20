@@ -100,6 +100,7 @@ public enum MenuModel {
             }),
             MenuItem(title: "Dictation engine", enabled: !busy, submenu: engineChoices(view)),
             .separator,
+            MenuItem(title: "About Shepit", action: .about),
             MenuItem(title: "Settings…", keyEquivalent: ",", action: .openSettings),
             MenuItem(title: "Quit Shepit", keyEquivalent: "q", action: .quit),
         ]

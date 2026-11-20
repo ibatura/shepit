@@ -54,7 +54,7 @@ struct MenuModelTests {
             "Ready — whisper.cpp large-v3-turbo", "-", "Open Shepit", "-",
             "Start meeting transcript", "-",
             "Copy last dictation", "Recent", "Add word…", "-",
-            "Mode", "Language", "Dictation engine", "-", "Settings…", "Quit Shepit",
+            "Mode", "Language", "Dictation engine", "-", "About Shepit", "Settings…", "Quit Shepit",
         ])
         #expect(!items[0].enabled)
         #expect(find(items, "Settings…")?.keyEquivalent == ",")
@@ -114,6 +114,7 @@ struct MenuModelTests {
     @Test func actionItemsCarryTheirActions() {
         let items = MenuModel.build(view())
         #expect(find(items, "Quit Shepit")?.action == .quit)
+        #expect(find(items, "About Shepit")?.action == .about)
         #expect(find(items, "Add word…")?.action == .addToDictionary)
         #expect(find(items, "Settings…")?.action == .openSettings)
     }

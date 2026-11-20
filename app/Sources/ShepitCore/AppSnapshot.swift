@@ -19,6 +19,8 @@ public enum AppAction: Equatable, Sendable {
     case startCall
     case stopMeeting
     case openMeetingsFolder
+    /// About Shepit: macOS's About panel with the version and the build's commit.
+    case about
     case quit
 }
 
