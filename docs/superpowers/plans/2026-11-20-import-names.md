@@ -97,7 +97,7 @@ app/Tests/ShepitTests/
     - a header line after `WEBVTT`, and `NOTE` blocks.
   - **Refused:**
     - text that doesn't start with `WEBVTT` (after a BOM), the empty file included: "This isn't a WebVTT transcript.";
-    - WebVTT with no cue that has a speaker: "This transcript has no speaker names."
+    - WebVTT where fewer than half the cues name a speaker: "This transcript has no speaker names." Zoom's captions file has no names, but a colon in the text of a few cues.
 - [ ] `SpeakerTranscript` in `ShepitCore`, with the two errors as a `LocalizedError`.
 - [ ] Commit `Shepit: read speakers and times from a Teams or Zoom .vtt`.
 

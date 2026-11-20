@@ -53,7 +53,7 @@ A `.vtt` (WebVTT) file is a list of cues: a timing line `00:12:04.320 --> 00:12:
 - **Teams:** each cue has an id line (`<guid>/12-0`), the timing line, and text in a voice tag: `<v Olena K.>text</v>`, which can run over several lines. The speaker is the tag's name.
 - **Zoom:** each cue has a number line, the timing line and `Olena K.: text`. The speaker is what comes before the first `: ` of the cue's text. A cue with no `: ` has no speaker (Zoom writes no name when it doesn't know one).
 - Both: a UTF-8 BOM, CRLF line ends and timings without hours (`12:04.320`) are read. Names are trimmed and taken as written.
-- A file that doesn't start with `WEBVTT`: "This isn't a WebVTT transcript." A WebVTT file with no speaker on any cue (the author has two such files, from 2025): "This transcript has no speaker names."
+- A file that doesn't start with `WEBVTT`: "This isn't a WebVTT transcript." A WebVTT file where fewer than half the cues name a speaker: "This transcript has no speaker names." The author's two such files, from 2025, are Zoom's captions (`.cc.vtt`): no names, but a colon in the text of 3 of 327 cues.
 
 Only each cue's start, end and speaker are kept, in memory, while the sheet is open; the cue text is dropped as it is read.
 
