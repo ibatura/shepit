@@ -4,7 +4,7 @@ What comes next, and what was set aside and why. Reviewed with the author on 202
 
 ## Planned, in this order
 
-Build order agreed on 2026-11-11:
+Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-11-20:
 
 1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
 2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Merged into `main` on 2026-11-13. Left: the list under "Call offer: left open" below.
@@ -13,9 +13,12 @@ Build order agreed on 2026-11-11:
 5. **Dictations and Dictionary**: `dictations.sqlite` with the app of each dictation instead of `history.log`, the Dictations section with a period menu, the Dictionary section as in mockup 5, one `databasesFolder` setting. Built on branch `dictations-dictionary`; the three end-of-branch reviews are done and the author's picks fixed. Merged into `main` on 2026-11-17. Left: the list under "Dictations and Dictionary: left open" below.
 6. **Statistics** with the new numbers: the period menu shared with Dictations plus Custom…, the Overview, Dictation and Meetings views, the meeting's call app in `stats.sqlite`. Built on branch `statistics`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-17. Left: the list under "Statistics: left open" below.
 7. **Voices**: voice samples in `meetings.sqlite`, prints that follow the author's corrections, recognition when a transcript is ready, and the People section (rename and merge across meetings, Delete voice, May also be in, who talked how much, your voice from the microphone). Built on branch `voices`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-19). Merged into `main` on 2026-11-20. Left: the list under "Voices: left open" below.
-8. **Import names** from a transcript; the Meet `.txt` format last.
-9. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open".
-10. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
+8. **Import names** from a transcript: Teams and Zoom `.vtt` first, the Meet `.txt` format last. Branch `import-names`.
+9. **Every setting reviewed** with the author, with automatic start per app, rules by meeting name, what each engine is for and the voice numbers: see "Every setting reviewed" under "New ideas".
+10. **L3 again** with the author (Cancel on the merge question): see "Meetings: left open".
+11. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open".
+12. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
+13. **Back and forward in the window** (the author, 2026-11-20): see the item under "New ideas".
 
 Each gets its own spec and plan.
 
@@ -118,6 +121,7 @@ From a team call of 2026-11-13 (colleagues' questions, and how Shepit wrote that
   - *To find out in the spec:* the distance at which a saved voice counts as recognised; whether a running mean or the nearest of several samples matches better across apps and microphones (Teams, Meet and Zoom compress audio differently); how many samples a print needs before it is offered; and a check on real meetings of how often the right person is found before and after a few corrections.
   - Voice prints are biometric data: off by default (decided 2026-11-11), only on this Mac, never in `stats.sqlite`, each person and all of them deletable.
 - **Back and forward in the window** (the author, 2026-11-20, while checking Voices). Arrows at the top of the window, as in a browser or Finder: a click on a meeting in People opens it in Meetings, and there is no way back to that person. It should work across the whole window: every section, and the meeting or person chosen in it, is a step. To settle in a spec: what counts as a step (a section, a meeting, a person, a period?), the keys (⌘[ and ⌘], the mouse's back and forward buttons, a two-finger swipe), and what a step to a deleted meeting or person does.
+- **Names from a screenshot of Teams' speaker timeline** (the author, 2026-11-20, for part 8). Teams can show a meeting as a timeline of who spoke when, and a screenshot of it could give names by time, as a `.vtt` does. Shepit has no language or vision model, only speech models, so it would need Apple's Vision text recognition for the names (on the Mac, no network) plus its own reading of the coloured bars by pixel, which breaks with any change of Teams' layout, zoom, theme or scroll. A `.vtt` gives the same names with exact times. Worth it only for meetings that have the timeline but no transcript; to settle in the part 8 spec, with a sample screenshot from the author if it comes to that.
 - **Every database query on an index, every index used** (the author, 2026-11-15; widened 2026-11-17). Check each query of `meetings.sqlite`, `dictations.sqlite` and `stats.sqlite` with `EXPLAIN QUERY PLAN`; where one scans a whole table or sorts in a temporary B-tree, add the index it needs. Then go through every index each database has and drop the ones no query uses (they only slow writes). Known at the time of writing (2026-11-15): in `meetings.sqlite`, `people` and `lines` are keyed by meeting first and `meetings.path` is unique, but the list sorts `meetings` by `start` with no index, and the name suggestions read all of `people` on purpose. `stats.sqlite` checked on 2026-11-17 (Statistics part, on the author's file at version 2): the reads of `dictations`, `meetings` and `offers` for a period each search their `time` index, which also gives the order; `offers` got its index in that part; `model_events` has none and is only written. Left: `meetings.sqlite`, `dictations.sqlite`, and whether each index is used.
 
 ### The main window (decided 2026-11-11)
