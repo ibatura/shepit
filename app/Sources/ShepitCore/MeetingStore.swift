@@ -43,15 +43,20 @@ public final class MeetingStore {
 
     public typealias Place = MeetingNote.Place
 
+    /// `words` and `seconds` as the session counted them (voices design §7); meetings listed before Voices have no `seconds`.
     public struct Line: Equatable, Sendable {
         public var place: Place
         public var original: String
         public var current: String
+        public var words: Int?
+        public var seconds: Double?
 
-        public init(place: Place, original: String, current: String) {
+        public init(place: Place, original: String, current: String, words: Int? = nil, seconds: Double? = nil) {
             self.place = place
             self.original = original
             self.current = current
+            self.words = words
+            self.seconds = seconds
         }
     }
 
@@ -151,22 +156,11 @@ public final class MeetingStore {
 
     /// In note order.
     public func lines(_ meeting: Int) throws -> [Line] {
-        try sqlite.rows("SELECT timestamp, ord, original, current FROM lines WHERE meeting = ? ORDER BY timestamp, ord", [meeting]) { row in
-            Line(place: Place(timestamp: row.text(0) ?? "", order: row.int(1)), original: row.text(2) ?? "", current: row.text(3) ?? "")
+        try sqlite.rows("SELECT timestamp, ord, original, current, words, seconds FROM lines WHERE meeting = ? ORDER BY timestamp, ord",
+                        [meeting]) { row in
+            Line(place: Place(timestamp: row.text(0) ?? "", order: row.int(1)), original: row.text(2) ?? "", current: row.text(3) ?? "",
+                 words: row.isNull(4) ? nil : row.int(4), seconds: row.isNull(5) ? nil : row.double(5))
         }
-    }
-
-    /// Each line's person now, start and length, for Import names (import names design §5). Lines listed before Voices
-    /// have no `seconds`: half a second per word. Lines with no speaker are left out.
-    public func timedLines(_ meeting: Int) throws -> [NameImport.Line] {
-        guard let start = try self.meeting(meeting)?.start else { return [] }
-        return try sqlite.rows("""
-            SELECT timestamp, current, seconds, words FROM lines WHERE meeting = ? AND current <> ? ORDER BY timestamp, ord
-            """, [meeting, MeetingNote.callLabel]) { row -> NameImport.Line? in
-            guard let time = MeetingNote.date(row.text(0) ?? "") else { return nil }
-            let length = row.isNull(2) ? Double(row.int(3)) / 2 : row.double(2)
-            return NameImport.Line(person: row.text(1) ?? "", start: time.timeIntervalSince(start), length: max(length, 0.5))
-        }.compactMap { $0 }
     }
 
     public func rename(_ meeting: Int, title: String?) throws {

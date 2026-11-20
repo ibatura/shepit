@@ -196,33 +196,26 @@ final class MeetingsModel {
     /// The file is read and lined up off the main thread; only its speakers and times are kept, while the sheet is open.
     func importNames(from file: URL) async {
         guard case .meeting(let id) = selection, let meeting = meetings.first(where: { $0.id == id }), !importBusy else { return }
-        let lines = (try? store.timedLines(id)) ?? [], people = (try? store.people(id)) ?? []
+        let lines = (try? store.lines(id)) ?? [], people = (try? store.people(id)) ?? []
         importBusy = true
-        let aligned = await Task.detached { () -> Result<NameImport.Alignment, Error> in
-            Result {
-                guard let alignment = NameImport.align(lines, try SpeakerTranscript.cues(String(contentsOf: file, encoding: .utf8))) else {
-                    throw NameImport.NotLinedUp()
-                }
-                return alignment
-            }
+        let aligned = await Task.detached {
+            Result { try NameImport.align(lines, start: meeting.start, SpeakerTranscript.cues(String(contentsOf: file, encoding: .utf8))) }
         }.value
         importBusy = false
         guard selection == .meeting(id) else { return } // another meeting was chosen meanwhile
         switch aligned {
         case .success(let alignment):
-            var order: [String] = []
-            for line in lines where !order.contains(line.person) { order.append(line.person) }
             importing = Importing(meeting: id, sheet: NameImport.sheet(file: file.lastPathComponent, alignment: alignment, people: people,
-                                                                      order: order, you: meeting.you))
+                                                                      you: meeting.you))
         case .failure(let error):
             notice = Notice(title: "Can't import names from \(file.lastPathComponent)", message: error.localizedDescription)
         }
     }
 
-    /// Apply names: the ticked merges, then the ticked names (key: as typed), in the store and the note together (§7).
-    func applyNames(_ meeting: Int, merges: [NameImport.Merge], typed: [String: String]) async {
+    /// Apply names: what is ticked in the sheet, merges then names, in the store and the note together (§7).
+    func applyNames(_ meeting: Int, _ sheet: NameImport.Sheet) async {
         importing = nil
-        let (merges, names) = NameImport.changes(names: typed, merges: merges)
+        let (merges, names) = sheet.changes
         await change(meeting) {
             for merge in merges { try store.merge(meeting, person: merge.person, into: merge.into) }
             for (person, name) in names { try store.setName(meeting, person: person, to: name) }

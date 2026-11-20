@@ -104,7 +104,7 @@ Afterwards everything is as if the author had typed the names: they can be chang
 
 - **ShepitCore `SpeakerTranscript`:** reads a `.vtt` into cues (start, end, speaker), or says why it can't.
 - **ShepitCore `NameImport`:** from the meeting's lines and people and the cues, the shift, whether it lines up, each person's match and share, the merges and the unmatched speakers. Pure, tested.
-- **App:** `ImportNamesSheet` in `Window/` (a file of its own: `MeetingsView.swift` is 473 lines), `MeetingsModel.importNames` (picker, read off the main thread, apply through `MeetingStore.change`), and the button in `FinishedMeeting`. `MeetingStore` gets one read, each line's person, start and length (§5); `merge` and `setName` inside `change` do the rest.
+- **App:** `ImportNamesSheet` in `Window/` (a file of its own: `MeetingsView.swift` is 473 lines), `MeetingsModel.importNames` (picker, read off the main thread, apply through `MeetingStore.change`), and the button in `FinishedMeeting`. `MeetingStore.lines` also gives each line's words and seconds, which `NameImport` times as §5 says; `merge` and `setName` inside `change` do the rest.
 
 ## 10. Tests and manual checks
 
