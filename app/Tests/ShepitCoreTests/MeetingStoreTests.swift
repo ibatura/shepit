@@ -28,10 +28,10 @@ struct MeetingStoreTests {
         #expect(try store.meetings() == [.init(id: id, path: "/notes/a.md", title: "Sync", app: "Teams", start: start, duration: 60, you: "Me")])
         #expect(try store.people(id) == [.init(key: "Me", name: nil, person: 1), .init(key: "Person 1", name: nil), .init(key: "Person 2", name: nil)])
         #expect(try store.lines(id) == [
-            .init(place: .init(timestamp: "2026-07-31 10:00:01", order: 0), original: "Me", current: "Me"),
-            .init(place: .init(timestamp: "2026-07-31 10:00:03", order: 0), original: "Person 1", current: "Person 1"),
-            .init(place: .init(timestamp: "2026-07-31 10:00:03", order: 1), original: "Person 2", current: "Person 2"),
-            .init(place: .init(timestamp: "2026-07-31 10:00:05", order: 0), original: "Person 1", current: "Person 1"),
+            .init(place: .init(timestamp: "2026-07-31 10:00:01", order: 0), original: "Me", current: "Me", words: 0),
+            .init(place: .init(timestamp: "2026-07-31 10:00:03", order: 0), original: "Person 1", current: "Person 1", words: 0),
+            .init(place: .init(timestamp: "2026-07-31 10:00:03", order: 1), original: "Person 2", current: "Person 2", words: 0),
+            .init(place: .init(timestamp: "2026-07-31 10:00:05", order: 0), original: "Person 1", current: "Person 1", words: 0),
         ])
     }
 
@@ -164,10 +164,9 @@ struct MeetingStoreTests {
                                                       .init(label: "Person 1", timestamp: "2026-07-31 10:00:03", text: "one", line: 2),
                                                       .init(label: "Person 2", timestamp: "2026-07-31 10:00:03", text: "two words", line: 4)],
                                             samples: [second: voice], seconds: [second: 1.5]))
+        let lines = try store.lines(id)
+        #expect(lines.map(\.words) == [3, 1, 2] && lines.map(\.seconds) == [nil, nil, 1.5])
         let raw = SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: [])
-        #expect(try raw.rows("SELECT words, seconds FROM lines WHERE meeting = ? ORDER BY timestamp, ord", [id]) {
-            "\($0.int(0)) \($0.isNull(1) ? "-" : String($0.double(1)))"
-        } == ["3 -", "1 -", "2 1.5"])
         #expect(try raw.rows("SELECT timestamp, ord, vector FROM samples") { ($0.text(0), $0.int(1), VoiceSample(blob: $0.blob(2))) }
             .map { "\($0.0!) \($0.1) \($0.2 == voice)" } == ["2026-07-31 10:00:03 1 true"])
     }

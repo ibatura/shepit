@@ -76,6 +76,7 @@ The menu has the quick actions; everything else is in [the window](#the-window).
 | Mode | Toggle or Hold to talk |
 | Language | Ukrainian, English or Auto-detect |
 | Dictation engine | The engine for the pasted text — only downloaded ones are listed |
+| About Shepit | The version, and the commit it was built from: "Version 0.2.0 (ff170a9)" |
 | Settings… (⌘,) | Opens the window on Settings |
 | Quit Shepit | Quits Shepit |
 
@@ -135,6 +136,7 @@ Open a finished meeting to:
 
 - **Rename it:** click its name (or ✎), type, and press **Save** or Enter; **Cancel** or Esc leaves it as it was. The note's `title` and its file name change too (the `meetingFileName` template is filled again, in the folder the note is in now). Links to the note from other Obsidian notes are not updated: Obsidian does that only for renames made inside it.
 - **Name people:** type a name next to `Person 1`; names given in earlier meetings are suggested. Every line of that person gets the name in the note. A name another person of the meeting already has asks to merge the two.
+- **Import names…:** take the names from the transcript Teams or Zoom saved of the same call (a `.vtt` file; Zoom's captions file `.cc.vtt` has no names). Shepit finds where the file sits in the meeting, even when the transcript was turned on late, and shows a sheet: each person with the name the file gives at the times they speak and how much of their time agrees, ticked when they have no name yet; a person with another name is offered the file's name unticked. Two people of one voice are offered as a merge, and your own voice heard through the call as a merge into you. **Apply names** names them as typing does. A file of another meeting, or of only a few minutes, is refused ("doesn't line up with this meeting"). Only names are taken: the lines stay as they are.
 - **Merge into:** all lines of one person go to another (for one voice that speaker detection split in two). Your own voice heard through the call can be merged into you.
 - **See who said what:** click people (their initials, their share or an empty spot on the row) to highlight their lines in the transcript, each in their colour; click again to turn one off. **Only highlighted people** above the transcript hides everyone else's lines.
 - **Give a line to another person:** click the line. **New person** makes a `Person N` for a voice that speaker detection put under someone else.
@@ -395,6 +397,8 @@ cmake and the Shepit Local Signing certificate (Keychain Access → login) are l
 | Voice samples | `meetings.sqlite`, only while **Remember voices** is on | 256 numbers per transcript line describing the voice, not audio; see [People in the window](#people-in-the-window). Until Delete voice…, Delete all voices… or the meeting leaves the list; for people you never named, and for lines given across channels (a call line to you, your microphone to someone else), 30 days. A deleted sample is overwritten in the file; copies macOS keeps in freed disk space or local Time Machine snapshots are out of Shepit's reach (FileVault encrypts them) |
 | Meeting audio | a private temporary folder | Only during the meeting and speaker detection (with Remember voices on, your microphone too, silent where you were muted or dictating), then deleted — also after a failure, and at the next launch after a crash |
 
+A transcript file opened with **Import names…** is only read: its path and text are not kept anywhere, and only the names you apply are written.
+
 **Shepit's permissions:** Accessibility lets it send ⌘V, read a selected word (⌘C, for ⌃⌥D) and read window and tab titles and the call's mute button, to suggest a meeting name and leave out what you say while muted (it also asks Teams and Chrome to keep their accessibility information built, which they otherwise do only for assistive apps); Microphone lets it record while you dictate or during a meeting transcript; System Audio Recording lets it record the call, only between Start and Stop. It uses them for nothing else.
 
 ## Where things are
@@ -420,6 +424,8 @@ scripts/build-app.sh              # build, sign and install Shepit.app
 tools/accuracy/record.sh          # record your own test clips (run in a normal terminal window)
 tools/accuracy/evaluate.py --engines whispercpp:large-v3-turbo parakeet apple   # compare engines on those clips
 ```
+
+Releases: a merge into `main` that raises `CFBundleShortVersionString` in `app/Resources/Info.plist` makes the tag `v<version>` and a GitHub release with the notes in `docs/releases/<version>.md` (`.github/workflows/release.yml`).
 
 The code is a SwiftPM package in `app/`: `ShepitCore` (settings, dictionary, controller, statistics — pure logic), `ShepitEngines` (the four speech engines), `Shepit` (the app). A plain `swift build --package-path app` on a fresh clone needs `scripts/build-whisper-lib.sh` first. Design: `docs/superpowers/specs/2026-10-18-native-app/`.
 

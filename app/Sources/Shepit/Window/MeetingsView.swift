@@ -194,6 +194,12 @@ private struct FinishedMeeting: View {
                     Spacer()
                     Button("Copy", action: copy).disabled(missing)
                     Button("Open note") { NSWorkspace.shared.open(note) }.disabled(missing)
+                    Button(action: model.importNames) {
+                        Text("Import names…").opacity(model.importBusy ? 0 : 1)
+                            .overlay { if model.importBusy { ProgressView().controlSize(.small) } }
+                    }
+                    .disabled(missing || model.importBusy)
+                    .help("Name the people from the transcript Teams or Zoom saved of this call (a .vtt file)")
                     Menu {
                         MeetingMenu(model: model, actions: actions, meeting: meeting, missing: missing)
                     } label: {
@@ -231,6 +237,12 @@ private struct FinishedMeeting: View {
                 }
             }
             .padding(20)
+        }
+        .sheet(item: Binding(get: { model.importing }, set: { model.importing = $0 })) { importing in
+            let people: [MeetingPage.PersonRow] = if case .page(let page) = open.content { page.people } else { [] }
+            ImportNamesSheet(sheet: importing.sheet, people: people, suggestions: open.suggestions) { sheet in
+                Task { await model.applyNames(importing.meeting, sheet) }
+            }
         }
     }
 
@@ -333,13 +345,15 @@ private struct FinishedMeeting: View {
 
 /// A person's name: a combo box of the names Shepit knows. While typing, its list opens with the names that match.
 /// Saved on Enter, when it loses focus, or when a name is picked from the list.
-private struct NameField: NSViewRepresentable {
+struct NameField: NSViewRepresentable {
     let text: String
     let placeholder: String
     let suggestions: [String]
     /// A change here drops what is being typed and shows `text` again (Cancel on the merge question).
     let cancels: Int
     let commit: (String) -> Void
+    /// Each edit as it is typed, for a form that is saved by a button of its own (Import names).
+    var changed: (String) -> Void = { _ in }
 
     func makeNSView(context: Context) -> NSComboBox {
         let box = NSComboBox()
@@ -350,6 +364,7 @@ private struct NameField: NSViewRepresentable {
 
     func updateNSView(_ box: NSComboBox, context: Context) {
         context.coordinator.commit = commit
+        context.coordinator.changed = changed
         context.coordinator.names = suggestions
         context.coordinator.stored = text
         box.placeholderString = placeholder
@@ -370,6 +385,7 @@ private struct NameField: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, NSComboBoxDelegate {
         var commit: (String) -> Void
+        var changed: (String) -> Void = { _ in }
         var names: [String] = []
         var cancels: Int
         /// The name the field shows when nothing is typed: Escape goes back to it.
@@ -382,6 +398,7 @@ private struct NameField: NSViewRepresentable {
 
         func controlTextDidChange(_ notification: Notification) {
             guard let box = notification.object as? NSComboBox else { return }
+            changed(box.stringValue)
             let matches = MeetingPage.matching(names, typed: box.stringValue)
             box.removeAllItems()
             box.addItems(withObjectValues: matches)

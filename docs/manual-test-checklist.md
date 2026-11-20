@@ -170,3 +170,30 @@ Design: `docs/superpowers/specs/2026-11-17-voices-design.md`. On real calls; sam
 | V8 | Delete voice… on a person; then Delete all voices… | Both ask first; the person shows "No voice saved" and keeps the name in their meetings; after Delete all the `samples` table is empty and You has no voice | Not checked on purpose: the author left it for everyday use (2026-11-20) |
 | V9 | A call on speakers, not headphones, with Remember voices on | Your voice heard through the call is not left as a `Person N`: it is merged into you | Passed on 2026-11-20 with nothing to merge: a 60-minute Teams call on headphones, then speakers, then headphones. No call line was more than 0.33 like the author's print (0.7 merges), so their voice didn't come back through the call and no Person N held it; 1 of the 122 microphone lines with a sample was unlike them (below 0.5). The merge into you itself is covered by tests only |
 | V10 | People: Who talked how much for Last month and other periods; a person's meetings; a click on one; relaunch Shepit | Meetings, talk time, words and share follow the period, and so does the list of meetings ("No meetings in this period" when empty); older meetings show words and "–" for talk time; the click opens the meeting in Meetings; the period and the person are the same after the relaunch | ✅ 2026-11-20 |
+
+## Main window: Import names
+
+Date: 2026-11-20
+
+Design: `docs/superpowers/specs/2026-11-20-import-names-design.md`. With the `.vtt` files Teams or Zoom saved of real calls; on the author's meetings only counts are reported.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| I1 | Meetings → a meeting with its Teams `.vtt` → Import names… → the file → Apply names | The suggested names are who spoke (check a few lines); the note's headers get them | ✅ 2026-11-20: "everything works", the author on the installed app |
+| I2 | Import names… with a `.vtt` of another meeting, of the same team too | "This transcript doesn't line up with this meeting." | ✅ 2026-11-21 |
+| I3 | Import names… with a `.vtt` that has no names (Zoom's `.cc.vtt`) | "This transcript has no speaker names." | 2026-11-21: "doesn't line up" came, most likely from Zoom's `.transcript.vtt` of the same recording (it has names); both `.cc.vtt` files give "no speaker names" in the parser. Try again with the `.cc` one |
+| I4 | A meeting where speaker detection split one voice into two `Person N` | The merge is offered, ticked, and done | |
+| I5 | A person named differently from the file | Unticked; tick it, Apply names: the name changes | |
+| I6 | A name someone already has from another meeting | People shows one person with both meetings | 2026-11-21, read-only: no name is held by two people in People (16 names); the 29 Oct meeting has no names applied yet, so the check waits for that |
+| I7 | A Zoom `.vtt` of a Zoom call | As I1 | Waits for a Zoom call: the store has no Zoom meeting with its file |
+| I8 | After an import | The file's path and text are in no database, setting or log | ✅ 2026-11-21, read-only: no `.vtt` name and no `Downloads/` path in the three databases, `meeting-names.json`, `dictionary.json`, `settings.json`, Shepit's preferences, the 60 meeting notes or Shepit's log of the last 2 days |
+| I9 | Type a name in the sheet and click Apply names at once | The name is saved | ✅ 2026-11-20 |
+| I10 | Hover over Import names… (Shepit's window active) | A hint says what it is for, after a quarter of a second | ✅ 2026-11-21, after hints were made to show at 0.25 s (macOS's delay was too slow) |
+
+## Version
+
+Date: 2026-11-21
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| A1 | Install; 🎙 → About Shepit (and Shepit → About Shepit while the window is open) | macOS's About panel: Shepit, "Version 0.2.0 (…)" with the commit `git rev-parse --short HEAD` gives | ✅ 2026-11-21: "Version 0.2.0 (7ea3925)", the installed Info.plist says the same |

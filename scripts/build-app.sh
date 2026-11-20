@@ -16,6 +16,8 @@ swift build -c release --package-path "$REPO/app"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 cp "$REPO/app/.build/release/Shepit" "$APP_BUNDLE/Contents/MacOS/Shepit"
 cp "$REPO/app/Resources/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
+# The build is the commit it was made from: About Shepit shows "Version 0.2.0 (ff170a9)".
+plutil -replace CFBundleVersion -string "$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)" "$APP_BUNDLE/Contents/Info.plist"
 # Pinned model manifests, so Settings can download and verify models like download-models.sh does.
 mkdir -p "$APP_BUNDLE/Contents/Resources/models"
 cp "$REPO"/scripts/models/*.sha256 "$APP_BUNDLE/Contents/Resources/models/"

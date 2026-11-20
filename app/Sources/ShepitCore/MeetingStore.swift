@@ -43,15 +43,20 @@ public final class MeetingStore {
 
     public typealias Place = MeetingNote.Place
 
+    /// `words` and `seconds` as the session counted them (voices design §7); meetings listed before Voices have no `seconds`.
     public struct Line: Equatable, Sendable {
         public var place: Place
         public var original: String
         public var current: String
+        public var words: Int?
+        public var seconds: Double?
 
-        public init(place: Place, original: String, current: String) {
+        public init(place: Place, original: String, current: String, words: Int? = nil, seconds: Double? = nil) {
             self.place = place
             self.original = original
             self.current = current
+            self.words = words
+            self.seconds = seconds
         }
     }
 
@@ -151,8 +156,10 @@ public final class MeetingStore {
 
     /// In note order.
     public func lines(_ meeting: Int) throws -> [Line] {
-        try sqlite.rows("SELECT timestamp, ord, original, current FROM lines WHERE meeting = ? ORDER BY timestamp, ord", [meeting]) { row in
-            Line(place: Place(timestamp: row.text(0) ?? "", order: row.int(1)), original: row.text(2) ?? "", current: row.text(3) ?? "")
+        try sqlite.rows("SELECT timestamp, ord, original, current, words, seconds FROM lines WHERE meeting = ? ORDER BY timestamp, ord",
+                        [meeting]) { row in
+            Line(place: Place(timestamp: row.text(0) ?? "", order: row.int(1)), original: row.text(2) ?? "", current: row.text(3) ?? "",
+                 words: row.isNull(4) ? nil : row.int(4), seconds: row.isNull(5) ? nil : row.double(5))
         }
     }
 

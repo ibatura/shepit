@@ -92,6 +92,75 @@ struct MeetingsModelTests {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)
     }
 
+    // Import names design §6–7.
+    /// The sheet for a file that lines up with the rig's meeting (Person 1 and Person 2, no clear match).
+    private func imported(_ model: MeetingsModel, _ id: Int, in dir: URL) async throws -> NameImport.Sheet {
+        model.selection = .meeting(id)
+        let file = dir.appending(path: "Daily.vtt")
+        try Data("WEBVTT\n\n1\n00:00:05.000 --> 00:00:08.000\nOlena K.: hi\n".utf8).write(to: file)
+        await model.importNames(from: file)
+        return try #require(model.importing?.sheet)
+    }
+
+    @Test func importNamesOpensTheSheetOrSaysWhyNot() async throws {
+        let (model, _, id, _, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        model.selection = .meeting(id)
+        let bad = dir.appending(path: "bad.vtt")
+        try Data("hello".utf8).write(to: bad)
+        await model.importNames(from: bad)
+        #expect(model.importing == nil && model.notice == .init(title: "Can't import names from bad.vtt", message: "This isn't a WebVTT transcript."))
+        let sheet = try await imported(model, id, in: dir)
+        #expect(model.importing?.meeting == id && sheet.rows.map(\.key) == ["Person 1", "Person 2"] && sheet.others == ["Olena K."])
+        #expect(sheet.subtitle == "From Daily.vtt · the file starts 0:00 into the meeting" && !model.importBusy)
+    }
+
+    @Test func applyNamesMergesThenNamesInTheStoreAndTheNoteTogether() async throws {
+        let (model, store, id, file, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var sheet = try await imported(model, id, in: dir)
+        sheet.rows[0].name = "  Olena K. "
+        sheet.merges = [.init(person: "Person 2", into: "Person 1", text: "")]
+        await model.applyNames(id, sheet)
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03",
+                                      "[Olena K.] 2026-07-31 10:00:05", "[Olena K.] 2026-07-31 10:00:07"])
+        #expect(try store.lines(id).map(\.current) == ["Ivan", "Person 1", "Person 1", "Person 1"])
+        #expect(try store.people(id).first { $0.key == "Person 1" }?.name == "Olena K." && model.importing == nil)
+    }
+
+    @Test func aTickedRowWithAnEmptyFieldKeepsItsName() async throws {
+        let (model, store, id, _, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try store.setName(id, person: "Person 2", to: "Marko")
+        model.reload()
+        var sheet = try await imported(model, id, in: dir)
+        sheet.rows[1].ticked = true
+        await model.applyNames(id, sheet)
+        #expect(try store.people(id).map(\.name) == [nil, nil, "Marko"])
+    }
+
+    @Test func applyNamesWithANoteThatCannotBeWrittenChangesNothing() async throws {
+        let (model, store, id, file, dir) = try rig()
+        let notes = dir.appending(path: "notes"), locked = notes.appending(path: "n.md")
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)
+            try? FileManager.default.removeItem(at: dir)
+        }
+        try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
+        try FileManager.default.moveItem(at: file, to: locked)
+        try store.relink(id, path: locked.path)
+        model.reload()
+        var sheet = try await imported(model, id, in: dir)
+        sheet.rows[0].name = "Olena K."
+        sheet.merges = [.init(person: "Person 2", into: "Person 1", text: "")]
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: notes.path) // no temp file, no rename
+        await model.applyNames(id, sheet)
+        #expect(model.notice?.title == "Can't change n.md")
+        #expect(try store.lines(id).map(\.current) == ["Ivan", "Person 1", "Person 2", "Person 1"])
+        #expect(try store.people(id).first { $0.key == "Person 1" }?.name == nil)
+        #expect(try headers(locked)[2] == "[Person 2] 2026-07-31 10:00:05")
+    }
+
     @Test func aNoteGoneSinceItWasOpenedChangesNothing() async throws {
         let (model, store, id, file, dir) = try rig()
         defer { try? FileManager.default.removeItem(at: dir) }

@@ -325,6 +325,9 @@ final class AppHost: ControllerHost {
         case .startCall: callEvent(.startCurrent)
         case .stopMeeting: Task { await meeting?.stop() }
         case .openMeetingsFolder: openMeetingsFolder()
+        case .about:
+            NSApp.activate()
+            NSApp.orderFrontStandardAboutPanel(nil)
         case .quit: NSApp.terminate(nil)
         }
     }

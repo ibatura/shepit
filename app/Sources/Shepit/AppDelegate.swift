@@ -5,6 +5,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private let host = AppHost()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Hints on hover after a quarter of a second, not macOS's second or more (the author, 2026-11-21).
+        UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 250])
         NSApp.setActivationPolicy(.accessory)
         NSApp.mainMenu = mainMenu()
         host.start()
@@ -14,6 +16,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// app: key equivalents (⌘C/⌘V/⌘X/⌘A/⌘Z in the dialogs) are found through the main menu, even when it is not shown.
     private func mainMenu() -> NSMenu {
         let app = NSMenu(title: "Shepit")
+        app.addItem(withTitle: "About Shepit", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        app.addItem(.separator())
         app.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
         app.addItem(.separator())
         app.addItem(withTitle: "Quit Shepit", action: #selector(quit), keyEquivalent: "q").target = self

@@ -41,7 +41,7 @@ The People section, a placeholder today, becomes the place for everyone named in
 - A debug command that tells how well recognition works on the author's stored samples, in counts only.
 
 **Non-goals**
-- Import names from a Teams, Zoom or Meet transcript (part 8).
+- Import names from a Teams, Zoom or Meet transcript (part 8): `2026-11-20-import-names-design.md`.
 - Giving lines speaker detection could not place (`Співрозмовники`) to the nearest voice (`docs/future-ideas.md`, "Lines speaker detection could not place").
 - Speaker labels during the call (set aside: detection needs the whole call).
 - Samples for meetings recorded before this version, or with Remember voices off, or added with Add notes…: their audio is gone.
