@@ -1,7 +1,8 @@
 # Main window, part 6: Import names
 
 Date: 2026-11-20
-Status: Draft, for the author's review
+Status: Approved by the author on 2026-11-20. Afterwards, on the author's meetings, §5's test of whether a file lines up
+with the meeting was changed from a share of covered speech to one clear best shift (§11).
 Build order: item 8 in `docs/future-ideas.md` ("Planned, in this order"). Branch `import-names`.
 Look and screens: `2026-11-11-visual-style/visual-style.md` ("the style spec") §5.2, and `mockups.html` screen 2 (the Import names… button).
 Builds on: `2026-11-14-meetings-design.md` ("the meetings spec": people, lines, merge, the store and the note changed together) and `2026-11-17-voices-design.md` ("the voices spec": a name belongs to a person, prints follow names).
@@ -25,6 +26,7 @@ On 2026-11-20 a Teams `.vtt` lined up this way agreed with Shepit's speakers on 
 - **A sheet with suggestions, not names applied at once.** Each person gets the file's name and how well it fits; the author unticks or corrects, then applies.
 - **Two people of one voice: offer to merge them.** When speaker detection split one voice in two and both line up with one name, the sheet offers the merge, ticked.
 - **Names only.** Lines are not moved, not even lines with no speaker (`[Співрозмовники]`) or lines the file gives to someone else.
+- **Names exactly as the file writes them**, with an addition such as "(Guest)" if the file has one: whatever name is there is the name (the author, 2026-11-20). The author can still edit it in the sheet.
 - **A screenshot of Teams' speaker timeline is not read** (the author doubted it would work, 2026-11-20). Shepit has no vision model; reading the coloured bars by pixel would break with every change of Teams' layout, and a `.vtt` gives the same names with exact times. Recorded in `docs/future-ideas.md` under "Set aside".
 
 ## 3. Goals, non-goals, anti-goals
@@ -57,15 +59,17 @@ Only each cue's start, end and speaker are kept, in memory, while the sheet is o
 
 ## 5. Lining up and matching
 
-**Shepit's side** is the meeting's lines as the store has them now: each line belongs to its current person (You included) and lasts from its timestamp for its `seconds` (at least half a second). Lines with no speaker are left out.
+**Shepit's side** is the meeting's lines as the store has them now, each with its current person (You included), from its timestamp for its `seconds`. Meetings listed before Voices have no `seconds`: there a line lasts half a second per word (lines that have both average 0.49 s a word). At least half a second either way. Lines with no speaker are left out.
 
-**The shift.** The file's 00:00 can be anywhere in the meeting: Teams starts its transcript when someone turns it on, and Shepit may have been started late. Shepit tries every whole-second shift at which the file and the meeting overlap, and keeps the one where most speech agrees: for each Shepit person, the seconds they overlap the file speaker they overlap most, summed over the people. It then tries tenths of a second around that shift. (This is how the comparison of 2026-11-20 found its shift, over ±3 minutes only.)
+**In whole seconds.** Each second of the meeting belongs to the person whose line covers it (where two lines overlap, the later one), each second of the file to the speaker of the cue that covers it. Shepit's timestamps are whole seconds, so a finer step buys nothing: tenths of a second around the best shift found the same matches on the author's meetings.
 
-**Fit.** At that shift, the share of the file's speech that lies on some Shepit line. Below 50%: "This transcript doesn't line up with this meeting: N% of its speech does." and nothing is offered. A file of a later part of the meeting fits; a file of another meeting doesn't.
+**The shift.** The file's 00:00 can be anywhere in the meeting: Teams starts its transcript when someone turns it on, and Shepit may have been started late. Shepit tries every whole-second shift at which the file and the meeting overlap and scores it: for each person, the seconds they share with the file speaker they share most with, summed over the people. The best score wins.
 
-**A person's match.** For each person with lines now, the file speaker they overlap most, with its share of all the seconds they overlap any file speaker. It counts as a match at 50% or more and at least 5 seconds (both to settle in the plan, §11). Below that the person has no clear match.
+**Does it line up?** A file of this meeting lines up at one place only; a file of another meeting lines up about as well anywhere. So the best shift must score at least 10% more than every shift more than a minute away from it. Below that: "This transcript doesn't line up with this meeting." and nothing is offered. The share of the file's speech that lies on some Shepit line (the first idea) doesn't tell them apart: other meetings' files reached 75–91%.
 
-**One name, two people.** When several people match the same file speaker, the one with most overlap gets the name and each other one is offered as a merge into them. When a Person N matches the file speaker that You match, it is offered as a merge into you (the author's own voice heard through the call). You are never renamed: your name comes from Settings → Meetings, as today.
+**A person's match.** For each person with lines now, the file speaker they share most seconds with, and that speaker's share of all the seconds they share with any speaker. A match at 50% or more and at least 5 seconds. Below that the person has no clear match.
+
+**One name, two people.** When several people match the same speaker, the one who shares most seconds with it holds it: a Person N gets the name, and every other Person N matching it is offered as a merge into the holder. When You hold it, they are offered as a merge into you (the author's own voice heard through the call). You are never renamed or merged: your name comes from Settings → Meetings, as today, and when a Person N holds the speaker You also match (the author's microphone hearing the call through speakers), You are left as you are.
 
 **Speakers nobody matches** are listed by name in the sheet, with nothing to do.
 
@@ -74,7 +78,7 @@ Only each cue's start, end and speaker are kept, in memory, while the sheet is o
 Import names… sits in a finished meeting's header next to Copy and Open note. It opens a file picker for `.vtt` files, starting in Downloads. While the file is read and matched the button shows a spinner; a 2-hour meeting should take well under a second (§11).
 
 The sheet, in the window's style:
-- **Title** "Import names", and below it "From `<file name>` · lines up 87% · the file starts 12:04 into the meeting" (or "…starts 0:40 before the meeting").
+- **Title** "Import names", and below it "From `<file name>` · the file starts 12:04 into the meeting" (or "…starts 0:40 before the meeting").
 - **One row per person with lines, except You:** their colour, their label or name now, a name field filled with the file's name (the Meetings name field, with suggestions from every meeting), the share ("92% of their time"), and a checkbox.
   - No name yet and a clear match: ticked.
   - Already named the same (ignoring case): "already named", no checkbox.
@@ -99,16 +103,16 @@ Afterwards everything is as if the author had typed the names: they can be chang
 ## 9. Structure
 
 - **ShepitCore `SpeakerTranscript`:** reads a `.vtt` into cues (start, end, speaker), or says why it can't.
-- **ShepitCore `NameImport`:** from the meeting's lines and people and the cues, the shift, the fit, each person's match and share, the merges and the unmatched speakers. Pure, tested.
-- **App:** `ImportNamesSheet` in `Window/` (a file of its own: `MeetingsView.swift` is 473 lines), `MeetingsModel.importNames` (picker, read off the main thread, apply through `MeetingStore.change`), and the button in `FinishedMeeting`. `MeetingStore` needs nothing new: `merge` and `setName` inside `change` do it.
+- **ShepitCore `NameImport`:** from the meeting's lines and people and the cues, the shift, whether it lines up, each person's match and share, the merges and the unmatched speakers. Pure, tested.
+- **App:** `ImportNamesSheet` in `Window/` (a file of its own: `MeetingsView.swift` is 473 lines), `MeetingsModel.importNames` (picker, read off the main thread, apply through `MeetingStore.change`), and the button in `FinishedMeeting`. `MeetingStore` gets one read, each line's person, start and length (§5); `merge` and `setName` inside `change` do the rest.
 
 ## 10. Tests and manual checks
 
-**Tests (ShepitCore):** Teams cues over several lines, a BOM, CRLF and timings without hours; Zoom names before `: `, a colon later in the text, a cue with no name; no names and not WebVTT refused; the shift found for a file that starts 20 minutes into the meeting and for one that starts before it; a file of another meeting refused below 50%; two people matching one speaker give a merge into the bigger one; a Person N matching You's speaker gives a merge into you; You never renamed; already named the same, named differently and no clear match each set up their row as in §6; lines with no speaker left out. **App:** applying writes the names and merges to the store and the note together.
+**Tests (ShepitCore):** Teams cues over several lines, a BOM, CRLF and timings without hours; Zoom names before `: `, a colon later in the text, a cue with no name; no names and not WebVTT refused; the shift found for a file that starts 20 minutes into the meeting and for one that starts before it; a file that lines up about as well a minute away refused; lines without `seconds` timed by their words; two people matching one speaker give a merge into the one who shares more; a Person N matching the speaker You hold gives a merge into you, and You matching a speaker a Person N holds changes nothing; You never renamed; already named the same, named differently and no clear match each set up their row as in §6; lines with no speaker left out. **App:** applying writes the names and merges to the store and the note together.
 
-**Manual checks I1–I8** (`docs/manual-test-checklist.md`). The author has Teams `.vtt` files of three meetings in the store (29 Oct, 5 Nov, 20 Nov).
+**Manual checks I1–I8** (`docs/manual-test-checklist.md`). The author has Teams `.vtt` files of two meetings in the store (29 Oct, 20 Nov) and of other meetings for I2 (the 28 Oct daily, and the 5 Nov one, which lines up with neither meeting of that day).
 - I1 Import a meeting's Teams `.vtt`: the suggested names are who spoke (the author checks a few lines), Apply names, the note's headers get them.
-- I2 A `.vtt` of another meeting: refused with its share.
+- I2 A `.vtt` of another meeting, of the same team too: refused.
 - I3 A `.vtt` with no speaker names: refused.
 - I4 Two Person N of one voice: the merge is offered, ticked, and done.
 - I5 A person named differently: unticked; tick it, apply, the name changes.
@@ -116,16 +120,20 @@ Afterwards everything is as if the author had typed the names: they can be chang
 - I7 A Zoom `.vtt`: at the next Zoom call (the store has no Zoom meeting with a file yet).
 - I8 Nothing kept: the file's path and text are in no database, setting or log.
 
-## 11. To find out in the plan (on the author's three meetings)
+## 11. Settled on the author's meetings (2026-11-20)
 
-- The match threshold (50%, 5 s) and the fit threshold (50%), on the three real pairs.
-- How long the shift search takes on a 2-hour meeting.
-- Whether Teams writes names with additions such as "(Guest)" or "(External)", and whether to drop them.
+Read-only, in counts only: two meetings with their Teams `.vtt` (29 Oct, 46 minutes, 7 people; 20 Nov, 56 minutes, 4 people), and seven pairs of a file with another meeting, files of the same team's daily meetings among them.
+
+- **The shift:** found on both (the file started 3:30 before Shepit on 29 Oct, 1:42 after it on 20 Nov), and on parts of the files cut to start 10, 20 or 30 minutes later.
+- **Lines up:** on the two meetings the best shift more than a minute away scored 62–63% of the best; on 10-minute parts of their files 74–86%; on the seven other meetings' files 95–100%. Hence 10% (a ratio below 90%). A file of 5 minutes or less may be refused (86–96%), and so is a file that mostly lies outside the meeting.
+- **Matches:** at 50% and 5 s every person of both meetings matched a speaker; on 20 Nov the three besides You already had names, and each was the file's name (shares 79–98%). The shares on 29 Oct were 56–94%. You matched a speaker held by a Person N once (29 Oct: 56% of 48 s against 726 s): left alone, as §5 says.
+- **Line times:** the 20 Nov meeting has `seconds`; timed by its words instead it gave the same shift (±1 s) and the same matches.
+- **Speed:** a plain Python loop over every shift took 1.3 s for an hour against an hour. Compiled Swift should be well under a second for two hours against two; the plan measures it in the app.
+- **"(Guest)":** names are taken as written (§2).
 
 ## 12. My calls (not confirmed one by one)
 
 - Import from a meeting's header only, one meeting and one file at a time.
 - The shift search covers every overlap, not a fixed window around the start.
-- Names exactly as the file writes them; the author edits them in the sheet.
 - No mark for imported names and no count in `stats.sqlite`.
 - No new mockup: the sheet uses the window's existing controls. A mockup on request.
