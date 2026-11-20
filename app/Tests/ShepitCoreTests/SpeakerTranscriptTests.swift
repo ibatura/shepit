@@ -22,11 +22,15 @@ struct SpeakerTranscriptTests {
             0f7c1e2a-1111-4c2d-9e8f-0123456789ab/14-0
             00:02:00.000 --> 00:02:01.000
             <v  Olena K. >no closing tag
+
+            00:03:00.000 --> 00:03:01.000
+            <v.loud.slow Marko D.>A voice with classes.</v>
             """
         #expect(try SpeakerTranscript.cues(file) == [
             Cue(start: 6.059, end: 8.859, speaker: "Olena K."),
             Cue(start: 62, end: 3605.5, speaker: "Marko D. (Guest)"),
             Cue(start: 120, end: 121, speaker: "Olena K."),
+            Cue(start: 180, end: 181, speaker: "Marko D."),
         ])
     }
 

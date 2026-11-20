@@ -224,8 +224,9 @@ struct NameImportSheetTests {
                                      merges: [merge, unticked], others: [], names: [:])
         #expect(sheet.changes.merges == [merge] && sheet.changes.names == ["Person 1": "Petro S.", "Person 2": "Olena K."])
         #expect(sheet.canApply)
-        sheet.rows = [row("Person 1", "Olena K."), row("Person 2", "Olena K.")]
-        #expect(!sheet.canApply) // a clash
+        sheet.rows = [row("Person 1", "Olena K."), row("Person 2", "Olena K."), row("Person 3", "Olena K.")]
+        #expect(sheet.clashes == ["Person 1", "Person 2"]) // Person 3 is merged into Person 2: its name doesn't count
+        #expect(!sheet.canApply)
         sheet.rows = []
         sheet.merges = [unticked]
         #expect(!sheet.canApply) // nothing ticked

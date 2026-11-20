@@ -48,7 +48,7 @@ public enum SpeakerTranscript {
 
     /// The speaker a cue's first line of text names, trimmed and as written; nil when it names none.
     private static func speaker(_ line: String) -> String? {
-        let name = if let voice = line.firstMatch(of: /^<v\s+([^>]+)>/) { String(voice.1) }
+        let name = if let voice = line.firstMatch(of: /^<v(?:\.[^\s>]+)*\s+([^>]+)>/) { String(voice.1) } // <v.loud Olena K.> too
             else if let colon = line.range(of: ": ") { String(line[..<colon.lowerBound]) }
             else { "" }
         let trimmed = name.trimmingCharacters(in: .whitespaces)

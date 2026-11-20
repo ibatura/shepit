@@ -13,7 +13,7 @@ Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-1
 5. **Dictations and Dictionary**: `dictations.sqlite` with the app of each dictation instead of `history.log`, the Dictations section with a period menu, the Dictionary section as in mockup 5, one `databasesFolder` setting. Built on branch `dictations-dictionary`; the three end-of-branch reviews are done and the author's picks fixed. Merged into `main` on 2026-11-17. Left: the list under "Dictations and Dictionary: left open" below.
 6. **Statistics** with the new numbers: the period menu shared with Dictations plus Custom…, the Overview, Dictation and Meetings views, the meeting's call app in `stats.sqlite`. Built on branch `statistics`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-17. Left: the list under "Statistics: left open" below.
 7. **Voices**: voice samples in `meetings.sqlite`, prints that follow the author's corrections, recognition when a transcript is ready, and the People section (rename and merge across meetings, Delete voice, May also be in, who talked how much, your voice from the microphone). Built on branch `voices`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-19). Merged into `main` on 2026-11-20. Left: the list under "Voices: left open" below.
-8. **Import names** from a transcript: Teams and Zoom `.vtt` in this part (spec `docs/superpowers/specs/2026-11-20-import-names-design.md`), Teams `.docx` and the Meet `.txt` format later. Branch `import-names`.
+8. **Import names** from a transcript: Teams and Zoom `.vtt` in this part (spec `docs/superpowers/specs/2026-11-20-import-names-design.md`), Teams `.docx` and the Meet `.txt` format later. Built on branch `import-names`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-20). Left: the list under "Import names: left open" below.
 9. **Every setting reviewed** with the author, with automatic start per app, rules by meeting name, what each engine is for and the voice numbers: see "Every setting reviewed" under "New ideas".
 10. **L3 again** with the author (Cancel on the merge question): see "Meetings: left open".
 11. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open".
@@ -96,6 +96,19 @@ Found by the reviews of the branch and not changed: the author had all eight pic
 - **Notes and labels** (from `/code-review` of Task 1): a label that is a name shows the person's spelling, which can differ from the note's header ("[olena]" shown as "ОЛЕНА"); clearing the name field of a person added from a note's label unlinks them, but the row still shows the label, so the field seems to do nothing; `personID` folds every person's name through `name_key` on each lookup (a full scan; fine at today's sizes).
 - **Store and structure** (from `/code-review` of Tasks 3 and 5): `MeetingStore.merge` and `rename` don't refuse You as the source (only the view hides the controls); `PeopleModel` uses `MeetingsModel.Notice` for its alerts (a shared notice next to `WindowSections` would serve both); a failed change in Meetings shows the note's path twice (in the title and in the reason); the order of listing, recognition and the empty-note decision in `AppHost`'s `onFinished` has no test; nor has putting notes back when that fails (`NotesNotPutBack`), which a test can't cause without a hook in the middle of `change`.
 - **Two people with one name** (Keep both) differ in People and in Merge into only by their meetings line ("6 meetings · last 10 Nov"); typing that name in a meeting goes to the one with the latest meeting. A way to pick between them in the name field is for a later part.
+
+### Import names: left open (2026-11-20)
+
+Found by the reviews of the branch and not changed: the author had all five points of the thermo-nuclear review and all six of `/code-review` fixed (one not a bug); `/security-review` found nothing.
+
+- **Checks with real files.** I1 and I9 passed on 2026-11-20 ("everything works"); I2–I6, I8 and I10 are open; I7 waits for a Zoom call with its `.vtt` (the store has none yet).
+- **Teams `.docx` and the Meet `.txt` format**: later parts; the Meet format from a sample of the author's.
+- **The numbers were settled on two meetings** (spec §11): lines up when every shift more than a minute away scores below 90% of the best; a match at 50% and 5 s. A transcript of 5 minutes or less may be refused. Look again if real files disagree.
+- **A meeting under a minute** accepts any file: no shift lies a minute away from the best.
+- **Whole seconds:** a cue or line counts every second it touches, so a 0.2-s "Yes." across a second boundary counts as 2 s. This is the method checked on the author's files.
+- **Another time zone:** a line's time is read from the note in today's time zone, so a meeting recorded in another time zone (travel) shows "the file starts …" off by the difference; the matches are right, since the shift takes it up. A change of summer time is fine: each date gets its own offset.
+- **Tests:** the alignment tests build 30-minute meetings and add about 2.5 s to `make test`.
+- **The name** stays Import names… with a hint on hover (the author, 2026-11-20: the name alone didn't say where the names come from).
 
 ### New ideas (the author, 2026-11-15; not ordered yet)
 

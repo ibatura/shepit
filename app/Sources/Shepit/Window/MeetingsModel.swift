@@ -196,10 +196,10 @@ final class MeetingsModel {
     /// The file is read and lined up off the main thread; only its speakers and times are kept, while the sheet is open.
     func importNames(from file: URL) async {
         guard case .meeting(let id) = selection, let meeting = meetings.first(where: { $0.id == id }), !importBusy else { return }
-        let lines = (try? store.lines(id)) ?? [], people = (try? store.people(id)) ?? []
+        let lines = Result { try store.lines(id) }, people = (try? store.people(id)) ?? []
         importBusy = true
         let aligned = await Task.detached {
-            Result { try NameImport.align(lines, start: meeting.start, SpeakerTranscript.cues(String(contentsOf: file, encoding: .utf8))) }
+            Result { try NameImport.align(lines.get(), start: meeting.start, SpeakerTranscript.cues(String(contentsOf: file, encoding: .utf8))) }
         }.value
         importBusy = false
         guard selection == .meeting(id) else { return } // another meeting was chosen meanwhile

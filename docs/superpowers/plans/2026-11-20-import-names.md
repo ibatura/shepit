@@ -210,3 +210,15 @@ app/Tests/ShepitTests/
 - Task 2: the 90% and the minute were settled on two meetings. If I1 or I2 disagree on other files, the author decides.
 - Task 4: a person whose merge is ticked keeps an empty, unticked row. Settle with the author on the look whether to hide that row instead.
 - Task 4: whether the picker should remember the last folder instead of always opening Downloads.
+
+## Changed after the plan (2026-11-20)
+
+- Task 1: a file where fewer than half the cues name a speaker has none (Zoom's captions file has a colon in the text of a few cues). A voice tag with classes (`<v.loud Olena K.>`) is read too.
+- The thermo-nuclear review (all five points picked by the author):
+  - `NameImport.Sheet` is the state the author edits (`Row.name`, `Row.ticked`, `Merge.ticked`), with `clashes`, `canApply` and `changes` read off it; `NameImport.changes(names:merges:)` is gone.
+  - `MeetingStore.timedLines` is gone: `MeetingStore.lines` gives each line's words and seconds, and `NameImport.timed` times them.
+  - `Alignment` carries the people in order; `sheet()` has no `order` parameter.
+  - `align` throws `NotLinedUp` instead of returning nil.
+  - `NameField` reports each edit (`changed`), so Apply names doesn't drop focus and wait a turn.
+- `/code-review`: a name typed for someone a ticked merge takes away no longer counts as a clash; a meeting whose lines can't be read says why instead of "doesn't line up".
+- The button keeps its short name and has a hint on hover (the author, 2026-11-20).

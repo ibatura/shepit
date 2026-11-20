@@ -179,8 +179,8 @@ Design: `docs/superpowers/specs/2026-11-20-import-names-design.md`. With the `.v
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
-| I1 | Meetings → a meeting with its Teams `.vtt` → Import names… → the file → Apply names | The suggested names are who spoke (check a few lines); the note's headers get them | ✅ 2026-11-20: the 20 Nov meeting (every person "already named") and the 29 Oct meeting (names offered and applied) |
-| I2 | Import names… with a `.vtt` of another meeting, of the same team too | "This transcript doesn't line up with this meeting." | ✅ 2026-11-20: the 28 Oct daily on the 29 Oct meeting |
+| I1 | Meetings → a meeting with its Teams `.vtt` → Import names… → the file → Apply names | The suggested names are who spoke (check a few lines); the note's headers get them | ✅ 2026-11-20: "everything works", the author on the installed app |
+| I2 | Import names… with a `.vtt` of another meeting, of the same team too | "This transcript doesn't line up with this meeting." | |
 | I3 | Import names… with a `.vtt` that has no names (Zoom's `.cc.vtt`) | "This transcript has no speaker names." | |
 | I4 | A meeting where speaker detection split one voice into two `Person N` | The merge is offered, ticked, and done | |
 | I5 | A person named differently from the file | Unticked; tick it, Apply names: the name changes | |

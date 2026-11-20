@@ -127,8 +127,11 @@ public enum NameImport {
         /// The name each person with lines has now, You included; people with no name are left out.
         var names: [String: String]
 
+        /// The ticked rows' names, one line and trimmed; none for an empty field or someone a ticked merge takes away.
         private var typed: [String: String] {
-            Dictionary(uniqueKeysWithValues: rows.filter(\.ticked).compactMap { row in MeetingPage.name(row.name).map { (row.key, $0) } })
+            let gone = Set(merges.filter(\.ticked).map(\.person))
+            return Dictionary(uniqueKeysWithValues: rows.filter { $0.ticked && !gone.contains($0.key) }
+                .compactMap { row in MeetingPage.name(row.name).map { (row.key, $0) } })
         }
 
         /// The ticked rows whose name another person of the meeting will also have.
@@ -140,12 +143,8 @@ public enum NameImport {
 
         public var canApply: Bool { (rows.contains(where: \.ticked) || merges.contains(where: \.ticked)) && clashes.isEmpty }
 
-        /// What Apply names does: the ticked merges first, then the ticked names, one line and trimmed; none for an empty
-        /// field or someone merged away.
-        public var changes: (merges: [Merge], names: [String: String]) {
-            let merges = merges.filter(\.ticked), gone = Set(merges.map(\.person))
-            return (merges, typed.filter { !gone.contains($0.key) })
-        }
+        /// What Apply names does: the ticked merges first, then the names.
+        public var changes: (merges: [Merge], names: [String: String]) { (merges.filter(\.ticked), typed) }
     }
 
     /// A speaker matched by several people is held by the one who shares most seconds with it: they get the name, and the
