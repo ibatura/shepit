@@ -7,7 +7,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 - Reply in Ukrainian. Messages are often dictated, so they can contain spoken self-corrections («…через Meet. Ой, через Teams»): follow the corrected intent.
 - Write code, comments, commits and docs in plain English.
 - Work on a branch of its own; never commit to `main` directly. Commit each finished change there with a short message that says what changed and why. End commit messages with the `Co-Authored-By` line the session gives.
-- When the branch is ready, push it and open a pull request on GitHub (the author calls it an MR) with a description of what changed and how it was checked. The author merges it themselves in the GitHub web UI: never merge anything into `main` (not with `gh`, the API or locally) and don't offer to. Once it is merged, update local `main` with `git pull --ff-only`.
+- When the branch is ready, ask the author whether to open a pull request on GitHub (the author calls it an MR); push the branch and open it only after they say yes, never on your own, with a description of what changed and how it was checked. A small change gets no pull request of its own: commit it and it goes into a later branch. The author merges it themselves in the GitHub web UI: never merge anything into `main` (not with `gh`, the API or locally) and don't offer to. Once it is merged, update local `main` with `git pull --ff-only`.
 - Install the app with `scripts/install.sh` to try a change.
 
 ## Rules
