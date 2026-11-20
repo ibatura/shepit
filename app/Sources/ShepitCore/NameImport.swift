@@ -72,6 +72,90 @@ public enum NameImport {
         return Alignment(shift: best.shift, matches: matches, speakers: speakers)
     }
 
+    // MARK: The sheet (§6) and Apply names (§7)
+
+    /// A person with lines, except You.
+    public struct Row: Equatable, Sendable {
+        public var key: String
+        /// Their name now, or their label.
+        public var label: String
+        /// The file's name for the field; empty for none.
+        public var name: String
+        /// Of the seconds they share with the file's speakers; nil with no clear match.
+        public var share: Double?
+        /// Their name now, when the file's is another.
+        public var now: String?
+        public var alreadyNamed: Bool
+        public var ticked: Bool
+    }
+
+    public struct Merge: Equatable, Sendable {
+        public var person: String
+        public var into: String
+        public var text: String
+    }
+
+    public struct Sheet: Equatable, Sendable {
+        public var subtitle: String
+        public var rows: [Row]
+        public var merges: [Merge]
+        /// The speakers nobody holds ("Also in the file:").
+        public var others: [String]
+        /// The name each person with lines has now, You included; people with no name are left out.
+        var names: [String: String]
+
+        /// The keys whose new name (key: typed name) another person of the meeting will also have.
+        public func clashes(_ typed: [String: String]) -> Set<String> {
+            let after = names.merging(typed.compactMapValues(MeetingPage.name)) { $1 }
+            let byName = Dictionary(grouping: after.keys) { Names.fold(after[$0]!) }
+            return Set(byName.values.filter { $0.count > 1 }.joined().filter { typed[$0] != nil })
+        }
+    }
+
+    /// `order`: the people with lines, in the meeting's order. A speaker matched by several people is held by the one who
+    /// shares most seconds with it: they get the name, and the others with no name are offered as a merge into them.
+    public static func sheet(file: String, alignment: Alignment, people: [MeetingStore.Person], order: [String], you: String?) -> Sheet {
+        let named = Dictionary(people.compactMap { person in person.name.map { (person.key, $0) } }, uniquingKeysWith: { first, _ in first })
+        var holders: [String: String] = [:] // speaker: person
+        for key in order {
+            guard let match = alignment.matches[key] else { continue }
+            if let holder = holders[match.speaker], alignment.matches[holder]!.seconds >= match.seconds { continue }
+            holders[match.speaker] = key
+        }
+        var rows: [Row] = [], merges: [Merge] = []
+        for key in order where key != you {
+            let now = named[key], match = alignment.matches[key]
+            var row = Row(key: key, label: now ?? key, name: "", share: nil, now: nil, alreadyNamed: false, ticked: false)
+            if let match, holders[match.speaker] == key {
+                row.share = match.share
+                if let now, Names.fold(now) == Names.fold(match.speaker) { row.alreadyNamed = true }
+                else { (row.name, row.now, row.ticked) = (match.speaker, now, now == nil) }
+            } else if let match, now == nil, let holder = holders[match.speaker] {
+                merges.append(Merge(person: key, into: holder, text: holder == you ? "Merge \(key) into you: that's you in the file"
+                                    : "Merge \(key) into \(named[holder] ?? holder): both are \(match.speaker) in the file"))
+            }
+            rows.append(row)
+        }
+        let start = "\(clock(abs(alignment.shift))) \(alignment.shift < 0 ? "before" : "into") the meeting"
+        var names = named.filter { order.contains($0.key) }
+        if let you { names[you] = named[you] ?? you }
+        return Sheet(subtitle: "From \(file) · the file starts \(start)", rows: rows, merges: merges,
+                     others: alignment.speakers.filter { holders[$0] == nil }, names: names)
+    }
+
+    /// What Apply names does with the ticked names (key: typed) and merges: the merges first, then the names, each one
+    /// line and trimmed; none for someone merged away.
+    public static func changes(names: [String: String], merges: [Merge]) -> (merges: [Merge], names: [String: String]) {
+        let gone = Set(merges.map(\.person))
+        return (merges, names.filter { !gone.contains($0.key) }.compactMapValues(MeetingPage.name))
+    }
+
+    /// 12:04, or 1:02:04 from an hour.
+    private static func clock(_ seconds: Int) -> String {
+        let (hours, minutes, rest) = (seconds / 3600, seconds / 60 % 60, seconds % 60)
+        return hours > 0 ? String(format: "%d:%02d:%02d", hours, minutes, rest) : String(format: "%d:%02d", minutes, rest)
+    }
+
     /// Each value once, in order of first appearance.
     private static func firsts(_ values: [String]) -> [String] {
         var seen = Set<String>()

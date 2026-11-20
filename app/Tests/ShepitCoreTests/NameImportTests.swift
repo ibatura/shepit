@@ -100,3 +100,90 @@ struct NameImportTests {
                                       "Person 2": .init(speaker: "Marko D.", share: 1, seconds: 10)])
     }
 }
+
+// Import names design §5–7: the sheet's suggestions and what Apply changes.
+struct NameImportSheetTests {
+    private typealias Match = NameImport.Match
+    private typealias Row = NameImport.Row
+    private typealias Merge = NameImport.Merge
+
+    private func alignment(shift: Int = 724, _ matches: [String: Match], speakers: [String]) -> NameImport.Alignment {
+        .init(shift: shift, matches: matches, speakers: speakers)
+    }
+
+    private func match(_ speaker: String, _ seconds: Int, _ share: Double = 0.9) -> Match {
+        .init(speaker: speaker, share: share, seconds: seconds)
+    }
+
+    private func sheet(_ alignment: NameImport.Alignment, people: [MeetingStore.Person]) -> NameImport.Sheet {
+        NameImport.sheet(file: "Daily.vtt", alignment: alignment, people: people, order: people.map(\.key), you: "Me")
+    }
+
+    @Test func theSubtitleSaysWhereTheFileStarts() {
+        func subtitle(_ shift: Int) -> String { sheet(alignment(shift: shift, [:], speakers: []), people: []).subtitle }
+        #expect(subtitle(724) == "From Daily.vtt · the file starts 12:04 into the meeting")
+        #expect(subtitle(-40) == "From Daily.vtt · the file starts 0:40 before the meeting")
+        #expect(subtitle(3724) == "From Daily.vtt · the file starts 1:02:04 into the meeting")
+    }
+
+    @Test func eachRowIsTickedOnlyForSomeoneWithNoName() {
+        let people: [MeetingStore.Person] = [
+            .init(key: "Me", name: nil), .init(key: "Person 1", name: nil), .init(key: "Person 2", name: "OLENA K."),
+            .init(key: "Person 3", name: "Marko", person: 4, recognised: true), .init(key: "Person 4", name: nil),
+        ]
+        let sheet = sheet(alignment(["Me": match("Ivan B.", 300), "Person 1": match("Petro S.", 200, 0.75),
+                                     "Person 2": match("Olena K.", 100), "Person 3": match("Marko D.", 50)],
+                                    speakers: ["Olena K.", "Ivan B.", "Petro S.", "Marko D.", "Anna V."]), people: people)
+        #expect(sheet.rows == [
+            Row(key: "Person 1", label: "Person 1", name: "Petro S.", share: 0.75, now: nil, alreadyNamed: false, ticked: true),
+            Row(key: "Person 2", label: "OLENA K.", name: "", share: 0.9, now: nil, alreadyNamed: true, ticked: false),
+            Row(key: "Person 3", label: "Marko", name: "Marko D.", share: 0.9, now: "Marko", alreadyNamed: false, ticked: false),
+            Row(key: "Person 4", label: "Person 4", name: "", share: nil, now: nil, alreadyNamed: false, ticked: false),
+        ])
+        #expect(sheet.merges.isEmpty && sheet.others == ["Anna V."])
+    }
+
+    @Test func aSpeakerMatchedTwiceGoesToWhoeverSharesMostAndTheOthersMergeIntoThem() {
+        let people: [MeetingStore.Person] = [
+            .init(key: "Me", name: nil), .init(key: "Person 1", name: nil), .init(key: "Person 2", name: "Olena"),
+            .init(key: "Person 3", name: nil), .init(key: "Person 4", name: nil), .init(key: "Person 5", name: "Marko"),
+            .init(key: "Person 6", name: nil),
+        ]
+        let sheet = sheet(alignment(["Me": match("Ivan B.", 300), "Person 1": match("Ivan B.", 20), // that's you
+                                     "Person 2": match("Olena K.", 200), "Person 3": match("Olena K.", 30),
+                                     "Person 4": match("Petro S.", 40), "Person 5": match("Petro S.", 40), // a tie: the first
+                                     "Person 6": match("Anna V.", 400)],
+                                    speakers: ["Ivan B.", "Olena K.", "Petro S.", "Anna V."]), people: people)
+        #expect(sheet.merges == [
+            Merge(person: "Person 1", into: "Me", text: "Merge Person 1 into you: that's you in the file"),
+            Merge(person: "Person 3", into: "Person 2", text: "Merge Person 3 into Olena: both are Olena K. in the file"),
+        ])
+        #expect(sheet.rows.map(\.name) == ["", "Olena K.", "", "Petro S.", "", "Anna V."]) // Person 5 has a name: no merge
+        #expect(sheet.others.isEmpty)
+    }
+
+    @Test func youMatchingASpeakerAPersonHoldsChangesNothingForYou() {
+        let people: [MeetingStore.Person] = [.init(key: "Me", name: nil), .init(key: "Person 1", name: nil)]
+        let sheet = sheet(alignment(["Me": match("Olena K.", 30), "Person 1": match("Olena K.", 700)], speakers: ["Olena K."]),
+                          people: people)
+        #expect(sheet.rows.map(\.name) == ["Olena K."] && sheet.merges.isEmpty && sheet.others.isEmpty)
+    }
+
+    @Test func aNameAnotherPersonHereWillHaveClashes() {
+        let people: [MeetingStore.Person] = [.init(key: "Me", name: "Ivan"), .init(key: "Person 1", name: nil),
+                                             .init(key: "Person 2", name: "Olena K."), .init(key: "Person 3", name: nil)]
+        let sheet = sheet(alignment([:], speakers: []), people: people)
+        #expect(sheet.clashes(["Person 1": "olena k.", "Person 3": "Marko"]) == ["Person 1"])
+        #expect(sheet.clashes(["Person 1": "Marko", "Person 3": " marko "]) == ["Person 1", "Person 3"])
+        #expect(sheet.clashes(["Person 1": "Іван"]) == ["Person 1"]) // your name, in another script
+        #expect(sheet.clashes(["Person 2": "Marko", "Person 1": "Olena K."]).isEmpty) // Person 2 gives the name up
+    }
+
+    @Test func applyMergesFirstThenNamesAndNoNameForSomeoneMergedAway() {
+        let merges = [Merge(person: "Person 3", into: "Person 2", text: "")]
+        let changes = NameImport.changes(names: ["Person 1": "  Petro S. ", "Person 2": "Olena K.", "Person 3": "Olena", "Person 4": " "],
+                                         merges: merges)
+        #expect(changes.merges == merges)
+        #expect(changes.names == ["Person 1": "Petro S.", "Person 2": "Olena K."])
+    }
+}
