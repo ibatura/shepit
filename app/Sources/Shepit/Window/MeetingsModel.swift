@@ -39,12 +39,22 @@ final class MeetingsModel {
         var message: String
     }
 
+    /// Import names while its sheet is open (import names design §6).
+    struct Importing: Identifiable {
+        var meeting: Int
+        var sheet: NameImport.Sheet
+        var id: Int { meeting }
+    }
+
     private(set) var meetings: [MeetingStore.Meeting] = []
     private(set) var missing: Set<Int> = []
     private(set) var live: LiveMeeting?
     private(set) var open: Open?
     var question: Question?
     var notice: Notice?
+    var importing: Importing?
+    /// A transcript file is being read and lined up.
+    private(set) var importBusy = false
     /// Counts Cancels of a merge question: a name field that is still being edited then drops what was typed.
     private(set) var cancels = 0
     var selection: Selection? {
@@ -176,6 +186,49 @@ final class MeetingsModel {
         return true
     }
 
+    /// Import names… (import names design §6): a Teams or Zoom `.vtt` of the open meeting.
+    func importNames() {
+        guard let file = choose(message: "Choose the transcript file Teams or Zoom saved of this meeting", prompt: "Import", several: false,
+                                type: "vtt", in: Paths.home.appending(path: "Downloads"))?.first else { return }
+        Task { await importNames(from: file) }
+    }
+
+    /// The file is read and lined up off the main thread; only its speakers and times are kept, while the sheet is open.
+    func importNames(from file: URL) async {
+        guard case .meeting(let id) = selection, let meeting = meetings.first(where: { $0.id == id }), !importBusy else { return }
+        let lines = (try? store.timedLines(id)) ?? [], people = (try? store.people(id)) ?? []
+        importBusy = true
+        let aligned = await Task.detached { () -> Result<NameImport.Alignment, Error> in
+            Result {
+                guard let alignment = NameImport.align(lines, try SpeakerTranscript.cues(String(contentsOf: file, encoding: .utf8))) else {
+                    throw NameImport.NotLinedUp()
+                }
+                return alignment
+            }
+        }.value
+        importBusy = false
+        guard selection == .meeting(id) else { return } // another meeting was chosen meanwhile
+        switch aligned {
+        case .success(let alignment):
+            var order: [String] = []
+            for line in lines where !order.contains(line.person) { order.append(line.person) }
+            importing = Importing(meeting: id, sheet: NameImport.sheet(file: file.lastPathComponent, alignment: alignment, people: people,
+                                                                      order: order, you: meeting.you))
+        case .failure(let error):
+            notice = Notice(title: "Can't import names from \(file.lastPathComponent)", message: error.localizedDescription)
+        }
+    }
+
+    /// Apply names: the ticked merges, then the ticked names (key: as typed), in the store and the note together (§7).
+    func applyNames(_ meeting: Int, merges: [NameImport.Merge], typed: [String: String]) async {
+        importing = nil
+        let (merges, names) = NameImport.changes(names: typed, merges: merges)
+        await change(meeting) {
+            for merge in merges { try store.merge(meeting, person: merge.person, into: merge.into) }
+            for (person, name) in names { try store.setName(meeting, person: person, to: name) }
+        }
+    }
+
     /// Add notes… (§4): notes made before the meetings list, or kept elsewhere.
     func addNotes() {
         let settings = settings()
@@ -266,13 +319,13 @@ final class MeetingsModel {
         notice = Notice(title: "\(what) \(URL(fileURLWithPath: path).lastPathComponent)", message: error.localizedDescription)
     }
 
-    /// A file chooser for `.md` notes, opening in `folder` when it exists; nil when cancelled.
-    private func choose(message: String, prompt: String, several: Bool, in folder: URL) -> [URL]? {
+    /// A file chooser for `.md` notes (or files of `type`), opening in `folder` when it exists; nil when cancelled.
+    private func choose(message: String, prompt: String, several: Bool, type: String = "md", in folder: URL) -> [URL]? {
         NSApp.activate()
         let chooser = NSOpenPanel()
         chooser.message = message
         chooser.prompt = prompt
-        chooser.allowedContentTypes = [.init(filenameExtension: "md")!]
+        chooser.allowedContentTypes = [.init(filenameExtension: type)!]
         chooser.allowsMultipleSelection = several
         if FileManager.default.fileExists(atPath: folder.path) { chooser.directoryURL = folder }
         return chooser.runModal() == .OK ? chooser.urls : nil

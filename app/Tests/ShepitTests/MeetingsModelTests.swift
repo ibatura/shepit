@@ -92,6 +92,59 @@ struct MeetingsModelTests {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)
     }
 
+    // Import names design §6–7.
+    @Test func importNamesOpensTheSheetOrSaysWhyNot() async throws {
+        let (model, _, id, _, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        model.selection = .meeting(id)
+        let good = dir.appending(path: "Daily.vtt"), bad = dir.appending(path: "bad.vtt")
+        try Data("WEBVTT\n\n1\n00:00:05.000 --> 00:00:08.000\nOlena K.: hi\n".utf8).write(to: good)
+        try Data("hello".utf8).write(to: bad)
+        await model.importNames(from: bad)
+        #expect(model.importing == nil && model.notice == .init(title: "Can't import names from bad.vtt", message: "This isn't a WebVTT transcript."))
+        await model.importNames(from: good)
+        #expect(model.importing?.meeting == id && model.importing?.sheet.rows.map(\.key) == ["Person 1", "Person 2"])
+        #expect(model.importing?.sheet.subtitle == "From Daily.vtt · the file starts 0:00 into the meeting" && !model.importBusy)
+    }
+
+    @Test func applyNamesMergesThenNamesInTheStoreAndTheNoteTogether() async throws {
+        let (model, store, id, file, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        await model.applyNames(id, merges: [.init(person: "Person 2", into: "Person 1", text: "")], typed: ["Person 1": "Olena K."])
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Olena K.] 2026-07-31 10:00:03",
+                                      "[Olena K.] 2026-07-31 10:00:05", "[Olena K.] 2026-07-31 10:00:07"])
+        #expect(try store.lines(id).map(\.current) == ["Ivan", "Person 1", "Person 1", "Person 1"])
+        #expect(try store.people(id).first { $0.key == "Person 1" }?.name == "Olena K." && model.importing == nil)
+    }
+
+    @Test func applyNamesTrimsTypedNamesAndAnEmptyOneKeepsTheName() async throws {
+        let (model, store, id, file, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try store.setName(id, person: "Person 2", to: "Marko")
+        await model.applyNames(id, merges: [], typed: ["Person 1": "  Olena K. ", "Person 2": " "])
+        #expect(try store.people(id).map(\.name) == [nil, "Olena K.", "Marko"])
+        #expect(try headers(file)[1] == "[Olena K.] 2026-07-31 10:00:03")
+    }
+
+    @Test func applyNamesWithANoteThatCannotBeWrittenChangesNothing() async throws {
+        let (model, store, id, file, dir) = try rig()
+        let notes = dir.appending(path: "notes"), locked = notes.appending(path: "n.md")
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)
+            try? FileManager.default.removeItem(at: dir)
+        }
+        try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
+        try FileManager.default.moveItem(at: file, to: locked)
+        try store.relink(id, path: locked.path)
+        model.reload()
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: notes.path) // no temp file, no rename
+        await model.applyNames(id, merges: [.init(person: "Person 2", into: "Person 1", text: "")], typed: ["Person 1": "Olena K."])
+        #expect(model.notice?.title == "Can't change n.md")
+        #expect(try store.lines(id).map(\.current) == ["Ivan", "Person 1", "Person 2", "Person 1"])
+        #expect(try store.people(id).first { $0.key == "Person 1" }?.name == nil)
+        #expect(try headers(locked)[2] == "[Person 2] 2026-07-31 10:00:05")
+    }
+
     @Test func aNoteGoneSinceItWasOpenedChangesNothing() async throws {
         let (model, store, id, file, dir) = try rig()
         defer { try? FileManager.default.removeItem(at: dir) }

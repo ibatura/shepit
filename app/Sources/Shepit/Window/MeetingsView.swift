@@ -194,6 +194,11 @@ private struct FinishedMeeting: View {
                     Spacer()
                     Button("Copy", action: copy).disabled(missing)
                     Button("Open note") { NSWorkspace.shared.open(note) }.disabled(missing)
+                    Button(action: model.importNames) {
+                        Text("Import names…").opacity(model.importBusy ? 0 : 1)
+                            .overlay { if model.importBusy { ProgressView().controlSize(.small) } }
+                    }
+                    .disabled(missing || model.importBusy)
                     Menu {
                         MeetingMenu(model: model, actions: actions, meeting: meeting, missing: missing)
                     } label: {
@@ -231,6 +236,12 @@ private struct FinishedMeeting: View {
                 }
             }
             .padding(20)
+        }
+        .sheet(item: Binding(get: { model.importing }, set: { model.importing = $0 })) { importing in
+            let people: [MeetingPage.PersonRow] = if case .page(let page) = open.content { page.people } else { [] }
+            ImportNamesSheet(sheet: importing.sheet, people: people, suggestions: open.suggestions) { merges, typed in
+                Task { await model.applyNames(importing.meeting, merges: merges, typed: typed) }
+            }
         }
     }
 
@@ -333,7 +344,7 @@ private struct FinishedMeeting: View {
 
 /// A person's name: a combo box of the names Shepit knows. While typing, its list opens with the names that match.
 /// Saved on Enter, when it loses focus, or when a name is picked from the list.
-private struct NameField: NSViewRepresentable {
+struct NameField: NSViewRepresentable {
     let text: String
     let placeholder: String
     let suggestions: [String]

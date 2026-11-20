@@ -23,6 +23,11 @@ public enum NameImport {
         public var seconds: Int
     }
 
+    public struct NotLinedUp: LocalizedError {
+        public init() {}
+        public var errorDescription: String? { "This transcript doesn't line up with this meeting." }
+    }
+
     public struct Alignment: Equatable, Sendable {
         /// The meeting second at which the file's 00:00 falls; negative when the file started first.
         public var shift: Int
@@ -83,8 +88,6 @@ public enum NameImport {
         public var name: String
         /// Of the seconds they share with the file's speakers; nil with no clear match.
         public var share: Double?
-        /// Their name now, when the file's is another.
-        public var now: String?
         public var alreadyNamed: Bool
         public var ticked: Bool
     }
@@ -93,6 +96,12 @@ public enum NameImport {
         public var person: String
         public var into: String
         public var text: String
+
+        public init(person: String, into: String, text: String) {
+            self.person = person
+            self.into = into
+            self.text = text
+        }
     }
 
     public struct Sheet: Equatable, Sendable {
@@ -125,11 +134,11 @@ public enum NameImport {
         var rows: [Row] = [], merges: [Merge] = []
         for key in order where key != you {
             let now = named[key], match = alignment.matches[key]
-            var row = Row(key: key, label: now ?? key, name: "", share: nil, now: nil, alreadyNamed: false, ticked: false)
+            var row = Row(key: key, label: now ?? key, name: "", share: nil, alreadyNamed: false, ticked: false)
             if let match, holders[match.speaker] == key {
                 row.share = match.share
                 if let now, Names.fold(now) == Names.fold(match.speaker) { row.alreadyNamed = true }
-                else { (row.name, row.now, row.ticked) = (match.speaker, now, now == nil) }
+                else { (row.name, row.ticked) = (match.speaker, now == nil) }
             } else if let match, now == nil, let holder = holders[match.speaker] {
                 merges.append(Merge(person: key, into: holder, text: holder == you ? "Merge \(key) into you: that's you in the file"
                                     : "Merge \(key) into \(named[holder] ?? holder): both are \(match.speaker) in the file"))

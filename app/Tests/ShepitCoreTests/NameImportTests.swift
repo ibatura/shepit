@@ -135,10 +135,10 @@ struct NameImportSheetTests {
                                      "Person 2": match("Olena K.", 100), "Person 3": match("Marko D.", 50)],
                                     speakers: ["Olena K.", "Ivan B.", "Petro S.", "Marko D.", "Anna V."]), people: people)
         #expect(sheet.rows == [
-            Row(key: "Person 1", label: "Person 1", name: "Petro S.", share: 0.75, now: nil, alreadyNamed: false, ticked: true),
-            Row(key: "Person 2", label: "OLENA K.", name: "", share: 0.9, now: nil, alreadyNamed: true, ticked: false),
-            Row(key: "Person 3", label: "Marko", name: "Marko D.", share: 0.9, now: "Marko", alreadyNamed: false, ticked: false),
-            Row(key: "Person 4", label: "Person 4", name: "", share: nil, now: nil, alreadyNamed: false, ticked: false),
+            Row(key: "Person 1", label: "Person 1", name: "Petro S.", share: 0.75, alreadyNamed: false, ticked: true),
+            Row(key: "Person 2", label: "OLENA K.", name: "", share: 0.9, alreadyNamed: true, ticked: false),
+            Row(key: "Person 3", label: "Marko", name: "Marko D.", share: 0.9, alreadyNamed: false, ticked: false),
+            Row(key: "Person 4", label: "Person 4", name: "", share: nil, alreadyNamed: false, ticked: false),
         ])
         #expect(sheet.merges.isEmpty && sheet.others == ["Anna V."])
     }
