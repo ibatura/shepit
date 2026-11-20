@@ -180,12 +180,12 @@ Design: `docs/superpowers/specs/2026-11-20-import-names-design.md`. With the `.v
 | # | Scenario | Expected | Result |
 |---|---|---|---|
 | I1 | Meetings → a meeting with its Teams `.vtt` → Import names… → the file → Apply names | The suggested names are who spoke (check a few lines); the note's headers get them | ✅ 2026-11-20: "everything works", the author on the installed app |
-| I2 | Import names… with a `.vtt` of another meeting, of the same team too | "This transcript doesn't line up with this meeting." | |
-| I3 | Import names… with a `.vtt` that has no names (Zoom's `.cc.vtt`) | "This transcript has no speaker names." | |
+| I2 | Import names… with a `.vtt` of another meeting, of the same team too | "This transcript doesn't line up with this meeting." | ✅ 2026-11-21 |
+| I3 | Import names… with a `.vtt` that has no names (Zoom's `.cc.vtt`) | "This transcript has no speaker names." | 2026-11-21: "doesn't line up" came, most likely from Zoom's `.transcript.vtt` of the same recording (it has names); both `.cc.vtt` files give "no speaker names" in the parser. Try again with the `.cc` one |
 | I4 | A meeting where speaker detection split one voice into two `Person N` | The merge is offered, ticked, and done | |
 | I5 | A person named differently from the file | Unticked; tick it, Apply names: the name changes | |
-| I6 | A name someone already has from another meeting | People shows one person with both meetings | |
+| I6 | A name someone already has from another meeting | People shows one person with both meetings | 2026-11-21, read-only: no name is held by two people in People (16 names); the 29 Oct meeting has no names applied yet, so the check waits for that |
 | I7 | A Zoom `.vtt` of a Zoom call | As I1 | Waits for a Zoom call: the store has no Zoom meeting with its file |
-| I8 | After an import | The file's path and text are in no database, setting or log | |
+| I8 | After an import | The file's path and text are in no database, setting or log | ✅ 2026-11-21, read-only: no `.vtt` name and no `Downloads/` path in the three databases, `meeting-names.json`, `dictionary.json`, `settings.json`, Shepit's preferences, the 60 meeting notes or Shepit's log of the last 2 days |
 | I9 | Type a name in the sheet and click Apply names at once | The name is saved | ✅ 2026-11-20 |
-| I10 | Hover over Import names… | A hint says what it is for | |
+| I10 | Hover over Import names… (Shepit's window active) | A hint says what it is for, after a quarter of a second | 2026-11-21: too slow with macOS's delay; Shepit now shows hints after 0.25 s |
