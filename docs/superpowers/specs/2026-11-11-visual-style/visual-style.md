@@ -65,7 +65,7 @@ Two columns: the list (grouped by week; name, day and time, duration, app) and t
 
 A finished meeting shows:
 - Name (editable), app, date, duration. A new name is written to the database and the note's front matter, and the note file is renamed too: the `meetingFileName` template is filled again with the new name, in the same folder, with ` (2)` added if that name is taken. A missing note changes only the database.
-- Buttons: Copy, Open note, Import names….
+- Buttons: Copy, Open note, Import names… (`2026-11-20-import-names-design.md`).
 - **People:** one row per person with a colour, a name field, the share of words, and "Merge into" with the other people. Typing a name renames that person in the note. Merge gives all lines of one person to another.
 - **Transcript**, read only. Clicking a line opens a small list "Give this line to" with the meeting's people.
 - "Reset people" puts every line back to the person the speaker detection gave it. The database keeps that first labelling, so a wrong merge or a wrongly given line can be undone.
@@ -175,5 +175,5 @@ Gone from the menu, now in the window: Rename speakers (both), Copy last meeting
 ## 9. Not in this spec
 
 - How a call is detected, and what Slack, Teams in a browser, FaceTime and Telegram show: research in the offer-to-record spec.
-- The meetings database, voice prints and import formats: the main window spec. The Meet `.txt` format waits for a sample from the author and is done last.
+- The meetings database, voice prints and import formats: the main window spec; Teams and Zoom `.vtt`: `2026-11-20-import-names-design.md`. The Meet `.txt` format waits for a sample from the author and is done last.
 - Calendar names (EventKit): `docs/future-ideas.md`.

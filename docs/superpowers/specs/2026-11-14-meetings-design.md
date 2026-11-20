@@ -41,7 +41,7 @@ Today a meeting is only a file. Shepit writes the note, labels the remote voices
 - The menu keeps only Start and Stop for meetings.
 
 **Non-goals**
-- Import names from a Teams, Zoom or Meet transcript (part 8). The Import names… button of the mockup is not shown yet.
+- Import names from a Teams, Zoom or Meet transcript (part 8): `2026-11-20-import-names-design.md`.
 - Voice prints, "recognised by voice" and the People section (part 7). Designed in `2026-11-17-voices-design.md`.
 - New statistics (part 6). `stats.sqlite` is unchanged.
 - Giving several lines at once.
@@ -190,7 +190,7 @@ Manual (added to `docs/manual-test-checklist.md` as L1–L13):
 - Renaming a meeting also renames its entry in `meeting-names.json`.
 - List groups: This week, Last week, then months.
 - A meeting without a name is "Teams call", "Zoom call", "Meet call" or "Meeting".
-- Import names… is not shown until part 8.
+- Import names… came in part 8 (`2026-11-20-import-names-design.md`).
 - `last-meeting` goes, and its leftover file is deleted.
 - The running meeting's name can't be changed until the transcript is ready.
 - Both removals ask first.
