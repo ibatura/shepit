@@ -223,3 +223,4 @@ app/Tests/ShepitTests/
 - `/code-review`: a name typed for someone a ticked merge takes away no longer counts as a clash; a meeting whose lines can't be read says why instead of "doesn't line up".
 - The button keeps its short name and has a hint on hover (the author, 2026-11-20).
 - Added on 2026-11-21 (the author: start the version in this branch): version 0.2.0 in `Info.plist`; `build-app.sh` writes the commit it builds as `CFBundleVersion`; About Shepit in the 🎙 menu and the app menu opens macOS's About panel ("Version 0.2.0 (ff170a9)"). The tag on GitHub and a check for new versions are not in this branch (`docs/future-ideas.md`, "Version and About Shepit").
+- Added on 2026-11-21 (the author: make the release automatically when the pull request is merged): `.github/workflows/release.yml` and the notes `docs/releases/0.2.0.md`; the rule in `CLAUDE.md` that each branch raises the version and writes its notes.

@@ -425,6 +425,8 @@ tools/accuracy/record.sh          # record your own test clips (run in a normal 
 tools/accuracy/evaluate.py --engines whispercpp:large-v3-turbo parakeet apple   # compare engines on those clips
 ```
 
+Releases: a merge into `main` that raises `CFBundleShortVersionString` in `app/Resources/Info.plist` makes the tag `v<version>` and a GitHub release with the notes in `docs/releases/<version>.md` (`.github/workflows/release.yml`).
+
 The code is a SwiftPM package in `app/`: `ShepitCore` (settings, dictionary, controller, statistics — pure logic), `ShepitEngines` (the four speech engines), `Shepit` (the app). A plain `swift build --package-path app` on a fresh clone needs `scripts/build-whisper-lib.sh` first. Design: `docs/superpowers/specs/2026-10-18-native-app/`.
 
 ## License
