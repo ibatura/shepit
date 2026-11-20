@@ -172,6 +172,25 @@ struct MeetingStoreTests {
             .map { "\($0.0!) \($0.1) \($0.2 == voice)" } == ["2026-07-31 10:00:03 1 true"])
     }
 
+    // Import names design §5.
+    @Test func timedLinesGiveEachLinesPersonNowStartAndLength() throws {
+        let (store, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let start = try #require(MeetingNote.date("2026-07-31 10:00:00"))
+        let id = try #require(try store.add(path: "/a.md", start: start, duration: 60, title: nil, app: nil, you: "Me",
+                                            entries: [.init(label: "Me", timestamp: "2026-07-31 10:00:01", text: "one two three four", line: 0),
+                                                      .init(label: "Person 1", timestamp: "2026-07-31 10:00:03", text: "hi", line: 2),
+                                                      .init(label: MeetingNote.callLabel, timestamp: "2026-07-31 10:00:04", text: "lost", line: 4),
+                                                      .init(label: "Person 2", timestamp: "2026-07-31 10:01:09", text: "", line: 6)],
+                                            seconds: [.init(timestamp: "2026-07-31 10:00:03", order: 0): 7.5]))
+        try store.merge(id, person: "Person 2", into: "Person 1")
+        #expect(try store.timedLines(id) == [
+            .init(person: "Me", start: 1, length: 2), // no seconds: half a second per word
+            .init(person: "Person 1", start: 3, length: 7.5),
+            .init(person: "Person 1", start: 69, length: 0.5), // no words either
+        ])
+    }
+
     @Test func removingAMeetingDeletesItsVoiceSamples() throws {
         let (store, dir) = store()
         defer { try? FileManager.default.removeItem(at: dir) }

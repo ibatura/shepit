@@ -156,6 +156,19 @@ public final class MeetingStore {
         }
     }
 
+    /// Each line's person now, start and length, for Import names (import names design §5). Lines listed before Voices
+    /// have no `seconds`: half a second per word. Lines with no speaker are left out.
+    public func timedLines(_ meeting: Int) throws -> [NameImport.Line] {
+        guard let start = try self.meeting(meeting)?.start else { return [] }
+        return try sqlite.rows("""
+            SELECT timestamp, current, seconds, words FROM lines WHERE meeting = ? AND current <> ? ORDER BY timestamp, ord
+            """, [meeting, MeetingNote.callLabel]) { row -> NameImport.Line? in
+            guard let time = MeetingNote.date(row.text(0) ?? "") else { return nil }
+            let length = row.isNull(2) ? Double(row.int(3)) / 2 : row.double(2)
+            return NameImport.Line(person: row.text(1) ?? "", start: time.timeIntervalSince(start), length: max(length, 0.5))
+        }.compactMap { $0 }
+    }
+
     public func rename(_ meeting: Int, title: String?) throws {
         try sqlite.run("UPDATE meetings SET title = ? WHERE id = ?", [title, meeting])
     }
