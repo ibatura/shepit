@@ -24,6 +24,8 @@ public enum MeetingPage {
         public var share: Double
         /// The people this one can be merged into.
         public var mergeTargets: [String]
+        /// Named by a saved voice (voices design §5).
+        public var recognised: Bool
     }
 
     public struct Row: Equatable, Sendable {
@@ -65,7 +67,8 @@ public enum MeetingPage {
         let rows = order.map { key in
             PersonRow(key: key, name: names[key] ?? key, given: people.first { $0.key == key }?.name ?? (key == you ? key : nil),
                       initials: initials(names[key] ?? key), isYou: key == you, share: Double(words[key] ?? 0) / Double(total),
-                      mergeTargets: key == you ? [] : order.filter { $0 != key })
+                      mergeTargets: key == you ? [] : order.filter { $0 != key },
+                      recognised: people.first { $0.key == key }?.recognised ?? false)
         }
         let transcript = zip(entries, paired).map { entry, line in
             Row(name: line.map { names[$0.current] ?? $0.current } ?? entry.label, time: String(entry.timestamp.suffix(8)),
@@ -91,22 +94,34 @@ public enum MeetingPage {
         return labels.isEmpty ? note : Speakers.setLabels(note, labels)
     }
 
+    /// The note without the entries paired with `places`, each from its header up to the next entry or the first empty line
+    /// (text added in Obsidian after a blank line stays), and the places taken out. An entry that isn't paired with the
+    /// store stays, and so does the rest of the note.
+    public static func removing(_ places: Set<MeetingNote.Place>, from note: String, lines: [Line]) -> (note: String, removed: Set<MeetingNote.Place>) {
+        let text = note.components(separatedBy: "\n")
+        let entries = MeetingNote.parse(note).entries
+        var drop = IndexSet(), removed = Set<MeetingNote.Place>()
+        for (i, (entry, line)) in zip(entries, pair(entries, lines)).enumerated() {
+            guard let place = line?.place, places.contains(place) else { continue }
+            let next = i + 1 < entries.count ? entries[i + 1].line : text.count
+            let end = text[(entry.line + 1)..<next].firstIndex { $0.trimmingCharacters(in: .whitespaces).isEmpty } ?? next
+            drop.insert(integersIn: entry.line..<end)
+            removed.insert(place)
+        }
+        return (text.indices.filter { !drop.contains($0) }.map { text[$0] }.joined(separator: "\n"), removed)
+    }
+
     /// Another person of the meeting (with lines) that already shows `name`, ignoring case, accents and script; nil when none.
     public static func clash(people: [Person], lines: [Line], person: String, name: String) -> String? {
-        guard let name = self.name(name).map(folded) else { return nil }
+        guard let name = self.name(name).map(Names.fold) else { return nil }
         let names = shownNames(people)
-        return Set(lines.map(\.current)).sorted().first { $0 != person && folded(names[$0] ?? $0) == name }
+        return Set(lines.map(\.current)).sorted().first { $0 != person && Names.fold(names[$0] ?? $0) == name }
     }
 
     /// The names that contain what was typed, ignoring case, accents and script ("Іван" finds "Ivan Batura"); all for nothing typed.
     public static func matching(_ names: [String], typed: String) -> [String] {
-        let typed = folded(typed.trimmingCharacters(in: .whitespaces))
-        return typed.isEmpty ? names : names.filter { folded($0).contains(typed) }
-    }
-
-    /// A name in Latin letters, lower case, without accents: "Олена", "Oléna" and "olena" are the same.
-    private static func folded(_ text: String) -> String {
-        (text.applyingTransform(.toLatin, reverse: false) ?? text).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+        let typed = Names.fold(typed.trimmingCharacters(in: .whitespaces))
+        return typed.isEmpty ? names : names.filter { Names.fold($0).contains(typed) }
     }
 
     /// A typed name as it is stored: one line, trimmed; nil when empty.
@@ -120,7 +135,7 @@ public enum MeetingPage {
     }
 
     /// "P2" for Person 2, else the first letters of the first two words.
-    private static func initials(_ name: String) -> String {
+    static func initials(_ name: String) -> String {
         if let match = name.wholeMatch(of: /Person (\d+)/) { return "P\(match.1)" }
         return String(name.split(whereSeparator: \.isWhitespace).prefix(2).compactMap(\.first)).uppercased()
     }

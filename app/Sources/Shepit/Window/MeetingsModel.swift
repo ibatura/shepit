@@ -27,6 +27,8 @@ final class MeetingsModel {
     enum Question: Equatable {
         case merge(meeting: Int, person: String, into: String, name: String)
         case reset(meeting: Int)
+        /// Delete all their lines…: the lines shown as theirs, by `name`.
+        case deleteLines(meeting: Int, name: String, lines: Set<MeetingNote.Place>)
         case remove(MeetingStore.Meeting)
         case trash(MeetingStore.Meeting)
     }
@@ -130,7 +132,7 @@ final class MeetingsModel {
     // Each change names its meeting: a field saved when it loses focus can be saved after another meeting was chosen.
 
     /// A name typed for a person: saved, or a merge question when another person of the meeting has it.
-    func name(_ meeting: Int, person: String, typed: String) {
+    func name(_ meeting: Int, person: String, typed: String) async {
         let people = (try? store.people(meeting)) ?? []
         let name = MeetingPage.name(typed)
         // Unchanged when it shows the same: a person without a name shows its label.
@@ -139,19 +141,24 @@ final class MeetingsModel {
             question = .merge(meeting: meeting, person: person, into: other, name: name)
             return
         }
-        change(meeting) { try store.setName(meeting, person: person, to: name) }
+        await change(meeting) { try store.setName(meeting, person: person, to: name) }
     }
 
-    func merge(_ meeting: Int, person: String, into: String) {
-        change(meeting) { try store.merge(meeting, person: person, into: into) }
+    func merge(_ meeting: Int, person: String, into: String) async {
+        await change(meeting) { try store.merge(meeting, person: person, into: into) }
     }
 
-    func give(_ meeting: Int, line: MeetingNote.Place, to person: String) {
-        change(meeting) { try store.give(meeting, line: line, to: person) }
+    func give(_ meeting: Int, line: MeetingNote.Place, to person: String) async {
+        await change(meeting) { try store.give(meeting, line: line, to: person) }
     }
 
-    func giveToNewPerson(_ meeting: Int, line: MeetingNote.Place) {
-        change(meeting) { try store.give(meeting, line: line, to: try store.newPerson(meeting)) }
+    func giveToNewPerson(_ meeting: Int, line: MeetingNote.Place) async {
+        await change(meeting) { try store.give(meeting, line: line, to: try store.newPerson(meeting)) }
+    }
+
+    /// Delete line, and the answer to Delete all their lines… (the author, 2026-11-19).
+    func delete(_ meeting: Int, lines: Set<MeetingNote.Place>) async {
+        await edit(meeting) { try store.delete($0, lines: lines) }
     }
 
     /// The meeting's name (§8): the store, the note's title and file name, `meeting-names.json`. False when it failed.
@@ -204,15 +211,16 @@ final class MeetingsModel {
     }
 
     /// The answer to `question`.
-    func answer(_ question: Question, yes: Bool) {
+    func answer(_ question: Question, yes: Bool) async {
         self.question = nil
         guard yes else {
             if case .merge = question { cancels += 1 }
             return
         }
         switch question {
-        case .merge(let meeting, let person, let into, _): merge(meeting, person: person, into: into)
-        case .reset(let meeting): change(meeting) { try store.reset(meeting) }
+        case .merge(let meeting, let person, let into, _): await merge(meeting, person: person, into: into)
+        case .reset(let meeting): await change(meeting) { try store.reset(meeting) }
+        case .deleteLines(let meeting, _, let lines): await delete(meeting, lines: lines)
         case .remove(let meeting): remove(meeting, trash: false)
         case .trash(let meeting): remove(meeting, trash: true)
         }
@@ -228,10 +236,26 @@ final class MeetingsModel {
         reload()
     }
 
-    private func change(_ id: Int, _ body: () throws -> Void) {
+    private func change(_ id: Int, _ body: () throws -> Void) async {
+        await edit(id) { try store.change([$0], body) }
+    }
+
+    /// The note is read off the main thread first, as People does: a note in iCloud Drive that macOS has offloaded is
+    /// downloaded on read, and the change reads and writes it on the main thread.
+    private func edit(_ id: Int, _ body: (MeetingStore.Meeting) throws -> Void) async {
         guard let meeting = meetings.first(where: { $0.id == id }), !missing.contains(id) else { return }
+        let url = URL(fileURLWithPath: meeting.path)
+        await Task.detached { _ = try? Data(contentsOf: url) }.value
+        // Moved or deleted since it was opened: nothing changes (the store's change would skip the note and change only
+        // the database), and the meeting shows "note not found".
+        guard FileManager.default.fileExists(atPath: meeting.path) else {
+            missing.insert(id)
+            failed("Can't change", meeting.path, CocoaError(.fileNoSuchFile))
+            load()
+            return
+        }
         do {
-            try store.change(meeting, body)
+            try body(meeting)
         } catch {
             failed("Can't change", meeting.path, error)
         }

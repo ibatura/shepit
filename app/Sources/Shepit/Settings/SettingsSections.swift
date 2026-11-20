@@ -227,6 +227,9 @@ struct HistoryPrivacySection: View {
             .disabled(model.isReadOnly)
             Button("Clear statistics…", action: actions.clearStatistics)
         }
+        Section("Voices") {
+            Text("Remember voices and the saved voice prints are in People, in the sidebar.").foregroundStyle(.secondary)
+        }
         Section("Databases") {
             FolderRow(model: model, key: "databasesFolder", path: \.databasesFolder, url: { $0.databasesFolderURL(home: Paths.home) },
                       hint: "Where dictations, meetings and statistics are kept. Used from the next start of Shepit; files already there are not moved. A synced folder (iCloud) uploads them")

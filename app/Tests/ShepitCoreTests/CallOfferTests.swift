@@ -199,6 +199,33 @@ struct CallOfferTests {
         #expect(m.panel == nil)
     }
 
+    @Test func aCallThatStartsWhileTheLastTranscriptIsFinishingIsOfferedOnceItHas() {
+        var m = Machine()
+        m.teamsCall()
+        m.send(.pressedMain, at: 4)
+        m.send(.sessionStarted(byPanel: true), at: 4.2)
+        m.send(.sessionStopping, at: 100)
+        m.send(.released(pid: 1), at: 101)
+        m.send(.took(.app(.teams), pid: 2), at: 110)
+        m.send(.tick, at: 113)
+        #expect(m.panel == nil && m.offer.current == nil && !m.offer.needsTick) // nothing to count while it waits
+        #expect(m.send(.sessionFinished(entries: 4, detail: "d"), at: 150) == [.lookForName])
+        #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 15))
+        #expect(m.send(.pressedMain, at: 151) == [.start(title: nil, app: .teams)])
+    }
+
+    @Test func aCallThatEndsBeforeTheLastTranscriptHasFinishedGetsNoOffer() {
+        var m = Machine()
+        m.send(.sessionStarted(byPanel: false), at: 0)
+        m.send(.sessionStopping, at: 100)
+        m.send(.took(.app(.teams), pid: 2), at: 110)
+        m.send(.tick, at: 113)
+        m.send(.released(pid: 2), at: 120)
+        m.send(.tick, at: 123)
+        m.send(.sessionFinished(entries: 4, detail: "d"), at: 150)
+        #expect(m.panel == .ready(detail: "d"))
+    }
+
     @Test func aShortGapIsTheSameCall() {
         var m = Machine()
         m.teamsCall()
@@ -454,9 +481,12 @@ struct CallOfferTests {
     }
 
     @Test func readyDetailTexts() {
-        #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 42 * 60 + 10, speakers: 3) == "Weekly sync · 42 min · 3 people")
+        #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 42 * 60 + 10, speakers: 3) == "42 min · 3 people · Weekly sync")
+        // The title goes last, so a long one cuts only itself off the panel's one line.
+        #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 600, speakers: 4, recognised: 1) == "10 min · 4 people · 1 recognised · Weekly sync")
         #expect(CallOffer.readyDetail(title: nil, duration: 20, speakers: 1) == "1 min · 1 person")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: nil) == "10 min")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 0) == "10 min")
+        #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 4, recognised: 2) == "10 min · 4 people · 2 recognised")
     }
 }

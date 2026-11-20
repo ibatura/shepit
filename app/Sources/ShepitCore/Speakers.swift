@@ -26,7 +26,7 @@ public enum Speakers {
         }
     }
 
-    private static func speaker(for entry: Range<Double>, turns: [SpeakerTurn]) -> String? {
+    static func speaker(for entry: Range<Double>, turns: [SpeakerTurn]) -> String? {
         let ordered = turns.sorted { $0.start < $1.start }
         // Overlap summed per speaker: diarizers often split one speaker's speech into short turns.
         var overlap: [String: Double] = [:]

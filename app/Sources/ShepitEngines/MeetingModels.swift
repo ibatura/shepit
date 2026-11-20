@@ -46,7 +46,8 @@ public actor SileroVAD {
 
 /// FluidAudio's offline diarization (pyannote segmentation + WeSpeaker embeddings + VBx) over a whole call.
 public enum Diarizer {
-    public static func turns(_ samples: [Float], paths: Paths.Resolved = Paths.resolve()) async throws -> [SpeakerTurn] {
+    /// Who spoke when; with `windows`, also each voice of each window (voices design §4), which FluidAudio computes anyway.
+    public static func run(_ samples: [Float], windows: Bool, paths: Paths.Resolved = Paths.resolve()) async throws -> Diarization {
         let folder = try requireComplete(.diarization, paths: paths)
         let started = Date()
         let models = OfflineDiarizerModels(
@@ -56,11 +57,19 @@ public enum Diarizer {
             pldaRhoModel: try loadModel(folder.appending(path: ModelNames.OfflineDiarizer.pldaRhoFile), units: .all),
             pldaPsi: try pldaPsi(folder.appending(path: ModelNames.OfflineDiarizer.pldaParameters)),
             compilationDuration: Date().timeIntervalSince(started))
-        let manager = OfflineDiarizerManager(config: .default)
+        var config = OfflineDiarizerConfig.default
+        config.exposeChunkEmbeddings = windows
+        let manager = OfflineDiarizerManager(config: config)
         manager.initialize(models: models)
         do {
             let result = try await manager.process(audio: samples)
-            return result.segments.map { SpeakerTurn(speaker: $0.speakerId, start: Double($0.startTimeSeconds), end: Double($0.endTimeSeconds)) }
+            return Diarization(
+                turns: result.segments.map { SpeakerTurn(speaker: $0.speakerId, start: Double($0.startTimeSeconds), end: Double($0.endTimeSeconds)) },
+                windows: (result.chunkEmbeddings ?? []).compactMap { window in
+                    VoiceSample(window.embedding256).map {
+                        VoiceWindow(speaker: window.speakerId, start: window.startTimeSeconds, end: window.endTimeSeconds, sample: $0)
+                    }
+                })
         } catch {
             throw EngineError.recognitionFailed("speaker detection failed: \(error)")
         }

@@ -176,6 +176,8 @@ public struct Settings: Equatable, Sendable {
     /// Light or dark for the window, the call panels and the dialogs: "system", "light", "dark".
     public var theme: String
     public var accentColor: AccentColor
+    /// Keep a voice sample per transcript line and recognise people by voice (voices design §4); biometric, off by default.
+    public var rememberVoices: Bool
     /// Starts or stops a meeting transcript; nil = no shortcut.
     public var meetingHotkey: Hotkey?
 
@@ -231,6 +233,7 @@ public struct Settings: Equatable, Sendable {
         callApps: [String] = Settings.callAppNames,
         theme: String = "system",
         accentColor: AccentColor = .system,
+        rememberVoices: Bool = false,
         meetingHotkey: Hotkey? = nil
     ) {
         self.mode = mode
@@ -274,6 +277,7 @@ public struct Settings: Equatable, Sendable {
         self.callApps = callApps
         self.theme = theme
         self.accentColor = accentColor
+        self.rememberVoices = rememberVoices
         self.meetingHotkey = meetingHotkey
     }
 

@@ -18,12 +18,15 @@ final class SQLiteFile {
     /// first: a schema line can't use a column an upgrade adds. A failed upgrade changes nothing and fails the open, so
     /// the file isn't used until it runs on a later use.
     private let upgrades: [String]
+    /// SQL functions of one text argument, for what SQLite can't do itself (folding Cyrillic case); NULL in, NULL out.
+    private let functions: [String: (String) -> String?]
     private var db: OpaquePointer?
 
-    init(file: URL, schema: [String], upgrades: [String] = []) {
+    init(file: URL, schema: [String], upgrades: [String] = [], functions: [String: (String) -> String?] = [:]) {
         self.file = file
         self.schema = schema
         self.upgrades = upgrades
+        self.functions = functions
     }
 
     deinit {
@@ -32,6 +35,9 @@ final class SQLiteFile {
 
     /// Rows changed by the last INSERT, UPDATE or DELETE.
     var changes: Int { db.map { Int(sqlite3_changes($0)) } ?? 0 }
+
+    /// Rows changed through this file since it was opened: a different number means the data may differ.
+    var totalChanges: Int { db.map { Int(sqlite3_total_changes($0)) } ?? 0 }
 
     /// A write; creates the file with its schema when it is missing.
     func run(_ sql: String, _ values: [Any?] = []) throws {
@@ -52,6 +58,9 @@ final class SQLiteFile {
         func double(_ i: Int32) -> Double { sqlite3_column_double(statement, i) }
         func int(_ i: Int32) -> Int { Int(sqlite3_column_int64(statement, i)) }
         func isNull(_ i: Int32) -> Bool { sqlite3_column_type(statement, i) == SQLITE_NULL }
+        func blob(_ i: Int32) -> Data {
+            Data(bytes: sqlite3_column_blob(statement, i), count: Int(sqlite3_column_bytes(statement, i)))
+        }
     }
 
     /// The rows `sql` gives, none for a missing file; `read` returns nil to skip one.
@@ -112,7 +121,9 @@ final class SQLiteFile {
             sqlite3_close(handle)
             throw Failure(description: "\(file.lastPathComponent): \(message)")
         }
+        sqlite3_busy_timeout(handle, 5000) // another connection (a read off the main thread) may hold the file a moment
         do {
+            for (name, body) in functions { try register(handle, name, body) }
             for sql in schema { try exec(handle, sql) }
             try upgrade(handle)
         } catch {
@@ -140,6 +151,22 @@ final class SQLiteFile {
             sqlite3_exec(handle, "ROLLBACK", nil, nil, nil)
             throw error
         }
+    }
+
+    private final class TextFunction {
+        let body: (String) -> String?
+        init(_ body: @escaping (String) -> String?) { self.body = body }
+    }
+
+    private func register(_ handle: OpaquePointer, _ name: String, _ body: @escaping (String) -> String?) throws {
+        let box = Unmanaged.passRetained(TextFunction(body)).toOpaque() // released by SQLite when the connection closes
+        let result = sqlite3_create_function_v2(handle, name, 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC, box, { context, _, arguments in
+            let function = Unmanaged<TextFunction>.fromOpaque(sqlite3_user_data(context)).takeUnretainedValue()
+            guard let argument = arguments?[0], let text = sqlite3_value_text(argument),
+                  let value = function.body(String(cString: text)) else { return sqlite3_result_null(context) }
+            sqlite3_result_text(context, value, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self)) // SQLITE_TRANSIENT
+        }, nil, nil, { Unmanaged<TextFunction>.fromOpaque($0!).release() })
+        guard result == SQLITE_OK else { throw error(handle) }
     }
 
     private func version(_ handle: OpaquePointer) throws -> Int {
@@ -171,6 +198,7 @@ final class SQLiteFile {
             case let v as Int: sqlite3_bind_int64(statement, i, Int64(v))
             case let v as Int64: sqlite3_bind_int64(statement, i, v)
             case let v as String: sqlite3_bind_text(statement, i, v, -1, transient)
+            case let v as Data: _ = v.withUnsafeBytes { sqlite3_bind_blob(statement, i, $0.baseAddress, Int32($0.count), transient) }
             default: sqlite3_bind_null(statement, i)
             }
         }

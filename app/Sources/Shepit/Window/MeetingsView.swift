@@ -25,10 +25,10 @@ struct MeetingsView: View {
         }
         .onAppear { model.reload() }
         .alert(model.question.map { text($0).title } ?? "",
-               isPresented: Binding(get: { model.question != nil }, set: { if !$0, let q = model.question { model.answer(q, yes: false) } }),
+               isPresented: Binding(get: { model.question != nil }, set: { if !$0, let q = model.question { Task { await model.answer(q, yes: false) } } }),
                presenting: model.question) { question in
-            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { model.answer(question, yes: true) }
-            Button("Cancel", role: .cancel) { model.answer(question, yes: false) }
+            Button(text(question).button, role: text(question).destructive ? .destructive : nil) { Task { await model.answer(question, yes: true) } }
+            Button("Cancel", role: .cancel) { Task { await model.answer(question, yes: false) } }
         } message: { question in
             Text(text(question).message)
         }
@@ -107,6 +107,10 @@ struct MeetingsView: View {
             let shown: String
             if case .page(let page) = model.open?.content { shown = page.people.first { $0.key == person }?.name ?? person } else { shown = person }
             return ("\(name) is already in this meeting", "Merge \(shown) into \(name)?", "Merge", false)
+        case .deleteLines(_, let name, let lines):
+            return ("Delete all lines of \(name)?",
+                    "\(lines.count == 1 ? "1 line leaves" : "\(lines.count) lines leave") the note and Shepit, with their voice samples. This can't be undone.",
+                    "Delete", true)
         case .reset:
             return ("Reset people?", "Every line goes back to the person speaker detection gave it. Names given to people stay.", "Reset", false)
         case .remove(let meeting):
@@ -142,16 +146,6 @@ private struct MeetingMenu: View {
     }
 }
 
-/// A small caption over a block, as in the mockups ("People", "Transcript (read only)").
-private struct Caption: View {
-    let text: String
-    init(_ text: String) { self.text = text }
-
-    var body: some View {
-        Text(text).font(.subheadline).foregroundStyle(.secondary).padding(.top, 6)
-    }
-}
-
 /// One entry: "Name · 10:00:19" over its text; a ⚠ line of its own in grey.
 private struct EntryRow: View {
     let name: String?
@@ -176,12 +170,13 @@ private struct FinishedMeeting: View {
     let model: MeetingsModel
     let open: MeetingsModel.Open
     let actions: WindowActions
-    @State private var title = ""
-    @FocusState private var editingTitle: Bool
     /// The transcript row whose "Give this line to" is open.
     @State private var giving: Int?
+    /// The people whose lines are highlighted (the author, 2026-11-19).
+    @State private var highlighted: Set<String> = []
+    /// Only highlighted people: the other lines are hidden while someone is highlighted.
+    @State private var onlyHighlighted = false
 
-    private static let colors: [Color] = [.green, .purple, .orange, .cyan, .pink, .blue, .yellow, .indigo, .mint, .brown]
     private var meeting: MeetingStore.Meeting { open.meeting }
     private var missing: Bool { open.content == .missing }
     private var note: URL { URL(fileURLWithPath: meeting.path) }
@@ -189,11 +184,9 @@ private struct FinishedMeeting: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                TextField(MeetingPage.title(nil, meeting.app), text: $title)
-                    .textFieldStyle(.plain).font(.title2).fontWeight(.semibold)
-                    .focused($editingTitle)
-                    .onSubmit(saveTitle)
-                    .onChange(of: editingTitle) { if !editingTitle { saveTitle() } }
+                EditableTitle(text: meeting.title ?? "", placeholder: MeetingPage.title(nil, meeting.app)) {
+                    model.rename(meeting, typed: $0)
+                }
                 HStack(spacing: 6) {
                     ForEach(MeetingPage.facts(meeting), id: \.self) { fact in
                         Text(fact).font(.caption).padding(.horizontal, 8).padding(.vertical, 3).background(.quaternary, in: Capsule())
@@ -218,10 +211,19 @@ private struct FinishedMeeting: View {
                     }
                 case .page(let page):
                     people(page)
-                    Caption("Transcript (read only) · click a line to give it to another person")
+                    HStack(alignment: .firstTextBaseline) {
+                        Caption("Transcript · click a line to give it to someone else or delete it")
+                        Spacer()
+                        Toggle("Only highlighted people", isOn: $onlyHighlighted).toggleStyle(.checkbox)
+                            .disabled(highlighted.isDisjoint(with: page.people.map(\.key)))
+                    }
+                    // People who have left the meeting (deleted, merged, reset) still in `highlighted` don't count.
+                    let shown = highlighted.intersection(page.people.map(\.key))
+                    let only = onlyHighlighted && !shown.isEmpty
                     LazyVStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(page.rows.enumerated()), id: \.offset) { index, row in
-                            transcriptRow(row, index: index, people: page.people)
+                        ForEach(Array(page.rows.enumerated()).filter { !only || $0.element.person.map(shown.contains) == true },
+                                id: \.offset) { index, row in
+                            transcriptRow(row, index: index, page: page)
                         }
                     }
                 case .reading:
@@ -230,25 +232,18 @@ private struct FinishedMeeting: View {
             }
             .padding(20)
         }
-        .onAppear { title = meeting.title ?? "" }
-        .onChange(of: meeting.title) { title = meeting.title ?? "" }
-    }
-
-    private func saveTitle() {
-        if !model.rename(meeting, typed: title) { title = meeting.title ?? "" }
     }
 
     private func people(_ page: MeetingPage.Page) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Caption("People")
+            Caption("People · click people to highlight their lines")
             VStack(spacing: 0) {
                 ForEach(Array(page.people.enumerated()), id: \.element.key) { index, person in
                     if index > 0 { Divider().padding(.leading, 46) }
                     personRow(person, color: color(of: person.key, in: page), page: page)
                 }
             }
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+            .boxed()
             HStack {
                 Spacer()
                 Button("Reset people…") { model.question = .reset(meeting: meeting.id) }.disabled(!page.canReset)
@@ -257,37 +252,56 @@ private struct FinishedMeeting: View {
     }
 
     private func color(of person: String, in page: MeetingPage.Page) -> Color {
-        Self.colors[(page.people.firstIndex { $0.key == person } ?? 0) % Self.colors.count]
+        Avatar.color(page.people.firstIndex { $0.key == person } ?? 0)
     }
 
     private func personRow(_ person: MeetingPage.PersonRow, color: Color, page: MeetingPage.Page) -> some View {
-        HStack(spacing: 10) {
-            Text(person.initials).font(.caption2).fontWeight(.bold).foregroundStyle(.white)
-                .frame(width: 26, height: 26).background(color, in: Circle())
-            NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
-                model.name(meeting.id, person: person.key, typed: $0)
+        let highlight = { if highlighted.contains(person.key) { highlighted.remove(person.key) } else { highlighted.insert(person.key) } }
+        return HStack(spacing: 10) {
+            Avatar(initials: person.initials, color: color).onTapGesture(perform: highlight)
+            VStack(alignment: .leading, spacing: 2) {
+                NameField(text: person.given ?? "", placeholder: person.key, suggestions: open.suggestions, cancels: model.cancels) {
+                    let typed = $0
+                    Task { await model.name(meeting.id, person: person.key, typed: typed) }
+                }
+                if person.recognised { Text("recognised by voice").font(.caption).foregroundStyle(.secondary) }
             }
             .frame(width: 230)
             Spacer()
             let share = "\(Int((person.share * 100).rounded()))%"
-            Text(person.isYou ? "you · \(share)" : share).foregroundStyle(.secondary).monospacedDigit()
+            Text(person.isYou ? "you · \(share)" : share).foregroundStyle(.secondary).monospacedDigit().onTapGesture(perform: highlight)
             if !person.mergeTargets.isEmpty {
                 Menu("Merge into") {
                     ForEach(person.mergeTargets, id: \.self) { target in
-                        Button(page.people.first { $0.key == target }?.name ?? target) { model.merge(meeting.id, person: person.key, into: target) }
+                        Button(page.people.first { $0.key == target }?.name ?? target) { Task { await model.merge(meeting.id, person: person.key, into: target) } }
                     }
                 }
                 .fixedSize()
             }
+            let theirs = Set(page.rows.filter { $0.person == person.key }.compactMap(\.place))
+            Menu {
+                Button("Delete all their lines…", role: .destructive) {
+                    model.question = .deleteLines(meeting: meeting.id, name: person.name, lines: theirs)
+                }
+                .disabled(theirs.isEmpty) // none paired with the note
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        // Behind the name field and the menus, which keep their clicks: a click on the row's empty space.
+        .background((highlighted.contains(person.key) ? color.opacity(0.15) : Color.clear).contentShape(Rectangle()).onTapGesture(perform: highlight))
     }
 
-    @ViewBuilder private func transcriptRow(_ row: MeetingPage.Row, index: Int, people: [MeetingPage.PersonRow]) -> some View {
+    @ViewBuilder private func transcriptRow(_ row: MeetingPage.Row, index: Int, page: MeetingPage.Page) -> some View {
+        let shade: Color = if giving == index { Color.accentColor.opacity(0.15) }
+            else if let person = row.person, highlighted.contains(person) { color(of: person, in: page).opacity(0.18) }
+            else { .clear }
         let entry = EntryRow(name: row.name, time: row.time, text: row.text)
             .padding(.horizontal, 6).padding(.vertical, 3)
-            .background(giving == index ? Color.accentColor.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 6))
+            .background(shade, in: RoundedRectangle(cornerRadius: 6))
         if let place = row.place {
             entry
                 .contentShape(Rectangle())
@@ -295,11 +309,13 @@ private struct FinishedMeeting: View {
                 .popover(isPresented: Binding(get: { giving == index }, set: { if !$0 { giving = nil } }), arrowEdge: .trailing) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Give this line to").font(.caption).foregroundStyle(.secondary).padding(.bottom, 4)
-                        ForEach(people.filter { $0.key != row.person }, id: \.key) { person in
-                            Button(person.name) { giving = nil; model.give(meeting.id, line: place, to: person.key) }
+                        ForEach(page.people.filter { $0.key != row.person }, id: \.key) { person in
+                            Button(person.name) { giving = nil; Task { await model.give(meeting.id, line: place, to: person.key) } }
                         }
                         Divider().padding(.vertical, 4)
-                        Button("New person") { giving = nil; model.giveToNewPerson(meeting.id, line: place) }
+                        Button("New person") { giving = nil; Task { await model.giveToNewPerson(meeting.id, line: place) } }
+                        Divider().padding(.vertical, 4)
+                        Button("Delete line", role: .destructive) { giving = nil; Task { await model.delete(meeting.id, lines: [place]) } }
                     }
                     .buttonStyle(.borderless)
                     .padding(12)
@@ -452,7 +468,6 @@ private struct RunningMeeting: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .boxed()
     }
 }

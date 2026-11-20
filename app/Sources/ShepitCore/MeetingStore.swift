@@ -24,14 +24,20 @@ public final class MeetingStore {
         }
     }
 
-    /// `key` is the label speaker detection gave; `name` the one given in the window.
+    /// A meeting's person: `key` is the label speaker detection gave; `name` the name shown for it (the linked person's,
+    /// or for "you" the name in this note); `person` the person it is linked to (voices design §5), You for "you";
+    /// `recognised` when that link came from a voice.
     public struct Person: Equatable, Sendable {
         public var key: String
         public var name: String?
+        public var person: Int?
+        public var recognised: Bool
 
-        public init(key: String, name: String?) {
+        public init(key: String, name: String?, person: Int? = nil, recognised: Bool = false) {
             self.key = key
             self.name = name
+            self.person = person
+            self.recognised = recognised
         }
     }
 
@@ -49,16 +55,22 @@ public final class MeetingStore {
         }
     }
 
-    private let sqlite: SQLiteFile
+    let sqlite: SQLiteFile
+
+    public var file: URL { sqlite.file }
+
+    /// Changes as many times as the store does: what was read at one version still holds at the same one.
+    public var version: Int { sqlite.totalChanges }
 
     public init(file: URL) {
-        sqlite = SQLiteFile(file: file, schema: Self.schema)
+        sqlite = SQLiteFile(file: file, schema: Self.schema, upgrades: Self.upgrades, functions: ["name_key": Names.key])
     }
 
-    /// Adds a meeting with a person per distinct label (in order of first line) and a line per labelled entry.
+    /// Adds a meeting with a person per distinct label (in order of first line) and a line per labelled entry, with its
+    /// words, and its talk time and voice sample when the session knows them (voices design §4, §7).
     /// nil when a meeting with this path is already listed.
     public func add(path: String, start: Date, duration: TimeInterval?, title: String?, app: String?, you: String?,
-                    entries: [MeetingNote.Entry]) throws -> Int? {
+                    entries: [MeetingNote.Entry], samples: [Place: VoiceSample] = [:], seconds: [Place: Double] = [:]) throws -> Int? {
         try sqlite.transaction {
             try sqlite.run("INSERT OR IGNORE INTO meetings (path, title, app, start, duration, you) VALUES (?, ?, ?, ?, ?, ?)",
                            [path, title, app, start.timeIntervalSince1970, duration, you])
@@ -67,11 +79,24 @@ public final class MeetingStore {
             let labelled = entries.filter { $0.label != nil }
             for (entry, place) in zip(labelled, MeetingNote.places(labelled.map(\.timestamp))) {
                 try sqlite.run("INSERT OR IGNORE INTO people (meeting, key) VALUES (?, ?)", [id, entry.label])
-                try sqlite.run("INSERT INTO lines (meeting, timestamp, ord, original, current) VALUES (?, ?, ?, ?, ?)",
-                               [id, place.timestamp, place.order, entry.label, entry.label])
+                if sqlite.changes == 1, let label = entry.label {
+                    // A label that is a name ("[Olena]" in a note added by hand) is that person.
+                    try link(id, key: label, to: label == you ? youID() : personID(named: label))
+                }
+                try sqlite.run("INSERT INTO lines (meeting, timestamp, ord, original, current, words, seconds) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                               [id, place.timestamp, place.order, entry.label, entry.label, Self.words(entry.text), seconds[place]])
+                if let sample = samples[place] {
+                    try sqlite.run("INSERT INTO samples (meeting, timestamp, ord, vector) VALUES (?, ?, ?, ?)",
+                                   [id, place.timestamp, place.order, sample.blob])
+                }
             }
             return id
         }
+    }
+
+    /// An entry's words; none for a line that wasn't recognised.
+    static func words(_ text: String) -> Int {
+        text == MeetingQueue.failedText ? 0 : DictationStore.words(text)
     }
 
     /// A file with no entry headers.
@@ -79,22 +104,35 @@ public final class MeetingStore {
         public var errorDescription: String? { "not a meeting transcript (no entries)" }
     }
 
-    /// Adds the meeting of a note (§4). What the session knows (`start`, `duration`) wins; otherwise the start is the front
+    /// Adds the meeting of a note (§4). What the session knows (`start`, `duration`) wins, and its lines' talk time and voice samples are kept; otherwise the start is the front
     /// matter's (or the first header's) and the duration runs to the last header. `you` is kept only when the note has
     /// that label. The labels the note has now count as what speaker detection gave. nil when already listed.
-    public func add(note: URL, you: String?, start: Date? = nil, duration: TimeInterval? = nil, calendar: Calendar = .current) throws -> Int? {
+    public func add(note: URL, you: String?, start: Date? = nil, duration: TimeInterval? = nil, samples: [Place: VoiceSample] = [:],
+                    seconds: [Place: Double] = [:], calendar: Calendar = .current) throws -> Int? {
         let parsed = MeetingNote.parse(try String(contentsOf: note, encoding: .utf8), calendar: calendar)
         let times = parsed.entries.filter { $0.label != nil }.compactMap { MeetingNote.date($0.timestamp, calendar: calendar) }
         guard let first = times.first else { throw NotATranscript() }
         let begin = start ?? parsed.start ?? first
         return try add(path: note.path, start: begin, duration: duration ?? max(0, (times.max() ?? begin).timeIntervalSince(begin)),
                        title: parsed.title, app: parsed.app, you: parsed.entries.contains { $0.label == you } ? you : nil,
-                       entries: parsed.entries)
+                       entries: parsed.entries, samples: samples, seconds: seconds)
     }
 
     /// Newest first.
     public func meetings() throws -> [Meeting] {
-        try sqlite.rows("SELECT id, path, title, app, start, duration, you FROM meetings ORDER BY start DESC, id DESC") { row in
+        try meetings("ORDER BY start DESC, id DESC")
+    }
+
+    public func meeting(_ id: Int) throws -> Meeting? {
+        try meetings("WHERE id = ?", [id]).first
+    }
+
+    public func meeting(path: String) throws -> Meeting? {
+        try meetings("WHERE path = ?", [path]).first
+    }
+
+    func meetings(_ clause: String, _ values: [Any?] = []) throws -> [Meeting] {
+        try sqlite.rows("SELECT id, path, title, app, start, duration, you FROM meetings \(clause)", values) { row in
             Meeting(id: row.int(0), path: row.text(1) ?? "", title: row.text(2), app: row.text(3), start: Date(timeIntervalSince1970: row.double(4)),
                     duration: row.isNull(5) ? nil : row.double(5), you: row.text(6))
         }
@@ -102,8 +140,12 @@ public final class MeetingStore {
 
     /// In the order they were added.
     public func people(_ meeting: Int) throws -> [Person] {
-        try sqlite.rows("SELECT key, name FROM people WHERE meeting = ? ORDER BY rowid", [meeting]) { row in
-            Person(key: row.text(0) ?? "", name: row.text(1))
+        // people.name is set only on the "you" row, and You has no name of its own.
+        try sqlite.rows("""
+            SELECT people.key, COALESCE(people.name, persons.name), people.person, people.recognised
+            FROM people LEFT JOIN persons ON persons.id = people.person WHERE people.meeting = ? ORDER BY people.rowid
+            """, [meeting]) { row in
+            Person(key: row.text(0) ?? "", name: row.text(1), person: row.isNull(2) ? nil : row.int(2), recognised: row.int(3) == 1)
         }
     }
 
@@ -124,14 +166,51 @@ public final class MeetingStore {
 
     public func remove(_ meeting: Int) throws {
         try sqlite.transaction {
-            for table in ["lines", "people"] { try sqlite.run("DELETE FROM \(table) WHERE meeting = ?", [meeting]) }
+            for table in ["lines", "people", "samples", "declined"] { try sqlite.run("DELETE FROM \(table) WHERE meeting = ?", [meeting]) }
             try sqlite.run("DELETE FROM meetings WHERE id = ?", [meeting])
+            try dropUnlistedPersons()
         }
     }
 
-    /// nil: no name, the person shows its label.
-    public func setName(_ meeting: Int, person: String, to name: String?) throws {
-        try sqlite.run("UPDATE people SET name = ? WHERE meeting = ? AND key = ?", [name, meeting, person])
+    /// Links a meeting's person to the person with that name, or to a new one (voices design §5); nil: no name, it shows
+    /// its label. "you" keeps the name for this note only: the author is You whatever the name.
+    public func setName(_ meeting: Int, person key: String, to name: String?) throws {
+        try transaction {
+            if try sqlite.rows("SELECT 1 FROM meetings WHERE id = ? AND you = ?", [meeting, key], read: { $0.int(0) }).isEmpty {
+                try link(meeting, key: key, to: name.flatMap(personID(named:)))
+                try dropUnlistedPersons()
+            } else {
+                try sqlite.run("UPDATE people SET name = ? WHERE meeting = ? AND key = ?", [name, meeting, key])
+            }
+        }
+    }
+
+    func link(_ meeting: Int, key: String, to person: Int?) throws {
+        // A name of version 1 that is no person's ("Person 5") stays on its row until the row is named again.
+        try sqlite.run("UPDATE people SET person = ?, name = NULL, recognised = 0 WHERE meeting = ? AND key = ?", [person, meeting, key])
+    }
+
+    func youID() throws -> Int {
+        try sqlite.rows("SELECT id FROM persons WHERE you = 1") { $0.int(0) }[0]
+    }
+
+    /// The person called `name`, the one seen most recently when two share it, or a new person when nobody is;
+    /// nil for a label that names nobody ("Person 3").
+    private func personID(named name: String) throws -> Int? {
+        guard let key = Names.key(name) else { return nil }
+        let found = try sqlite.rows("""
+            SELECT persons.id FROM persons
+            LEFT JOIN people ON people.person = persons.id LEFT JOIN meetings ON meetings.id = people.meeting
+            WHERE persons.you = 0 AND name_key(persons.name) = ? GROUP BY persons.id ORDER BY max(meetings.start) DESC LIMIT 1
+            """, [key]) { $0.int(0) }
+        if let id = found.first { return id }
+        try sqlite.run("INSERT INTO persons (name) VALUES (?)", [name])
+        return try sqlite.rows("SELECT last_insert_rowid()") { $0.int(0) }[0]
+    }
+
+    /// A person left with no meeting goes; You stays.
+    func dropUnlistedPersons() throws {
+        try sqlite.run("DELETE FROM persons WHERE you = 0 AND id NOT IN (SELECT person FROM people WHERE person IS NOT NULL)")
     }
 
     public func give(_ meeting: Int, line: Place, to person: String) throws {
@@ -161,27 +240,89 @@ public final class MeetingStore {
     /// ("you", the labels of notes added by hand), not "Person N" or the live label. Newest meeting first, each once.
     public func knownNames() throws -> [String] {
         let names = try sqlite.rows("""
-            SELECT COALESCE(people.name, people.key) FROM people JOIN meetings ON meetings.id = people.meeting
-            ORDER BY meetings.start DESC, people.rowid
+            SELECT COALESCE(people.name, persons.name, people.key) FROM people JOIN meetings ON meetings.id = people.meeting
+            LEFT JOIN persons ON persons.id = people.person ORDER BY meetings.start DESC, people.rowid
             """) { $0.text(0) }
         var seen = Set<String>()
-        return names.filter { name in
-            !name.isEmpty && name != MeetingNote.callLabel && name.wholeMatch(of: /Person \d+/) == nil && seen.insert(name).inserted
+        return names.filter { Names.key($0) != nil && seen.insert($0).inserted }
+    }
+
+    /// A note a change could not read or write: nothing was changed.
+    public struct NoteNotChanged: LocalizedError {
+        public var path: String
+        public var reason: String
+        public var errorDescription: String? { "\(path)\n\(reason)" }
+    }
+
+    /// A change that failed after some notes were written, of which `paths` could not be put back: they keep the new
+    /// names while the store doesn't.
+    public struct NotesNotPutBack: LocalizedError {
+        public var reason: String
+        public var paths: [String]
+        public var errorDescription: String? {
+            "\(reason)\nThese notes could not be put back and keep the new names: \(paths.joined(separator: ", "))"
         }
     }
 
-    /// A change to a meeting's people or lines made by `body` (Meetings design §8): the store and the note's headers together,
-    /// or neither. The note is read right before writing, so edits made in Obsidian meanwhile stay; only the headers whose
-    /// shown name changed are rewritten.
-    public func change(_ meeting: Meeting, _ body: () throws -> Void) throws {
+    /// A change to the people or lines of `meetings` made by `body` (Meetings design §8): the store and the notes' headers
+    /// together, or none of them. Each note is read right before it is written, so edits made in Obsidian meanwhile stay;
+    /// only the headers whose shown name changed are rewritten. A missing note changes only the store.
+    public func change(_ meetings: [Meeting], _ body: () throws -> Void) throws {
+        try transaction {
+            let before = try meetings.map { (people: try people($0.id), lines: try lines($0.id)) }
+            try body()
+            var written: [(note: URL, text: String)] = []
+            do {
+                for (meeting, before) in zip(meetings, before) {
+                    let after = (people: try people(meeting.id), lines: try lines(meeting.id))
+                    let note = URL(fileURLWithPath: meeting.path)
+                    guard FileManager.default.fileExists(atPath: note.path) else { continue }
+                    do {
+                        let text = try String(contentsOf: note, encoding: .utf8)
+                        let changed = MeetingPage.relabelled(text, before: before, after: after)
+                        guard changed != text else { continue }
+                        try Data(changed.utf8).write(to: note, options: .atomic)
+                        written.append((note, text))
+                    } catch {
+                        throw NoteNotChanged(path: meeting.path, reason: error.localizedDescription)
+                    }
+                }
+            } catch {
+                var notPutBack: [String] = []
+                for (note, text) in written.reversed() {
+                    do { try Data(text.utf8).write(to: note, options: .atomic) } catch { notPutBack.append(note.path) }
+                }
+                guard notPutBack.isEmpty else { throw NotesNotPutBack(reason: error.localizedDescription, paths: notPutBack) }
+                throw error
+            }
+        }
+    }
+
+    /// Deletes lines from a meeting (the author, 2026-11-19): their entries leave the note, and their rows, with words and
+    /// voice samples, leave the store, together or not at all. Only lines paired with the note as it is now are deleted. A
+    /// later line of the same second moves up, as its place in the note does.
+    public func delete(_ meeting: Meeting, lines places: Set<Place>) throws {
         let note = URL(fileURLWithPath: meeting.path)
         try transaction {
-            let before = (people: try people(meeting.id), lines: try lines(meeting.id))
-            try body()
-            let after = (people: try people(meeting.id), lines: try lines(meeting.id))
-            let text = try String(contentsOf: note, encoding: .utf8)
-            let changed = MeetingPage.relabelled(text, before: before, after: after)
-            if changed != text { try Data(changed.utf8).write(to: note, options: .atomic) }
+            let text: String
+            do { text = try String(contentsOf: note, encoding: .utf8) } catch { throw NoteNotChanged(path: meeting.path, reason: error.localizedDescription) }
+            let (kept, removed) = MeetingPage.removing(places, from: text, lines: try lines(meeting.id))
+            for place in removed {
+                for table in ["lines", "samples"] {
+                    try sqlite.run("DELETE FROM \(table) WHERE meeting = ? AND timestamp = ? AND ord = ?", [meeting.id, place.timestamp, place.order])
+                }
+            }
+            for timestamp in Set(removed.map(\.timestamp)) {
+                let left = try sqlite.rows("SELECT ord FROM lines WHERE meeting = ? AND timestamp = ? ORDER BY ord", [meeting.id, timestamp]) { $0.int(0) }
+                // In order, each to a place already free.
+                for (order, old) in left.enumerated() where order != old {
+                    for table in ["lines", "samples"] {
+                        try sqlite.run("UPDATE \(table) SET ord = ? WHERE meeting = ? AND timestamp = ? AND ord = ?", [order, meeting.id, timestamp, old])
+                    }
+                }
+            }
+            guard kept != text else { return }
+            do { try Data(kept.utf8).write(to: note, options: .atomic) } catch { throw NoteNotChanged(path: meeting.path, reason: error.localizedDescription) }
         }
     }
 
@@ -224,8 +365,11 @@ public final class MeetingStore {
         try sqlite.transaction(body)
     }
 
-    // Later parts (voice prints, import) add tables with CREATE IF NOT EXISTS; schema_version marks the layout.
-    private static let schema = [
+    /// Version 1's layout; later versions are `upgrades`.
+    static let schema = [
+        // Runs on every open. Deleted voice samples are overwritten; macOS's default (FAST) leaves freed pages as they were.
+        "PRAGMA secure_delete = ON",
+        lineVoices,
         """
         CREATE TABLE IF NOT EXISTS meetings (
           id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, title TEXT, app TEXT, start REAL NOT NULL, duration REAL, you TEXT)
@@ -239,4 +383,32 @@ public final class MeetingStore {
         "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)",
         "INSERT INTO schema_version (version) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_version)",
     ]
+
+    /// Version 2 (voices design §7): persons, voice samples, talk time and words per line. Names already given, and labels
+    /// that are names, become persons: one per name the same ignoring case, accents and script, spelled as in the newest
+    /// meeting. Each meeting's "you" row is You and keeps its name for that note; a linked row's name is its person's.
+    static let upgrades = ["""
+        CREATE TABLE persons (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, you INTEGER NOT NULL DEFAULT 0);
+        ALTER TABLE people ADD COLUMN person INTEGER;
+        ALTER TABLE people ADD COLUMN recognised INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE lines ADD COLUMN words INTEGER;
+        ALTER TABLE lines ADD COLUMN seconds REAL;
+        CREATE TABLE samples (
+          meeting INTEGER NOT NULL, timestamp TEXT NOT NULL, ord INTEGER NOT NULL, vector BLOB NOT NULL,
+          PRIMARY KEY (meeting, timestamp, ord));
+        CREATE TABLE declined (meeting INTEGER NOT NULL, key TEXT NOT NULL, person INTEGER NOT NULL, PRIMARY KEY (meeting, key, person));
+        INSERT INTO persons (you) VALUES (1);
+        UPDATE people SET person = (SELECT id FROM persons WHERE you = 1)
+          WHERE key = (SELECT you FROM meetings WHERE meetings.id = people.meeting);
+        INSERT INTO persons (name)
+          SELECT name FROM (
+            SELECT COALESCE(people.name, people.key) AS name, max(meetings.start)
+            FROM people JOIN meetings ON meetings.id = people.meeting
+            WHERE people.person IS NULL AND name_key(COALESCE(people.name, people.key)) IS NOT NULL
+            GROUP BY name_key(COALESCE(people.name, people.key)));
+        UPDATE people SET person = (
+            SELECT persons.id FROM persons WHERE persons.you = 0 AND name_key(persons.name) = name_key(COALESCE(people.name, people.key)))
+          WHERE person IS NULL;
+        UPDATE people SET name = NULL WHERE person IN (SELECT id FROM persons WHERE you = 0)
+        """]
 }

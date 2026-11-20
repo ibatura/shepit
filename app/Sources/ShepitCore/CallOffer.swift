@@ -90,6 +90,8 @@ public struct CallOffer: Sendable {
         case pending
         /// `next` nil: waiting for the answer.
         case checkingMeet(next: Date?)
+        /// Confirmed while the last transcript was finishing: offered once it has.
+        case held
         case offered(since: Date)
         /// Nothing more to show for this call.
         case quiet
@@ -141,13 +143,13 @@ public struct CallOffer: Sendable {
         guard let call, let app = call.app, call.releasedAt == nil else { return nil }
         switch call.phase {
         case .offered, .quiet: return Current(name: call.name, app: app)
-        case .pending, .checkingMeet: return nil
+        case .pending, .checkingMeet, .held: return nil
         }
     }
 
     /// Whether time alone can change anything: without it no timer needs to run.
     public var needsTick: Bool {
-        (call.map { $0.phase != .quiet || $0.releasedAt != nil } ?? false) || session?.endingSince != nil || ready != nil
+        (call.map { ($0.phase != .quiet && $0.phase != .held) || $0.releasedAt != nil } ?? false) || session?.endingSince != nil || ready != nil
     }
 
     public mutating func handle(_ event: Event, at now: Date, settings: Settings) -> [Effect] {
@@ -224,6 +226,7 @@ public struct CallOffer: Sendable {
                 ready = (now + Self.readySeconds, detail)
             }
             session = nil
+            if call?.phase == .held { effects += offer(now, settings) }
         case .tick:
             break
         }
@@ -242,10 +245,15 @@ public struct CallOffer: Sendable {
         return .start(title: call?.name, app: app)
     }
 
-    /// The call is confirmed: offer it, unless offers are off or a transcript already runs.
+    /// The call is confirmed: offer it, unless offers are off or a transcript already runs. A transcript that is finishing
+    /// no longer records: the call waits for it, back-to-back calls (the author, 2026-11-19).
     private mutating func offer(_ now: Date, _ settings: Settings) -> [Effect] {
         if session?.endingSince != nil { session?.end = .open } // a new call while the stop countdown runs: the transcript goes on
         if session?.awaitsCall == true { session?.ours = true }
+        if session?.end == .stopping {
+            call?.phase = .held
+            return []
+        }
         guard settings.callOffer, session == nil else {
             call?.phase = .quiet
             return session == nil ? [.lookForName] : [] // Home still offers Start for the call, with its name
@@ -320,11 +328,13 @@ public struct CallOffer: Sendable {
 }
 
 extension CallOffer {
-    /// The line of the "Transcript ready" panel: "Weekly sync · 42 min · 3 people".
-    public static func readyDetail(title: String?, duration: TimeInterval, speakers: Int?) -> String {
+    /// The line of the "Transcript ready" panel: "42 min · 3 people · Weekly sync". The title goes last: the panel has
+    /// one line, and a long title cut the numbers off (the author, 2026-11-20).
+    public static func readyDetail(title: String?, duration: TimeInterval, speakers: Int?, recognised: Int = 0) -> String {
         let minutes = max(1, Int((duration / 60).rounded()))
         let people = speakers.flatMap { $0 > 0 ? "\($0) \($0 == 1 ? "person" : "people")" : nil }
-        return [title, "\(minutes) min", people].compactMap { $0 }.joined(separator: " · ")
+        let known = recognised > 0 ? "\(recognised) recognised" : nil // voices design §9
+        return ["\(minutes) min", people, known, title].compactMap { $0 }.joined(separator: " · ")
     }
 }
 

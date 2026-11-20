@@ -325,6 +325,12 @@ struct SettingsTests {
         #expect(settings?.meetingHotkey == nil)
     }
 
+    @Test func rememberVoicesIsOffByDefaultAndABoolean() {
+        #expect(validateSettings([:]).0?.rememberVoices == false)
+        #expect(validateSettings(["rememberVoices": true]).0?.rememberVoices == true)
+        #expect(validateSettings(["rememberVoices": "yes"]).1 == [#"settings.json: "rememberVoices" must be a boolean"#])
+    }
+
     @Test func appearanceAndMeetingHotkeyValuesAreAccepted() {
         for theme in ["system", "light", "dark"] { #expect(validateSettings(["theme": theme]).0?.theme == theme) }
         for color in AccentColor.allCases { #expect(validateSettings(["accentColor": color.rawValue]).0?.accentColor == color) }

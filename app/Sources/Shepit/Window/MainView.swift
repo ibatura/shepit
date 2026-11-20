@@ -49,7 +49,10 @@ struct MainView: View {
         case .dictionary:
             DictionarySection(model: model, actions: actions)
         case .people:
-            Placeholder(section: .people, text: "Saved voices come in a later version.")
+            PeopleView(model: sections.people, settings: model) {
+                navigation.section = .meetings
+                sections.meetings.selection = .meeting($0)
+            }
         case .statistics:
             StatisticsView(model: sections.statistics, settings: model) { navigation.openSettings(.historyPrivacy) }
         case .settings:
@@ -86,16 +89,6 @@ private struct RecordingCard: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
-    }
-}
-
-/// A section that is not built yet.
-private struct Placeholder: View {
-    let section: WindowSection
-    let text: String
-
-    var body: some View {
-        ContentUnavailableView(section.rawValue, systemImage: section.symbol, description: Text(text))
     }
 }
 

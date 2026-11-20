@@ -85,6 +85,7 @@ Terms as chips, replace rules as a two-column list, drop phrases as chips, and a
 
 ### 5.5 People
 The "Remember voices" switch with its explanation, the list of saved voices (name, number of meetings, last seen, Delete), and "Delete all voices…".
+Built in part 5 as a section of everyone named in meetings: `../2026-11-17-voices-design.md`.
 
 ### 5.6 Statistics
 The same tiles and charts as today (`2026-10-18-native-app/05-statistics.md`), in this style. Added (decided 2026-11-11):
@@ -143,7 +144,7 @@ One panel style for everything Shepit shows on its own: a small rounded card in 
 | Call started, automatic start off | name (or "Zoom call"), app, "hides in N s" | `callOfferSeconds`; none when 0 | Start transcript · Not this call | The panel hides. The call counts as dismissed |
 | Call started, automatic start on | name, app, "transcript starts in N s" | `callAutoStartSeconds` | Start now · Don't record | The transcript starts |
 | Call ended while recording | "Call ended", "transcript stops in N s" | `callAutoStopSeconds` | Keep recording · Stop now | The transcript stops |
-| Transcript ready | name, duration, people | none | Name people · Close | Hides after a few seconds |
+| Transcript ready | duration, people, recognised, name (the name last: a long one cuts only itself off) | none | Name people · Close | Hides after a few seconds |
 
 - "Not this call", "Don't record" and a hidden offer apply to this call only. A transcript can still be started from the menu or the window.
 - Start from the panel doesn't open the name dialog. The name shown in the panel is used; it can be changed later in the window.

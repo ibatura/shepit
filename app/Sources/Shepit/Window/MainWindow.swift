@@ -55,13 +55,15 @@ struct WindowSections {
     let meetings: MeetingsModel
     let dictations: DictationsModel
     let statistics: StatisticsModel
+    let people: PeopleModel
 
     func reload(_ section: WindowSection) {
         switch section {
         case .meetings: meetings.reload()
         case .dictations: dictations.reload()
         case .statistics: statistics.reload()
-        case .home, .dictionary, .people, .settings: break
+        case .people: people.reload()
+        case .home, .dictionary, .settings: break
         }
     }
 
@@ -126,6 +128,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
     func meetingAdded(_ id: Int) {
         sections.meetings.added(id)
         reload(.meetings)
+        reload(.people)
     }
 
     /// The data of `section` changed (a meeting added, a dictation kept or deleted): the open window reads it again if

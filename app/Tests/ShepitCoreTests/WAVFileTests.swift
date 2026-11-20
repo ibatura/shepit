@@ -16,4 +16,14 @@ struct WAVFileTests {
         #expect(back.count == samples.count)
         #expect(zip(back, samples).allSatisfy { abs($0 - $1) < 0.0001 })
     }
+
+    @Test func partsAreReadOneAfterAnotherAndNothingPastTheEnd() throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: "\(UUID().uuidString).wav")
+        defer { try? FileManager.default.removeItem(at: file) }
+        try WAV.data(samples: (0..<10).map { Float($0) / 10 }).write(to: file)
+        let parts = try WAV.read(file, [2..<4, 7..<12])
+        #expect(parts.count == 5)
+        #expect(zip(parts, [0.2, 0.3, 0.7, 0.8, 0.9] as [Float]).allSatisfy { abs($0 - $1) < 0.0001 })
+        #expect(try WAV.read(file, [20..<30]).isEmpty)
+    }
 }

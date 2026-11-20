@@ -39,24 +39,39 @@ struct MeetingsModelTests {
         try String(contentsOf: file, encoding: .utf8).components(separatedBy: "\n").filter { $0.hasPrefix("[") }
     }
 
-    @Test func aNameAnotherPersonHasAsksToMergeFirst() throws {
+    @Test func aNameAnotherPersonHasAsksToMergeFirst() async throws {
         let (model, store, id, file, dir) = try rig()
         defer { try? FileManager.default.removeItem(at: dir) }
-        model.name(id, person: "Person 1", typed: "Olena")
-        model.name(id, person: "Person 2", typed: "olena")
+        await model.name(id, person: "Person 1", typed: "Olena")
+        await model.name(id, person: "Person 2", typed: "olena")
         #expect(model.question == .merge(meeting: id, person: "Person 2", into: "Person 1", name: "olena"))
         #expect(try store.people(id).first { $0.key == "Person 2" }?.name == nil) // nothing yet
-        model.answer(model.question!, yes: false)
+        await model.answer(model.question!, yes: false)
         #expect(model.cancels == 1) // the name fields drop the typed name
         #expect(try headers(file)[2] == "[Person 2] 2026-07-31 10:00:05")
-        model.name(id, person: "Person 2", typed: "Olena")
-        model.answer(model.question!, yes: true)
+        await model.name(id, person: "Person 2", typed: "Olena")
+        await model.answer(model.question!, yes: true)
         #expect(model.question == nil)
         #expect(try headers(file)[2] == "[Olena] 2026-07-31 10:00:05")
         #expect(try store.lines(id).map(\.current) == ["Ivan", "Person 1", "Person 1", "Person 1"])
     }
 
-    @Test func aNoteThatCannotBeWrittenChangesNothing() throws {
+    @Test func aLineIsDeletedAtOnceAndAllOfAPersonsLinesAfterTheQuestion() async throws {
+        let (model, store, id, file, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        await model.delete(id, lines: [.init(timestamp: "2026-07-31 10:00:05", order: 0)])
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01", "[Person 1] 2026-07-31 10:00:03", "[Person 1] 2026-07-31 10:00:07"])
+        let theirs: Set<MeetingNote.Place> = [.init(timestamp: "2026-07-31 10:00:03", order: 0), .init(timestamp: "2026-07-31 10:00:07", order: 0)]
+        model.question = .deleteLines(meeting: id, name: "Person 1", lines: theirs)
+        await model.answer(model.question!, yes: false)
+        #expect(try headers(file).count == 3)
+        model.question = .deleteLines(meeting: id, name: "Person 1", lines: theirs)
+        await model.answer(model.question!, yes: true)
+        #expect(try headers(file) == ["[Ivan] 2026-07-31 10:00:01"])
+        #expect(try store.lines(id).map(\.current) == ["Ivan"])
+    }
+
+    @Test func aNoteThatCannotBeWrittenChangesNothing() async throws {
         let (model, store, id, file, dir) = try rig()
         defer {
             try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path)
@@ -70,24 +85,34 @@ struct MeetingsModelTests {
         try store.relink(id, path: locked.path)
         model.reload()
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: notes.path) // no temp file, no rename
-        model.name(id, person: "Person 1", typed: "Olena")
+        await model.name(id, person: "Person 1", typed: "Olena")
         #expect(model.notice?.title == "Can't change n.md")
         #expect(try store.people(id).first { $0.key == "Person 1" }?.name == nil)
         #expect(try headers(locked)[1] == "[Person 1] 2026-07-31 10:00:03")
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: notes.path)
     }
 
-    @Test func removeFromListKeepsTheNote() throws {
+    @Test func aNoteGoneSinceItWasOpenedChangesNothing() async throws {
+        let (model, store, id, file, dir) = try rig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.removeItem(at: file)
+        await model.name(id, person: "Person 1", typed: "Olena")
+        #expect(model.notice?.title == "Can't change n.md")
+        #expect(try store.people(id).first { $0.key == "Person 1" }?.name == nil)
+        #expect(model.missing.contains(id))
+    }
+
+    @Test func removeFromListKeepsTheNote() async throws {
         let (model, store, id, file, dir) = try rig()
         defer { try? FileManager.default.removeItem(at: dir) }
         model.selection = .meeting(id)
-        model.answer(.remove(try #require(model.meetings.first)), yes: true)
+        await model.answer(.remove(try #require(model.meetings.first)), yes: true)
         #expect(try store.meetings().isEmpty)
         #expect(model.selection == nil)
         #expect(FileManager.default.fileExists(atPath: file.path))
     }
 
-    @Test func theFinishedTranscriptStaysChosenAndNamePeopleOpensIt() throws {
+    @Test func theFinishedTranscriptStaysChosenAndNamePeopleOpensIt() async throws {
         let (model, _, id, _, dir) = try rig()
         defer { try? FileManager.default.removeItem(at: dir) }
         model.selection = .running

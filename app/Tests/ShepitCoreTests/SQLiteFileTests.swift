@@ -46,4 +46,12 @@ struct SQLiteFileTests {
         #expect(try read("SELECT a FROM t ORDER BY a") == [1, 2])
         #expect(try read("SELECT version FROM schema_version") == [2])
     }
+
+    @Test func aTextFunctionIsCalledFromSQLAndNullStaysNull() throws {
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let sqlite = SQLiteFile(file: file, schema: ["CREATE TABLE IF NOT EXISTS t (a TEXT)"],
+                                functions: ["twice": { $0.isEmpty ? nil : $0 + $0 }])
+        try sqlite.run("INSERT INTO t (a) VALUES ('ab'), (''), (NULL)")
+        #expect(try sqlite.rows("SELECT twice(a) FROM t ORDER BY rowid") { $0.text(0) ?? "NULL" } == ["abab", "NULL", "NULL"])
+    }
 }
