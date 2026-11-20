@@ -188,7 +188,7 @@ Design: `docs/superpowers/specs/2026-11-20-import-names-design.md`. With the `.v
 | I7 | A Zoom `.vtt` of a Zoom call | As I1 | Waits for a Zoom call: the store has no Zoom meeting with its file |
 | I8 | After an import | The file's path and text are in no database, setting or log | ✅ 2026-11-21, read-only: no `.vtt` name and no `Downloads/` path in the three databases, `meeting-names.json`, `dictionary.json`, `settings.json`, Shepit's preferences, the 60 meeting notes or Shepit's log of the last 2 days |
 | I9 | Type a name in the sheet and click Apply names at once | The name is saved | ✅ 2026-11-20 |
-| I10 | Hover over Import names… (Shepit's window active) | A hint says what it is for, after a quarter of a second | 2026-11-21: too slow with macOS's delay; Shepit now shows hints after 0.25 s |
+| I10 | Hover over Import names… (Shepit's window active) | A hint says what it is for, after a quarter of a second | ✅ 2026-11-21, after hints were made to show at 0.25 s (macOS's delay was too slow) |
 
 ## Version
 
@@ -196,4 +196,4 @@ Date: 2026-11-21
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
-| A1 | Install; 🎙 → About Shepit (and Shepit → About Shepit while the window is open) | macOS's About panel: Shepit, "Version 0.2.0 (…)" with the commit `git rev-parse --short HEAD` gives | |
+| A1 | Install; 🎙 → About Shepit (and Shepit → About Shepit while the window is open) | macOS's About panel: Shepit, "Version 0.2.0 (…)" with the commit `git rev-parse --short HEAD` gives | ✅ 2026-11-21: "Version 0.2.0 (7ea3925)", the installed Info.plist says the same |
