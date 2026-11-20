@@ -481,7 +481,9 @@ struct CallOfferTests {
     }
 
     @Test func readyDetailTexts() {
-        #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 42 * 60 + 10, speakers: 3) == "Weekly sync · 42 min · 3 people")
+        #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 42 * 60 + 10, speakers: 3) == "42 min · 3 people · Weekly sync")
+        // The title goes last, so a long one cuts only itself off the panel's one line.
+        #expect(CallOffer.readyDetail(title: "Weekly sync", duration: 600, speakers: 4, recognised: 1) == "10 min · 4 people · 1 recognised · Weekly sync")
         #expect(CallOffer.readyDetail(title: nil, duration: 20, speakers: 1) == "1 min · 1 person")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: nil) == "10 min")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 0) == "10 min")

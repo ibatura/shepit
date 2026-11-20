@@ -133,7 +133,7 @@ Renaming a person changes one row; merging moves the `people` rows of one person
 ## 9. Elsewhere in the app
 
 - **Meetings section:** "recognised by voice" under a recognised person's name; the name suggestions also list the People section's people.
-- **Transcript ready panel:** the detail adds "2 recognised" after the people ("55 min · 4 people · 2 recognised") when some were.
+- **Transcript ready panel:** the detail adds "2 recognised" after the people ("55 min · 4 people · 2 recognised · Weekly sync") when some were. The meeting's name goes last (the author, 2026-11-20): the panel has one line, and a 48-character name cut "1 recognised" off.
 - **Home:** unchanged.
 - **Settings:** `rememberVoices` is set in the People section; History and privacy gets a line pointing there.
 - **README:** what a voice print is, where it is, how to delete it. **uninstall.sh --purge** already deletes `meetings.sqlite`.
