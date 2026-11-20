@@ -199,6 +199,7 @@ private struct FinishedMeeting: View {
                             .overlay { if model.importBusy { ProgressView().controlSize(.small) } }
                     }
                     .disabled(missing || model.importBusy)
+                    .help("Name the people from the transcript Teams or Zoom saved of this call (a .vtt file)")
                     Menu {
                         MeetingMenu(model: model, actions: actions, meeting: meeting, missing: missing)
                     } label: {
