@@ -31,6 +31,9 @@ struct MainView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .navigationTitle(navigation.section.rawValue)
+            .toolbar {
+                ToolbarItemGroup(placement: .navigation) { BackForwardButtons(navigation: navigation) }
+            }
         }
     }
 
@@ -58,6 +61,26 @@ struct MainView: View {
         case .settings:
             SettingsView(model: model, actions: actions, section: $navigation.settingsSection)
         }
+    }
+}
+
+/// ‹ and ›, ⌘[ and ⌘], with a hint on where each goes (back and forward design §6). Every change of place is recorded
+/// here too: in a view of its own, a new choice in a section (and the meeting clock, read for a step to the running
+/// transcript) redraws these two buttons, not the whole window.
+private struct BackForwardButtons: View {
+    let navigation: WindowNavigation
+
+    var body: some View {
+        Button(action: navigation.back) { Label("Back", systemImage: "chevron.left") }
+            .disabled(!navigation.canGoBack)
+            .help(navigation.backHint)
+            .keyboardShortcut("[", modifiers: .command)
+            // initial: the window can first appear on a place set while it was closed (Settings… from the menu).
+            .onChange(of: navigation.place, initial: true) { navigation.visit($1) }
+        Button(action: navigation.forward) { Label("Forward", systemImage: "chevron.right") }
+            .disabled(!navigation.canGoForward)
+            .help(navigation.forwardHint)
+            .keyboardShortcut("]", modifiers: .command)
     }
 }
 
