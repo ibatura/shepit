@@ -146,6 +146,19 @@ app/Tests/ShepitTests/
 - [ ] **If ⌘[ doesn't reach the buttons while a name field has focus,** tell the author before adding a menu item for it.
 - [ ] Commit `Shepit: back and forward arrows in the window`.
 
+### Task 3b: GATE: the sidebar collapsed to its icons (spec §10, with the author)
+
+- [ ] **Render first.** A scratch test puts `MainView` in an `NSWindow` with today's style mask and captures the window's frame view (`cacheDisplay`) to a PNG in the scratchpad. Check where the window buttons, the sidebar button, the arrows and the title sit, full and collapsed, in light and dark. Delete the test before the commit.
+- [ ] **`WindowNavigation.sidebarCollapsed`**: kept in `UserDefaults` under `sidebarCollapsed`. Extend `theWindowRemembersItsSections`.
+- [ ] **`MainView`**:
+  - an `HStack` of the sidebar list (190 pt, or about 52 pt collapsed), a `Divider` and the section, in place of `NavigationSplitView`;
+  - the rows use `.labelStyle(.iconOnly)` and their name as `.help` when collapsed;
+  - one toolbar: `ToolbarItemGroup(placement: .navigation)` with the sidebar button (`sidebar.left`, ⌃⌘S, a hint) and `BackForwardButtons`;
+  - `.navigationTitle` stays the section's name.
+- [ ] **`RecordingCard`**: collapsed, a red dot button with `.help` of the card's headline and detail.
+- [ ] `make test`, then ask before installing; the author checks B10–B13 and picks the arrows' place.
+- [ ] Commit `Shepit: a sidebar that collapses to its icons`.
+
 ### Task 4: Docs and version
 
 - [ ] **README:** a line on the arrows and keys, after the line on the recording card.
@@ -158,7 +171,7 @@ app/Tests/ShepitTests/
   - the Next list;
   - the test count.
 - [ ] **Version:**
-  - ask the author for the number;
+  - 0.3.0 (the author, 2026-11-22);
   - raise `CFBundleShortVersionString` in `app/Resources/Info.plist`;
   - write `docs/releases/<version>.md`.
 - [ ] Commit `Docs: back and forward; version <version>`.

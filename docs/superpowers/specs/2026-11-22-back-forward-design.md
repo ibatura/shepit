@@ -137,3 +137,29 @@ A **place** is one of these:
 - Merge into… choosing the other person is a step, because the place changes. Back from it skips the merged person.
 - ↑↓ through the meetings list makes a step for each meeting, which follows "each choice is a step".
 - ⌘[ and ⌘] belong to the arrows, not to a menu: the app menu has no Go menu, and one isn't needed for two keys.
+
+## 10. The sidebar collapsed to its icons (added 2026-11-22)
+
+The author asked for this after trying the arrows on the installed app, and decided the points below the same day. It goes on this branch, and the branch becomes version 0.3.0.
+
+- **The sidebar button** switches the sidebar between full and a narrow column of the sections' icons; the sidebar is no longer hidden altogether. In the narrow column, each icon's hint is its section's name.
+- **The window remembers** which of the two it shows, in the app's preferences as it remembers the section, not in `settings.json`.
+- **The recording card**, collapsed, is a red dot. Its hint has the card's text ("Recording 12:34 · Weekly sync"), and a click opens the running transcript in Meetings, as the card does.
+- **The arrows** go next to the sidebar button, in the bar above the sidebar, as in the Claude desktop app. The author compares that with today's place (left of the section's name) on the installed app and picks.
+
+**How.** SwiftUI's `NavigationSplitView` can only hide its sidebar. A sidebar column narrower than the window's three buttons would leave them over the section's own toolbar. So the window gets a sidebar of its own:
+- an `HStack` of the sidebar list (190 pt, or about 52 pt with icons only), a divider and the section;
+- under one toolbar: the window buttons, the sidebar button, ‹ and ›, then the section's name.
+
+The plan checks the layout with a render before building on it.
+
+**Manual checks** B10–B13:
+- **B10:** the sidebar button gives icons only, with each name as a hint, and back. A click on an icon opens its section, and ⌃⌘S does the same as the button.
+- **B11:** quit and launch Shepit with the sidebar collapsed: it is still collapsed.
+- **B12:** during a recording, collapsed: the red dot, its hint with the time and name, and a click opens the running transcript.
+- **B13:** the arrows' place, compared with the place they had in v0.3.0's first try (left of the section's name).
+
+**My calls** (not confirmed one by one):
+- ⌃⌘S switches the sidebar, the key macOS gives Toggle Sidebar in Mail and SwiftUI apps.
+- The icons keep their size; the divider above Settings stays.
+- No animation beyond SwiftUI's default.
