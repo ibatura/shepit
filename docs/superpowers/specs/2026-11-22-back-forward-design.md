@@ -1,7 +1,7 @@
 # Main window, part 7: Back and forward
 
 Date: 2026-11-22
-Status: The author's decisions are in §2 (2026-11-22). The spec as a whole waits for the author's yes.
+Status: Approved by the author on 2026-11-22, with the decisions in §2.
 Build order: item 14 in `docs/future-ideas.md` ("Planned, in this order"), moved first by the author on 2026-11-22. Branch `back-forward`. The version is agreed with the author before the pull request.
 Builds on: `2026-11-13-window-shell-design.md` ("the shell spec": the sidebar, the title bar shows the section's name, window state is in the app's preferences), `2026-11-14-meetings-design.md` (Meetings, the running transcript) and `2026-11-17-voices-design.md` (People, a person's meetings).
 
