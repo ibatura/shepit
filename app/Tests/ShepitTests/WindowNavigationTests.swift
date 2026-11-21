@@ -14,9 +14,15 @@ struct WindowNavigationTests {
         let people: PeopleModel
         let store: MeetingStore
         let dir: URL
+        let suite: String
         /// Meeting 1 "Daily sync" with Olena and Marko, meeting 2 with Olena.
         let one: Int, two: Int
         let olena: Int, marko: Int
+
+        func clean() {
+            try? FileManager.default.removeItem(at: dir)
+            UserDefaults().removePersistentDomain(forName: suite)
+        }
 
         /// What `MainView` does after a change of place.
         func go(_ change: () -> Void) {
@@ -44,19 +50,20 @@ struct WindowNavigationTests {
         try store.setName(ids[0], person: "Person 1", to: "Olena")
         try store.setName(ids[0], person: "Person 2", to: "Marko")
         try store.setName(ids[1], person: "Person 1", to: "Olena")
-        let defaults = try #require(UserDefaults(suiteName: "window-navigation-\(UUID().uuidString)"))
+        let suite = "window-navigation-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
         let meetings = MeetingsModel(store: store, settings: { .defaults }, defaults: defaults)
         let people = PeopleModel(store: store, settings: { .defaults }, defaults: defaults)
         meetings.reload()
         people.reload()
         let olena = try #require(try store.people(ids[0])[1].person), marko = try #require(try store.people(ids[0])[2].person)
         return Rig(navigation: WindowNavigation(meetings: meetings, people: people, defaults: defaults), meetings: meetings,
-                   people: people, store: store, dir: dir, one: ids[0], two: ids[1], olena: olena, marko: marko)
+                   people: people, store: store, dir: dir, suite: suite, one: ids[0], two: ids[1], olena: olena, marko: marko)
     }
 
     @Test func thePlaceIsTheSectionAndItsChoice() throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         #expect(r.navigation.place == .section(.home))
         r.navigation.section = .people
         r.people.selection = r.olena
@@ -69,7 +76,7 @@ struct WindowNavigationTests {
 
     @Test func backAndForwardShowTheStepWithItsChoice() throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         r.go { r.navigation.section = .people; r.people.selection = r.olena }
         r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.two) } // Open in Meetings
         r.navigation.back()
@@ -87,7 +94,7 @@ struct WindowNavigationTests {
 
     @Test func aRemovedMeetingIsSkipped() throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
         r.go { r.navigation.section = .people; r.people.selection = r.olena }
         try r.store.remove(r.one)
@@ -97,7 +104,7 @@ struct WindowNavigationTests {
 
     @Test func aMergedPersonIsSkipped() async throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         r.go { r.navigation.section = .people; r.people.selection = r.marko }
         let marko = try #require(r.people.people.first { $0.id == r.marko })
         let olena = try #require(r.people.people.first { $0.id == r.olena })
@@ -111,7 +118,7 @@ struct WindowNavigationTests {
     /// People's list still has Marko: it is read only when the section appears.
     @Test func aPersonLeftWithNoLinesByAnEditInMeetingsIsSkipped() throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         r.go { r.navigation.section = .people; r.people.selection = r.marko }
         r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
         try r.store.give(r.one, line: try r.store.lines(r.one)[2].place, to: "Person 1") // his only line
@@ -122,7 +129,7 @@ struct WindowNavigationTests {
 
     @Test func theRunningTranscriptsStepsBecomeTheMeetings() throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         r.meetings.setLive(LiveMeeting(state: .recording(elapsed: 1, waiting: 0)))
         r.go { r.navigation.section = .meetings; r.meetings.selection = .running } // the recording card
         r.go { r.navigation.section = .home }
@@ -136,7 +143,7 @@ struct WindowNavigationTests {
 
     @Test func aRunningTranscriptThatWasNotListedIsSkipped() throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         r.meetings.setLive(LiveMeeting(state: .recording(elapsed: 1, waiting: 0)))
         r.go { r.navigation.section = .meetings; r.meetings.selection = .running }
         r.go { r.navigation.section = .dictations }
@@ -147,7 +154,7 @@ struct WindowNavigationTests {
 
     @Test func theHintsSayWhereTheArrowsGo() throws {
         let r = try rig()
-        defer { try? FileManager.default.removeItem(at: r.dir) }
+        defer { r.clean() }
         #expect(r.navigation.backHint == "Back")
         #expect(r.navigation.forwardHint == "Forward")
         r.go { r.navigation.openSettings(.engines) }

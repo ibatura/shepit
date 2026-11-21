@@ -116,11 +116,15 @@ final class WindowNavigation {
     /// A removed meeting, or a person People no longer lists (merged, or left with no lines), is gone. Asked of the
     /// store, since the sections read their lists only when they appear and edits in Meetings can leave People's behind.
     private func exists(_ place: WindowPlace) -> Bool {
-        switch place {
-        case .meetings(.meeting(let id)?): (try? meetings.store.meeting(id)) != nil
-        case .meetings(.running?): meetings.live != nil
-        case .people(let id?): (try? meetings.store.lists(person: id)) == true
-        case .section, .meetings(nil), .people(nil), .settings: true
+        do {
+            switch place {
+            case .meetings(.meeting(let id)?): return try meetings.store.meeting(id) != nil
+            case .meetings(.running?): return meetings.live != nil
+            case .people(let id?): return try meetings.store.lists(person: id)
+            case .section, .meetings(nil), .people(nil), .settings: return true
+            }
+        } catch {
+            return true // a failed read is no gone step: the history keeps it
         }
     }
 
