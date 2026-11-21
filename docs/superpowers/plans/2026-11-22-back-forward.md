@@ -89,7 +89,7 @@ app/Tests/ShepitTests/
     - the current step is never tested.
   - **`peekBack(alive:)` and `peekForward(alive:)`:** they return the step a move would reach and change nothing.
   - **`replace(_:with:)`:** every step equal to the first value becomes the second, behind, current and ahead.
-  - **Cap:** after 51 visits, 50 steps lie behind and the oldest is gone. The number is a constant with a comment pointing to spec §2.
+  - **Cap:** after 52 visits, 50 steps lie behind and the first one is gone. The number is a constant with a comment pointing to spec §2.
 - [ ] Implement `BackForward` in `app/Sources/ShepitCore/BackForward.swift`: an optional `current` and two arrays.
 - [ ] Commit `Shepit: a history of steps for back and forward`.
 
