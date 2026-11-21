@@ -175,3 +175,17 @@ app/Tests/ShepitTests/
 ## Open questions to raise when the task starts (not blockers)
 
 - **Task 3:** if the toolbar puts the arrows somewhere other than left of the title (the sidebar toggle shares the area), show the author before moving them.
+
+## Changed after the plan (2026-11-22)
+
+- **Task 2, the alive test asks the store, not the sections' lists.** The lists are read only when a section appears, so they can be behind in three ways:
+  - a meeting added while Meetings wasn't shown (the running transcript's steps become it);
+  - a list never read in this run (the window opened on another section from the menu);
+  - People's list after an edit in Meetings.
+
+  `PeopleModel.reloadIfChanged` would have covered only the last. So instead:
+  - a meeting step is alive while `store.meeting(id)` finds it;
+  - a person step while the new `MeetingStore.lists(person:)` says People lists them (a line in some meeting, as `summaries` counts);
+  - the running transcript while `meetings.live` isn't nil.
+
+  These are single-row reads, made for the arrows' state and hints too. The hints take a person's name from People's list, and say just "People" while the list is unread.

@@ -98,6 +98,14 @@ extension MeetingStore {
         }
     }
 
+    /// Whether People lists `person`: they have a line in some meeting, as in `summaries` (back and forward design §5).
+    public func lists(person: Int) throws -> Bool {
+        try sqlite.rows("""
+            SELECT EXISTS (SELECT 1 FROM people JOIN lines ON lines.meeting = people.meeting AND lines.current = people.key
+              WHERE people.person = ?)
+            """, [person]) { $0.int(0) == 1 }.first ?? false
+    }
+
     /// The meetings a person is in, newest first.
     public func meetings(of person: Int) throws -> [Meeting] {
         try meetings("WHERE id IN (SELECT meeting FROM people WHERE person = ?) ORDER BY start DESC, id DESC", [person])
