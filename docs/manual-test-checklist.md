@@ -190,6 +190,28 @@ Design: `docs/superpowers/specs/2026-11-20-import-names-design.md`. With the `.v
 | I9 | Type a name in the sheet and click Apply names at once | The name is saved | ✅ 2026-11-20 |
 | I10 | Hover over Import names… (Shepit's window active) | A hint says what it is for, after a quarter of a second | ✅ 2026-11-21, after hints were made to show at 0.25 s (macOS's delay was too slow) |
 
+## Main window: Back and forward
+
+Date: 2026-11-22
+
+Design: `docs/superpowers/specs/2026-11-22-back-forward-design.md`.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| B1 | People → a person → Open in Meetings on one of their meetings → ‹ | People with that person chosen | ✅ 2026-11-22: "it all works", the author on the installed app |
+| B2 | Then › | The meeting again | ✅ 2026-11-22 |
+| B3 | B1–B2 with ⌘[ and ⌘], also with the focus in the meetings list and in a name field | The same | ✅ 2026-11-22 (the name field not confirmed on its own) |
+| B4 | Hover over each arrow | A hint names where it goes ("Back to People: …") | ✅ 2026-11-22 |
+| B5 | Remove a meeting from the list, then go back past it | It is skipped | |
+| B6 | Merge a person into another, then go back | The merged one is skipped | |
+| B7 | Close the window and open it again from the 🎙 menu; then quit and launch Shepit | The arrows still work; after the launch both are greyed | |
+| B8 | In Meetings, 🎙 → Settings… → ‹ | Meetings again | |
+| B9 | Click the recording card, go elsewhere; after Stop, ‹ | The finished meeting, not an empty Meetings | |
+| B10 | The sidebar button, then ⌃⌘S | Icons only, each name as a hint, a click opens the section; back to the full sidebar | ✅ 2026-11-22: the look "fits", after the full sidebar went back to macOS's own |
+| B11 | Collapse the sidebar, quit and launch Shepit | Still collapsed | |
+| B12 | During a recording, collapsed | A red dot; its hint has the time and name; a click opens the running transcript | |
+| B13 | The arrows next to the sidebar button, left of the section's name | The author keeps the place | ✅ 2026-11-22 |
+
 ## Version
 
 Date: 2026-11-21
@@ -197,3 +219,4 @@ Date: 2026-11-21
 | # | Scenario | Expected | Result |
 |---|---|---|---|
 | A1 | Install; 🎙 → About Shepit (and Shepit → About Shepit while the window is open) | macOS's About panel: Shepit, "Version 0.2.0 (…)" with the commit `git rev-parse --short HEAD` gives | ✅ 2026-11-21: "Version 0.2.0 (7ea3925)", the installed Info.plist says the same |
+| A2 | The same after version 0.3.0 is installed | "Version 0.3.0 (…)" | |

@@ -98,6 +98,8 @@ Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open 
 
 While a meeting transcript runs, a card at the top of the sidebar shows its time and name; a click opens it in Meetings.
 
+‹ and › at the top of the window, or ⌘[ and ⌘], go back and forward through the sections and the meeting or person you chose in them, as in a browser; a hint on each arrow says where it goes. The sidebar button next to them, or ⌃⌘S, collapses the sidebar to its icons and back.
+
 ### Dictations in the window
 
 - **Show** at the top picks how far back the list goes: Today, Last 7 days, Last month (the default), Last 3, 6 or 9 months, Last year, All history. The list loads more as you scroll.
