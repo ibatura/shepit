@@ -1,7 +1,7 @@
 # Main window, part 8: Settings review
 
 Date: 2026-11-23
-Status: Complete; waits for the author's approval. Every decision in §2 is the author's (2026-11-23).
+Status: Approved by the author on 2026-11-23. Every decision in §2 is the author's (2026-11-23).
 Build order: item 10 in `docs/future-ideas.md` ("Planned, in this order"), next after back and forward (the author, 2026-11-23). Branch `settings-review`. The version is agreed with the author before the pull request (0.4.0 proposed).
 Builds on: `2026-11-13-window-shell-design.md` (Settings, Home, the 🎙 menu), `2026-11-12-call-offer-design.md` (the offer panel, automatic start and stop), `2026-11-17-statistics-design.md` (the period menu), and the author's remarks under "Every setting reviewed" in `docs/future-ideas.md` (2026-11-16, 2026-11-19, 2026-11-22).
 
