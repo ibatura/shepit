@@ -54,6 +54,8 @@ enum WindowPlace: Equatable {
 final class WindowNavigation {
     var section: WindowSection { didSet { defaults.set(section.rawValue, forKey: "windowSection") } }
     var settingsSection: SettingsModel.Section { didSet { defaults.set(settingsSection.rawValue, forKey: "settingsSection") } }
+    /// The sidebar shows only the sections' icons (back and forward design §10).
+    var sidebarCollapsed: Bool { didSet { defaults.set(sidebarCollapsed, forKey: "sidebarCollapsed") } }
     private var history = BackForward<WindowPlace>()
     @ObservationIgnored private let meetings: MeetingsModel
     @ObservationIgnored private let people: PeopleModel
@@ -66,6 +68,7 @@ final class WindowNavigation {
         self.defaults = defaults
         section = defaults.string(forKey: "windowSection").flatMap(WindowSection.init) ?? .home
         settingsSection = defaults.string(forKey: "settingsSection").flatMap(SettingsModel.Section.init) ?? .general
+        sidebarCollapsed = defaults.bool(forKey: "sidebarCollapsed")
         history.visit(place)
     }
 

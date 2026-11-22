@@ -220,10 +220,12 @@ struct SettingsModelTests {
         }
         #expect(navigation().section == .home)
         #expect(navigation().settingsSection == .general)
+        #expect(!navigation().sidebarCollapsed)
 
         navigation().openSettings(.calls)
+        navigation().sidebarCollapsed = true
         let again = navigation()
-        #expect(again.section == .settings && again.settingsSection == .calls)
+        #expect(again.section == .settings && again.settingsSection == .calls && again.sidebarCollapsed)
 
         defaults.set("Gone", forKey: "windowSection") // a section a later version dropped
         defaults.set("Statistics", forKey: "settingsSection")

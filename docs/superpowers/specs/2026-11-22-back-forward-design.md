@@ -147,11 +147,12 @@ The author asked for this after trying the arrows on the installed app, and deci
 - **The recording card**, collapsed, is a red dot. Its hint has the card's text ("Recording 12:34 · Weekly sync"), and a click opens the running transcript in Meetings, as the card does.
 - **The arrows** go next to the sidebar button, in the bar above the sidebar, as in the Claude desktop app. The author compares that with today's place (left of the section's name) on the installed app and picks.
 
-**How.** SwiftUI's `NavigationSplitView` can only hide its sidebar. A sidebar column narrower than the window's three buttons would leave them over the section's own toolbar. So the window gets a sidebar of its own:
-- an `HStack` of the sidebar list (190 pt, or about 52 pt with icons only), a divider and the section;
-- under one toolbar: the window buttons, the sidebar button, ‹ and ›, then the section's name.
+**How.** SwiftUI's `NavigationSplitView` can only hide its sidebar.
+- **Full:** the sidebar stays macOS's own, as before.
+- **Collapsed:** that sidebar is hidden, and a 52-pt column of the sections' icons, with the recording dot on top, opens the section's side.
+- **The bar:** one toolbar holds the window's buttons, the sidebar button, ‹ and ›, and the section's name. macOS's own sidebar button is removed.
 
-The plan checks the layout with a render before building on it.
+The first try was a sidebar of Shepit's own for both states, under one toolbar strip. The author saw it on the installed app (2026-11-22) and said it looked like a panel from elsewhere and should fit the design. So the full sidebar went back to macOS's own.
 
 **Manual checks** B10–B13:
 - **B10:** the sidebar button gives icons only, with each name as a hint, and back. A click on an icon opens its section, and ⌃⌘S does the same as the button.
