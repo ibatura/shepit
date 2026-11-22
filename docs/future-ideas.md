@@ -102,7 +102,7 @@ Found by the reviews of the branch and not changed: the author had all eight pic
 
 Found by the reviews of the branch and not changed: the author had all five points of the thermo-nuclear review and all six of `/code-review` fixed (one not a bug); `/security-review` found nothing.
 
-- **Checks with real files.** I1 and I9 passed on 2026-11-20 ("everything works"), I2, I8 and I10 on 2026-11-21; I3 to try again with the `.cc.vtt` file, I4 and I5 are open, I6 waits for names on the 29 Oct meeting; I7 waits for a Zoom call with its `.vtt` (the store has none yet).
+- **Checks with real files.** I1 and I9 passed on 2026-11-20 ("everything works"), I2, I8 and I10 on 2026-11-21; I4 and I5 are open, I6 waits for names on the 29 Oct meeting. I3 (Zoom's `.cc.vtt`) and I7 (a Zoom call with its `.vtt`; the store has none yet) are put off for long (the author, 2026-11-22): "Need to test later" in `docs/manual-test-checklist.md`.
 - **Teams `.docx` and the Meet `.txt` format**: later parts; the Meet format from a sample of the author's.
 - **The numbers were settled on two meetings** (spec §11): lines up when every shift more than a minute away scores below 90% of the best; a match at 50% and 5 s. A transcript of 5 minutes or less may be refused. Look again if real files disagree.
 - **A meeting under a minute** accepts any file: no shift lies a minute away from the best.
