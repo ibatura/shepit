@@ -24,10 +24,14 @@ struct WindowNavigationTests {
             UserDefaults().removePersistentDomain(forName: suite)
         }
 
-        /// What `MainView` does after a change of place.
-        func go(_ change: () -> Void) {
+        /// A change of place, then a wait for the navigation to record it on the main actor's next turn.
+        func go(_ change: () -> Void) async {
             change()
-            navigation.visit(navigation.place)
+            await settle()
+        }
+
+        func settle() async {
+            for _ in 0..<3 { await Task.yield() }
         }
     }
 
@@ -61,7 +65,7 @@ struct WindowNavigationTests {
                    people: people, store: store, dir: dir, suite: suite, one: ids[0], two: ids[1], olena: olena, marko: marko)
     }
 
-    @Test func thePlaceIsTheSectionAndItsChoice() throws {
+    @Test func thePlaceIsTheSectionAndItsChoice() async throws {
         let r = try rig()
         defer { r.clean() }
         #expect(r.navigation.place == .section(.home))
@@ -74,14 +78,13 @@ struct WindowNavigationTests {
         #expect(r.navigation.place == .settings(.engines))
     }
 
-    @Test func backAndForwardShowTheStepWithItsChoice() throws {
+    @Test func backAndForwardShowTheStepWithItsChoice() async throws {
         let r = try rig()
         defer { r.clean() }
-        r.go { r.navigation.section = .people; r.people.selection = r.olena }
-        r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.two) } // Open in Meetings
-        r.navigation.back()
+        await r.go { r.navigation.section = .people; r.people.selection = r.olena }
+        await r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.two) } // Open in Meetings
+        await await r.go { r.navigation.back() } // the place it gives is no new step
         #expect(r.navigation.section == .people && r.people.selection == r.olena)
-        r.navigation.visit(r.navigation.place) // what MainView records: nothing
         #expect(r.navigation.canGoForward)
         r.meetings.selection = .meeting(r.one) // chosen elsewhere meanwhile
         r.navigation.forward()
@@ -92,11 +95,11 @@ struct WindowNavigationTests {
         #expect(!r.navigation.canGoBack)
     }
 
-    @Test func aRemovedMeetingIsSkipped() throws {
+    @Test func aRemovedMeetingIsSkipped() async throws {
         let r = try rig()
         defer { r.clean() }
-        r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
-        r.go { r.navigation.section = .people; r.people.selection = r.olena }
+        await r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
+        await r.go { r.navigation.section = .people; r.people.selection = r.olena }
         try r.store.remove(r.one)
         r.navigation.back()
         #expect(r.navigation.place == .section(.home))
@@ -105,34 +108,34 @@ struct WindowNavigationTests {
     @Test func aMergedPersonIsSkipped() async throws {
         let r = try rig()
         defer { r.clean() }
-        r.go { r.navigation.section = .people; r.people.selection = r.marko }
+        await r.go { r.navigation.section = .people; r.people.selection = r.marko }
         let marko = try #require(r.people.people.first { $0.id == r.marko })
         let olena = try #require(r.people.people.first { $0.id == r.olena })
         await r.people.merge(marko, into: olena)
-        r.go {}
+        await r.go {}
         #expect(r.navigation.place == .people(r.olena))
         r.navigation.back()
         #expect(r.navigation.place == .section(.home))
     }
 
     /// People's list still has Marko: it is read only when the section appears.
-    @Test func aPersonLeftWithNoLinesByAnEditInMeetingsIsSkipped() throws {
+    @Test func aPersonLeftWithNoLinesByAnEditInMeetingsIsSkipped() async throws {
         let r = try rig()
         defer { r.clean() }
-        r.go { r.navigation.section = .people; r.people.selection = r.marko }
-        r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
+        await r.go { r.navigation.section = .people; r.people.selection = r.marko }
+        await r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
         try r.store.give(r.one, line: try r.store.lines(r.one)[2].place, to: "Person 1") // his only line
         #expect(r.people.people.contains { $0.id == r.marko })
         r.navigation.back()
         #expect(r.navigation.place == .section(.home))
     }
 
-    @Test func theRunningTranscriptsStepsBecomeTheMeetings() throws {
+    @Test func theRunningTranscriptsStepsBecomeTheMeetings() async throws {
         let r = try rig()
         defer { r.clean() }
         r.meetings.setLive(LiveMeeting(state: .recording(elapsed: 1, waiting: 0)))
-        r.go { r.navigation.section = .meetings; r.meetings.selection = .running } // the recording card
-        r.go { r.navigation.section = .home }
+        await r.go { r.navigation.section = .meetings; r.meetings.selection = .running } // the recording card
+        await r.go { r.navigation.section = .home }
         #expect(r.navigation.backHint == "Back to Meetings: the running transcript")
         r.meetings.setLive(nil)
         r.navigation.finished(running: r.two)
@@ -141,34 +144,34 @@ struct WindowNavigationTests {
         #expect(r.meetings.selection == .meeting(r.two))
     }
 
-    @Test func aRunningTranscriptThatWasNotListedIsSkipped() throws {
+    @Test func aRunningTranscriptThatWasNotListedIsSkipped() async throws {
         let r = try rig()
         defer { r.clean() }
         r.meetings.setLive(LiveMeeting(state: .recording(elapsed: 1, waiting: 0)))
-        r.go { r.navigation.section = .meetings; r.meetings.selection = .running }
-        r.go { r.navigation.section = .dictations }
+        await r.go { r.navigation.section = .meetings; r.meetings.selection = .running }
+        await r.go { r.navigation.section = .dictations }
         r.meetings.setLive(nil)
         r.navigation.back()
         #expect(r.navigation.place == .section(.home))
     }
 
-    @Test func theHintsSayWhereTheArrowsGo() throws {
+    @Test func theHintsSayWhereTheArrowsGo() async throws {
         let r = try rig()
         defer { r.clean() }
         #expect(r.navigation.backHint == "Back")
         #expect(r.navigation.forwardHint == "Forward")
-        r.go { r.navigation.openSettings(.engines) }
-        r.go { r.navigation.section = .people; r.people.selection = r.olena }
-        r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
+        await r.go { r.navigation.openSettings(.engines) }
+        await r.go { r.navigation.section = .people; r.people.selection = r.olena }
+        await r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.one) }
         #expect(r.navigation.backHint == "Back to People: Olena")
         r.navigation.back()
         #expect(r.navigation.backHint == "Back to Settings: Engines and models")
         #expect(r.navigation.forwardHint == "Forward to Meetings: Daily sync")
         r.navigation.back()
         #expect(r.navigation.backHint == "Back to Home")
-        r.go { r.navigation.section = .meetings; r.meetings.selection = nil }
+        await r.go { r.navigation.section = .meetings; r.meetings.selection = nil }
         #expect(r.navigation.backHint == "Back to Settings: Engines and models")
-        r.go { r.navigation.section = .statistics }
+        await r.go { r.navigation.section = .statistics }
         #expect(r.navigation.backHint == "Back to Meetings")
     }
 }

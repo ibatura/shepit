@@ -14,15 +14,17 @@ struct MainView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: Binding(get: { navigation.sidebarCollapsed ? .detailOnly : .all },
                                                       set: { navigation.sidebarCollapsed = $0 == .detailOnly })) {
-            sidebar
+            // The card and Home read `live` themselves: the meeting clock then redraws them, not the whole window.
+            SectionList(navigation: navigation, iconsOnly: false)
+                .safeAreaInset(edge: .top) { RecordingCard(live: live, open: openRunning) }
                 .navigationSplitViewColumnWidth(190)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
             HStack(spacing: 0) {
                 if navigation.sidebarCollapsed {
                     VStack(spacing: 0) {
-                        RecordingCard(live: live, collapsed: true, open: openRunning)
-                        SectionIcons(navigation: navigation)
+                        RecordingDot(live: live, open: openRunning)
+                        SectionList(navigation: navigation, iconsOnly: true)
                     }
                     .frame(width: 52)
                     Divider()
@@ -35,29 +37,9 @@ struct MainView: View {
             }
             .navigationTitle(navigation.section.rawValue)
             .toolbar {
-                ToolbarItemGroup(placement: .navigation) {
-                    Button { navigation.sidebarCollapsed.toggle() } label: { Label("Sidebar", systemImage: "sidebar.left") }
-                        .help(navigation.sidebarCollapsed ? "Show the sidebar" : "Collapse the sidebar to its icons")
-                        .keyboardShortcut("s", modifiers: [.control, .command])
-                    BackForwardButtons(navigation: navigation)
-                }
+                ToolbarItemGroup(placement: .navigation) { WindowButtons(navigation: navigation) }
             }
         }
-    }
-
-    private var sidebar: some View {
-        List(selection: Binding(get: { navigation.section }, set: { navigation.section = $0 ?? navigation.section })) {
-            ForEach(WindowSection.allCases.filter { $0 != .settings }) { row($0) }
-            Divider()
-            row(.settings)
-        }
-        .listStyle(.sidebar)
-        // The card and Home read `live` themselves: the meeting clock then redraws them, not the whole window.
-        .safeAreaInset(edge: .top) { RecordingCard(live: live, collapsed: false, open: openRunning) }
-    }
-
-    private func row(_ section: WindowSection) -> some View {
-        Label(section.rawValue, systemImage: section.symbol).tag(section)
     }
 
     private func openRunning() {
@@ -88,50 +70,45 @@ struct MainView: View {
     }
 }
 
-/// The collapsed sidebar: the sections' icons in a column, each with its name as a hint (back and forward design §10).
-private struct SectionIcons: View {
+/// The sections, Settings apart below a divider. With icons only it is the collapsed sidebar, each name a hint
+/// (back and forward design §10).
+private struct SectionList: View {
     let navigation: WindowNavigation
+    let iconsOnly: Bool
 
     var body: some View {
-        VStack(spacing: 2) {
-            ForEach(WindowSection.allCases.filter { $0 != .settings }) { icon($0) }
-            Divider().padding(.horizontal, 12).padding(.vertical, 6)
-            icon(.settings)
-            Spacer()
+        List(selection: Binding(get: { navigation.section }, set: { navigation.section = $0 ?? navigation.section })) {
+            ForEach(WindowSection.allCases.filter { $0 != .settings }) { row($0) }
+            Divider()
+            row(.settings)
         }
-        .padding(.top, 8)
+        .listStyle(.sidebar)
     }
 
-    private func icon(_ section: WindowSection) -> some View {
-        let chosen = navigation.section == section
-        return Button { navigation.section = section } label: {
-            Image(systemName: section.symbol)
-                .font(.system(size: 15))
-                .foregroundStyle(chosen ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                .frame(width: 36, height: 30)
-                .background(chosen ? Color.primary.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 7))
-                .contentShape(Rectangle())
+    @ViewBuilder private func row(_ section: WindowSection) -> some View {
+        let label = Label(section.rawValue, systemImage: section.symbol)
+        if iconsOnly {
+            label.labelStyle(.iconOnly).help(section.rawValue).tag(section)
+        } else {
+            label.tag(section)
         }
-        .buttonStyle(.plain)
-        .help(section.rawValue)
-        .accessibilityLabel(section.rawValue)
-        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }
 
-/// ‹ and ›, ⌘[ and ⌘], with a hint on where each goes (back and forward design §6). Every change of place is recorded
-/// here too: in a view of its own, a new choice in a section (and the meeting clock, read for a step to the running
-/// transcript) redraws these two buttons, not the whole window.
-private struct BackForwardButtons: View {
-    let navigation: WindowNavigation
+/// The sidebar button (⌃⌘S), and ‹ and › (⌘[ and ⌘]) with a hint on where each goes (back and forward design §6, §10).
+/// A view of its own: the hints read the meeting clock for a step to the running transcript, which then redraws only
+/// these buttons.
+private struct WindowButtons: View {
+    @Bindable var navigation: WindowNavigation
 
     var body: some View {
+        Button { navigation.sidebarCollapsed.toggle() } label: { Label("Sidebar", systemImage: "sidebar.left") }
+            .help(navigation.sidebarCollapsed ? "Show the sidebar" : "Collapse the sidebar to its icons")
+            .keyboardShortcut("s", modifiers: [.control, .command])
         Button(action: navigation.back) { Label("Back", systemImage: "chevron.left") }
             .disabled(!navigation.canGoBack)
             .help(navigation.backHint)
             .keyboardShortcut("[", modifiers: .command)
-            // initial: the window can first appear on a place set while it was closed (Settings… from the menu).
-            .onChange(of: navigation.place, initial: true) { navigation.visit($1) }
         Button(action: navigation.forward) { Label("Forward", systemImage: "chevron.right") }
             .disabled(!navigation.canGoForward)
             .help(navigation.forwardHint)
@@ -139,22 +116,14 @@ private struct BackForwardButtons: View {
     }
 }
 
-/// The running transcript, at the top of the sidebar; a click opens it in Meetings. Nothing without one. In the collapsed
-/// sidebar a red dot, with the card's text as its hint.
+/// The running transcript, at the top of the sidebar; a click opens it in Meetings. Nothing without one.
 private struct RecordingCard: View {
     let live: WindowModel
-    let collapsed: Bool
     let open: () -> Void
 
     var body: some View {
         if let card = live.home.card {
-            if collapsed {
-                Button(action: open) { Circle().fill(.red).frame(width: 10, height: 10).frame(maxWidth: .infinity).padding(.vertical, 8) }
-                    .buttonStyle(.plain)
-                    .help([card.headline, card.detail].filter { !$0.isEmpty }.joined(separator: " · "))
-            } else {
-                button(card)
-            }
+            button(card)
         }
     }
 
@@ -175,6 +144,21 @@ private struct RecordingCard: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
+    }
+}
+
+/// The running transcript in the collapsed sidebar: a red dot with the card's text as its hint; a click opens it in
+/// Meetings. Nothing without one.
+private struct RecordingDot: View {
+    let live: WindowModel
+    let open: () -> Void
+
+    var body: some View {
+        if let card = live.home.card {
+            Button(action: open) { Circle().fill(.red).frame(width: 10, height: 10).frame(maxWidth: .infinity).padding(.vertical, 8) }
+                .buttonStyle(.plain)
+                .help([card.headline, card.detail].filter { !$0.isEmpty }.joined(separator: " · "))
+        }
     }
 }
 

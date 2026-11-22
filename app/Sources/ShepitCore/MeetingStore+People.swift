@@ -43,6 +43,9 @@ extension MeetingStore {
         public var voiceSamples: Int
     }
 
+    /// A `people` row (a label in a meeting) that has a line of the meeting now: People lists the person it links to.
+    private static let speaks = "EXISTS (SELECT 1 FROM lines WHERE lines.meeting = people.meeting AND lines.current = people.key)"
+
     /// A row per person, without reading every line: each meeting stops at its first line of theirs, and at their first
     /// `Voices.enough` samples.
     public func summaries() throws -> [Summary] {
@@ -54,7 +57,7 @@ extension MeetingStore {
                 (SELECT count(*) FROM (SELECT 1 FROM line_voices
                   WHERE line_voices.meeting = people.meeting AND line_voices.key = people.key LIMIT ?)) AS voiced
               FROM people JOIN persons ON persons.id = people.person JOIN meetings ON meetings.id = people.meeting
-              WHERE EXISTS (SELECT 1 FROM lines WHERE lines.meeting = people.meeting AND lines.current = people.key))
+              WHERE \(Self.speaks))
             GROUP BY id
             """, [Voices.enough, Voices.enough]) { row in
             Summary(person: row.int(0), name: row.text(1), you: row.int(2) == 1, meetings: row.int(3),
@@ -98,12 +101,12 @@ extension MeetingStore {
         }
     }
 
-    /// Whether People lists `person`: they have a line in some meeting, as in `summaries` (back and forward design §5).
-    public func lists(person: Int) throws -> Bool {
-        try sqlite.rows("""
-            SELECT EXISTS (SELECT 1 FROM people JOIN lines ON lines.meeting = people.meeting AND lines.current = people.key
-              WHERE people.person = ?)
-            """, [person]) { $0.int(0) == 1 }.first ?? false
+    /// `person` as People lists them, as `summaries` does; nil when it doesn't: they were merged, or have no line in any
+    /// meeting (back and forward design §5).
+    public func listed(person: Int) throws -> (name: String?, you: Bool)? {
+        try sqlite.rows(
+            "SELECT name, you FROM persons WHERE id = ? AND EXISTS (SELECT 1 FROM people WHERE people.person = persons.id AND \(Self.speaks))",
+            [person]) { (name: $0.text(0), you: $0.int(1) == 1) }.first
     }
 
     /// The meetings a person is in, newest first.

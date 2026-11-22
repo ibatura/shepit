@@ -122,8 +122,7 @@ Found by the reviews of the branch and not changed: the author had all five poin
 - **What the arrows show:**
   - They ask the store whether a step's meeting or person still exists, with single-row reads, when they are drawn.
   - They aren't redrawn when the store changes under them, for example after an edit in Meetings. Until the next change of place, an arrow can name a step that a click then skips.
-- **A person's name in a hint** comes from People's list. While that list hasn't been read in this run, the hint says just "People".
-- **The collapsed column** is Shepit's own, not macOS's: icons at 15 pt, the chosen one in the accent colour. macOS's sidebar returns when it is opened.
+- **The collapsed column** is the same list as the sidebar, with icons only, beside the section; macOS's own sidebar returns when it is opened.
 - **The arrows' place:** they sit next to the sidebar button. With the full sidebar shown, that is right of the sidebar, left of the section's name. The author kept it (B13).
 - **Tests:** each `UserDefaults` suite the tests make is emptied but leaves a 42-byte file in `~/Library/Preferences`. The older model tests leave theirs full.
 

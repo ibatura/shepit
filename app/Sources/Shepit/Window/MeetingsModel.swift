@@ -97,6 +97,17 @@ final class MeetingsModel {
         if meeting != live { live = meeting }
     }
 
+    /// What a back or forward step to `choice` is called in its hint (back and forward design §5–6); nil when it is gone:
+    /// a removed meeting, a transcript no longer running. Asked of the store, as the list is read only when the section
+    /// appears; a read that fails names nothing ("") rather than dropping the step.
+    func describe(_ choice: Selection) -> String? {
+        switch choice {
+        case .running: return live == nil ? nil : "the running transcript"
+        case .meeting(let id):
+            do { return try store.meeting(id).map { MeetingPage.title($0.title, $0.app) } } catch { return "" }
+        }
+    }
+
     /// A meeting was added (nil: one could not be). When it is the running transcript that finished (chosen as `.running`),
     /// it stays chosen.
     func added(_ id: Int?) {

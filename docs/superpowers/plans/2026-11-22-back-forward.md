@@ -202,3 +202,8 @@ app/Tests/ShepitTests/
   - the running transcript while `meetings.live` isn't nil.
 
   These are single-row reads, made for the arrows' state and hints too. The hints take a person's name from People's list, and say just "People" while the list is unread.
+- **After the thermo-nuclear review (2026-11-22; the author picked all six points):**
+  - `WindowNavigation` moved to its own file and records changes of place itself, so the tests change state and check the history, without calling `visit`.
+  - The sections describe their own choices: `MeetingsModel.describe`, `PeopleModel.describe`. A person's name now comes from the store, You's from the settings.
+  - `MeetingStore.listed(person:)` replaces `lists(person:)` and shares its condition with `summaries`.
+  - In `MainView`: one `SectionList` for both sidebars; `RecordingCard` lost its mode flag to a separate `RecordingDot`; the sidebar button joined the arrows in `WindowButtons`.

@@ -95,7 +95,7 @@ A **place** is one of these:
   It has tests of its own.
 - **`WindowPlace`** (in the app, `Window/`) is built from four values: `WindowNavigation.section`, `settingsSection`, `MeetingsModel.selection` and `PeopleModel.selection`. Applying a place sets them.
 - **`WindowNavigation`** already owns the section and the Settings page, and now owns the history too, in memory.
-- **Steps are recorded in one place**: `MainView` watches the place and visits it on each change. Going back sets the place, and that visit is equal to the current step, so nothing is recorded. Nothing in the sections changes to record steps.
+- **Steps are recorded in one place**: `WindowNavigation` watches its own place (Observation) and visits it on the main actor's next turn after each change. Going back sets the place, and that visit is equal to the current step, so nothing is recorded. Nothing in the sections changes to record steps. (First built in `MainView`'s arrows; moved here after the author's review, 2026-11-22.)
 - **The arrows** are a toolbar item of the window's detail column. The names in the hints come from the Meetings list and the People list.
 - **Whether a meeting or person still exists** is decided in the plan: from the sections' lists, or from the store, since People reads its list only when the section appears.
 - Nothing changes in `settings.json`, the databases or the notes.
