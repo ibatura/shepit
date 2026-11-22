@@ -12,60 +12,6 @@ public func validateSettings(
     var settings = Settings.defaults
     var errors: [String] = []
     let engineValuesForPrecedence = raw["engines"] as? [String: Any] ?? [:]
-    let settingChecks: [(String, (Any) -> String?)] = [
-        ("mode", enumCheck(Settings.modes.map(\.value))),
-        ("cancelKey", kindCheck("string")),
-        ("model", enumCheck(["large-v3", "large-v3-turbo"])),
-        ("language", enumCheck(Settings.languages.map(\.value))),
-        ("stylePrompt", kindCheck("string")),
-        ("refocusOriginalApp", kindCheck("boolean")),
-
-        ("restoreClipboard", kindCheck("boolean")),
-        ("sounds", kindCheck("boolean")),
-        ("maxRecordingSeconds", integerCheck(5, 3600)),
-        ("idleUnloadMinutes", integerCheck(0, 1440)),
-        ("overlay", kindCheck("boolean")),
-        ("livePreview", kindCheck("boolean")),
-        ("previewModel", enumCheck(["large-v3", "large-v3-turbo"])),
-        ("historyMenuItems", integerCheck(0, 50)),
-        ("microphone", kindCheck("string")),
-        ("saveHistory", kindCheck("boolean")),
-        ("historyDays", integerCheck(0, 3650)),
-        ("failedAudioHours", integerCheck(0, 720)),
-        ("launchAtLogin", kindCheck("boolean")),
-        ("typingSpeedWpm", integerCheck(10, 200)),
-        ("collectStats", kindCheck("boolean")),
-        ("databasesFolder", folderCheck),
-        ("meetingsFolder", folderCheck),
-        ("meetingFileName", { value in
-            guard let template = value as? String else { return "must be a string" }
-            return MeetingFileName.validate(template)
-        }),
-        ("meetingAskTitle", kindCheck("boolean")),
-        ("meetingBlocksDictation", kindCheck("boolean")),
-        ("meetingMyName", kindCheck("string")),
-        ("meetingLanguage", enumCheck(Settings.languages.map(\.value))),
-        ("callOffer", kindCheck("boolean")),
-        ("callOfferSeconds", { value in
-            guard let seconds = integerValue(value), seconds == 0 || (5...120).contains(seconds) else {
-                return "must be 0 or a whole number from 5 to 120"
-            }
-            return nil
-        }),
-        ("callAutoStart", kindCheck("boolean")),
-        ("callAutoStartSeconds", integerCheck(3, 60)),
-        ("callAutoStopSeconds", integerCheck(3, 120)),
-        ("callApps", { value in
-            guard let apps = value as? [String], Set(apps).count == apps.count,
-                  apps.allSatisfy(Settings.callAppNames.contains) else {
-                return "must be a list of: \(Settings.callAppNames.joined(separator: ", ")), each at most once"
-            }
-            return nil
-        }),
-        ("theme", enumCheck(Settings.themes.map(\.value))),
-        ("accentColor", enumCheck(AccentColor.allCases.map(\.rawValue))),
-        ("rememberVoices", kindCheck("boolean")),
-    ]
 
     for (key, check) in settingChecks {
         if (key == "model" && engineValuesForPrecedence[EngineTask.dictation.rawValue] != nil)
@@ -141,6 +87,67 @@ public func validateSettings(
     }
 
     return errors.isEmpty ? (settings, []) : (nil, errors.sorted())
+}
+
+/// The plain keys and their checks; `hotkey`, `addWordHotkey`, `meetingHotkey`, `overlayStyle` and `engines` are read apart.
+private let settingChecks: [(String, @Sendable (Any) -> String?)] = [
+    ("mode", enumCheck(Settings.modes.map(\.value))),
+    ("cancelKey", kindCheck("string")),
+    ("model", enumCheck(["large-v3", "large-v3-turbo"])),
+    ("language", enumCheck(Settings.languages.map(\.value))),
+    ("stylePrompt", kindCheck("string")),
+    ("refocusOriginalApp", kindCheck("boolean")),
+
+    ("restoreClipboard", kindCheck("boolean")),
+    ("sounds", kindCheck("boolean")),
+    ("maxRecordingSeconds", integerCheck(5, 3600)),
+    ("idleUnloadMinutes", integerCheck(0, 1440)),
+    ("overlay", kindCheck("boolean")),
+    ("livePreview", kindCheck("boolean")),
+    ("previewModel", enumCheck(["large-v3", "large-v3-turbo"])),
+    ("historyMenuItems", integerCheck(0, 50)),
+    ("microphone", kindCheck("string")),
+    ("saveHistory", kindCheck("boolean")),
+    ("historyDays", integerCheck(0, 3650)),
+    ("failedAudioHours", integerCheck(0, 720)),
+    ("launchAtLogin", kindCheck("boolean")),
+    ("typingSpeedWpm", integerCheck(10, 200)),
+    ("collectStats", kindCheck("boolean")),
+    ("databasesFolder", folderCheck),
+    ("meetingsFolder", folderCheck),
+    ("meetingFileName", { value in
+        guard let template = value as? String else { return "must be a string" }
+        return MeetingFileName.validate(template)
+    }),
+    ("meetingAskTitle", kindCheck("boolean")),
+    ("meetingBlocksDictation", kindCheck("boolean")),
+    ("meetingMyName", kindCheck("string")),
+    ("meetingLanguage", enumCheck(Settings.languages.map(\.value))),
+    ("callOffer", kindCheck("boolean")),
+    ("callOfferSeconds", { value in
+        guard let seconds = integerValue(value), seconds == 0 || (5...120).contains(seconds) else {
+            return "must be 0 or a whole number from 5 to 120"
+        }
+        return nil
+    }),
+    ("callAutoStart", kindCheck("boolean")),
+    ("callAutoStartSeconds", integerCheck(3, 60)),
+    ("callAutoStopSeconds", integerCheck(3, 120)),
+    ("callApps", { value in
+        guard let apps = value as? [String], Set(apps).count == apps.count,
+              apps.allSatisfy(Settings.callAppNames.contains) else {
+            return "must be a list of: \(Settings.callAppNames.joined(separator: ", ")), each at most once"
+        }
+        return nil
+    }),
+    ("theme", enumCheck(Settings.themes.map(\.value))),
+    ("accentColor", enumCheck(AccentColor.allCases.map(\.rawValue))),
+    ("rememberVoices", kindCheck("boolean")),
+]
+
+extension Settings {
+    /// Every key settings.json may have. `model` and `previewModel` only fill in `engines` for an old file.
+    public static let fileKeys = settingChecks.map(\.0) + ["hotkey", "addWordHotkey", "meetingHotkey", "overlayStyle", "engines"]
 }
 
 private enum OverlayStyleKeys {
@@ -231,7 +238,7 @@ private func validateEngineChoice(
     return EngineChoice(engine: engine, model: model)
 }
 
-private func enumCheck(_ values: [String]) -> (Any) -> String? {
+private func enumCheck(_ values: [String]) -> @Sendable (Any) -> String? {
     { value in
         guard let string = value as? String, values.contains(string) else {
             return "must be one of: \(values.joined(separator: ", "))"
@@ -247,7 +254,7 @@ private func folderCheck(_ value: Any) -> String? {
     return nil
 }
 
-private func kindCheck(_ expected: String) -> (Any) -> String? {
+private func kindCheck(_ expected: String) -> @Sendable (Any) -> String? {
     { value in
         switch expected {
         case "boolean": return isBoolean(value) ? nil : "must be a boolean"
@@ -257,7 +264,7 @@ private func kindCheck(_ expected: String) -> (Any) -> String? {
     }
 }
 
-private func integerCheck(_ min: Int, _ max: Int) -> (Any) -> String? {
+private func integerCheck(_ min: Int, _ max: Int) -> @Sendable (Any) -> String? {
     { value in
         guard let integer = integerValue(value), (min...max).contains(integer) else {
             return "must be a whole number from \(min) to \(max)"
@@ -266,7 +273,7 @@ private func integerCheck(_ min: Int, _ max: Int) -> (Any) -> String? {
     }
 }
 
-private func numberCheck(_ min: Double, _ max: Double) -> (Any) -> String? {
+private func numberCheck(_ min: Double, _ max: Double) -> @Sendable (Any) -> String? {
     { value in
         guard !isBoolean(value), let number = value as? NSNumber,
               number.doubleValue >= min, number.doubleValue <= max else {

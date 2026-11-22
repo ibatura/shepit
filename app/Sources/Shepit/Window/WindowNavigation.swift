@@ -41,7 +41,7 @@ final class WindowNavigation {
         self.people = people
         self.defaults = defaults
         section = defaults.string(forKey: "windowSection").flatMap(WindowSection.init) ?? .home
-        settingsSection = defaults.string(forKey: "settingsSection").flatMap(SettingsModel.Section.init) ?? .general
+        settingsSection = defaults.string(forKey: "settingsSection").flatMap(SettingsModel.Section.init(stored:)) ?? .general
         sidebarCollapsed = defaults.bool(forKey: "sidebarCollapsed")
         history.visit(place)
         recordChanges()

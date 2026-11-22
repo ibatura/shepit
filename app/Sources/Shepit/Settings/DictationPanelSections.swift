@@ -2,13 +2,15 @@ import AppKit
 import SwiftUI
 import ShepitCore
 
-struct OverlaySection: View {
+/// Dictation's panel parts (settings review design §4): the floating panel shown while you dictate. They were the
+/// Overlay page until the settings review.
+struct DictationPanelSections: View {
     let model: SettingsModel
     let actions: WindowActions
 
     var body: some View {
-        Section {
-            Hinted(hint: "Show the floating panel. With this off, short notices are shown instead") {
+        Section("Panel") {
+            Hinted(hint: "Show the floating panel while you dictate: recording, transcribing, the live draft. With this off, short notices are shown instead") {
                 Toggle("Show panel", isOn: model.binding("overlay", \.overlay))
             }
             Hinted(hint: "Show draft text while you speak. Needs the draft engine downloaded; uses extra memory") {
@@ -16,7 +18,7 @@ struct OverlaySection: View {
             }
             Button("Preview", action: actions.previewOverlay)
         }
-        Section("Look") {
+        Section("Panel look") {
             Hinted(hint: "Where on the screen with the active window") {
                 Picker("Position", selection: model.styleBinding("position", \.position)) {
                     Text("Bottom").tag("bottom")
@@ -36,23 +38,19 @@ struct OverlaySection: View {
             }
             color("Background", "backgroundColor", \.backgroundColor, alpha: false)
             color("Text", "textColor", \.textColor, alpha: false)
-        }
-        Section("Texts") {
-            field("Title while recording", "listeningText", \.listeningText)
-            field("Title while transcribing", "transcribingText", \.transcribingText)
-            field("Title next to the final text", "doneText", \.doneText)
-            Hinted(hint: "Show the recording time next to the title") {
-                Toggle("Timer", isOn: model.styleBinding("showTimer", \.showTimer))
-            }
-        }
-        Section("Meter") {
             Hinted(hint: "Show the frequency meter (low pitch on the left, high on the right)") {
                 Toggle("Meter", isOn: model.styleBinding("showMeter", \.showMeter))
             }
             Stepper(value: model.styleBinding("bars", \.bars), in: 3...24) { Text("Bars: \(style.bars)") }
             color("Meter color", "meterColor", \.meterColor, alpha: true)
         }
-        Section("Timing") {
+        Section("Panel texts and timing") {
+            field("Title while recording", "listeningText", \.listeningText)
+            field("Title while transcribing", "transcribingText", \.transcribingText)
+            field("Title next to the final text", "doneText", \.doneText)
+            Hinted(hint: "Show the recording time next to the title") {
+                Toggle("Timer", isOn: model.styleBinding("showTimer", \.showTimer))
+            }
             Hinted(hint: "How long the final text stays visible (0 = hide at once)") {
                 slider("Final text", "doneSeconds", value: style.doneSeconds, in: 0...10, step: 0.5) { $0 }
             }

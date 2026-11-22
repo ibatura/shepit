@@ -2,14 +2,14 @@ import AppKit
 import SwiftUI
 import ShepitCore
 
-/// Settings → Calls (call offer design §5.6, visual style §5.7): the offer panel, automatic start and stop,
-/// and which apps get an offer.
+/// The Calls part of Settings → Meetings (call offer design §5.6, visual style §5.7; a page of its own until the
+/// settings review): the offer panel, automatic start and stop, and which apps get an offer.
 struct CallsSection: View {
     let model: SettingsModel
 
     var body: some View {
         let settings = model.settings
-        Section("Offer") {
+        Section("Calls") {
             Hinted(hint: "A small panel with the call's name and a Start button") {
                 Toggle("Offer a transcript when a call starts", isOn: model.binding("callOffer", \.callOffer))
             }

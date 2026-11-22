@@ -18,13 +18,12 @@ struct GeneralSection: View {
             Hinted(hint: "Start / done / error sounds") {
                 Toggle("Sounds", isOn: model.binding("sounds", \.sounds))
             }
-            Hinted(hint: "Keep Ukrainian for Ukrainian with English terms. Auto-detect may translate your speech into one language") {
-                ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("language", \.language))
-            }
         }
         Section("Files") {
             HStack {
                 Button("Open settings file", action: actions.openSettingsFile)
+                Button("Reload settings") { actions.perform(.reloadConfig) }
+                    .help("Reads settings.json again after you edit it by hand")
                 Button("Open data folder", action: actions.openDataFolder)
             }
         }
@@ -156,13 +155,23 @@ struct DictationSection: View {
     let actions: WindowActions
 
     var body: some View {
-        Section {
+        Section("Dictation") {
+            Hinted(hint: "Keep Ukrainian for Ukrainian with English terms. Auto-detect may translate your speech into one language") {
+                ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("language", \.language))
+            }
             Hinted(hint: "System default follows the macOS input. If the chosen device isn't connected, the default is used and the panel says so") {
                 Picker("Microphone", selection: Binding(get: { model.settings.microphone }, set: { model.set("microphone", $0) })) {
                     Text("System default").tag("")
                     ForEach(Microphones.choices(connected: actions.microphones(), configured: model.settings.microphone), id: \.self) { Text($0).tag($0) }
                 }
             }
+            Hinted(hint: "Recording stops and is transcribed automatically after this many seconds (5–3600)") {
+                Stepper(value: model.binding("maxRecordingSeconds", \.maxRecordingSeconds), in: 5...3600, step: 30) {
+                    Text("Max recording length: \(model.settings.maxRecordingSeconds) s")
+                }
+            }
+        }
+        Section("Text") {
             Hinted(hint: "Example text the engine imitates. Keep English terms in Latin script here — this is what makes it write pull request instead of «пул реквест»") {
                 VStack(alignment: .leading) {
                     Text("Style prompt")
@@ -175,12 +184,8 @@ struct DictationSection: View {
             Hinted(hint: "Put your previous clipboard back after pasting") {
                 Toggle("Restore clipboard", isOn: model.binding("restoreClipboard", \.restoreClipboard))
             }
-            Hinted(hint: "Recording stops and is transcribed automatically after this many seconds (5–3600)") {
-                Stepper(value: model.binding("maxRecordingSeconds", \.maxRecordingSeconds), in: 5...3600, step: 30) {
-                    Text("Max recording length: \(model.settings.maxRecordingSeconds) s")
-                }
-            }
         }
+        DictationPanelSections(model: model, actions: actions)
     }
 }
 
@@ -189,7 +194,7 @@ struct HistoryPrivacySection: View {
     let actions: WindowActions
 
     var body: some View {
-        Section("History") {
+        Section("Dictations") {
             Group {
                 Hinted(hint: "Keep every dictation in history, with the app it went to. With this off nothing new is kept") {
                     Toggle("Save history", isOn: model.binding("saveHistory", \.saveHistory))

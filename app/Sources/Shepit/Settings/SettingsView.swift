@@ -16,14 +16,14 @@ struct SettingsView: View {
             .frame(width: 210)
             Divider()
             Form {
+                // What the page is for (settings review design §4): an empty section shows only its header.
+                Section {} header: { Text(section.line).font(.body).fontWeight(.regular).foregroundStyle(.secondary) }
                 switch section {
                 case .general: GeneralSection(model: model, actions: actions)
                 case .hotkeys: HotkeysSection(model: model, actions: actions)
-                case .engines: EnginesSection(model: model, actions: actions)
                 case .dictation: DictationSection(model: model, actions: actions)
-                case .overlay: OverlaySection(model: model, actions: actions)
                 case .meetings: MeetingsSection(model: model, actions: actions)
-                case .calls: CallsSection(model: model)
+                case .engines: EnginesSection(model: model, actions: actions)
                 case .historyPrivacy: HistoryPrivacySection(model: model, actions: actions)
                 case .appearance: AppearanceSection(model: model)
                 }

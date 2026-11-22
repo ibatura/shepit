@@ -171,12 +171,14 @@ struct SettingsModelTests {
         ])
     }
 
-    @Test func meetingKeysAreInTheMeetingsSection() {
-        #expect(SettingsModel.Section.meetings.keys == ["meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"])
+    @Test func callAndMeetingKeysAreInTheMeetingsSection() {
+        #expect(SettingsModel.Section.meetings.keys == ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps",
+                                                        "meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"])
     }
 
-    @Test func callKeysAreInTheCallsSection() {
-        #expect(SettingsModel.Section.calls.keys == ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"])
+    @Test func theDictationLanguageAndThePanelAreInTheDictationSection() {
+        #expect(SettingsModel.Section.dictation.keys == ["language", "microphone", "maxRecordingSeconds", "stylePrompt", "refocusOriginalApp", "restoreClipboard",
+                                                         "overlay", "livePreview", "overlayStyle"])
     }
 
     @Test func theOfferSecondsStepperSkipsOneToFour() {
@@ -201,12 +203,15 @@ struct SettingsModelTests {
         #expect(model.lastError == nil && model.settings.callApps == ["Teams", "Zoom"])
     }
 
-    @Test func settingsSectionsInTheWindowsOrderAndNoKeyInTwoOfThem() {
+    @Test func settingsSectionsInTheWindowsOrderAndEveryKeyOnExactlyOne() {
         #expect(SettingsModel.Section.allCases.map(\.rawValue) == [
-            "General", "Hotkeys", "Engines and models", "Dictation", "Overlay", "Meetings", "Calls", "History and privacy", "Appearance",
+            "General", "Hotkeys", "Dictation", "Meetings", "Engines and models", "History and privacy", "Appearance",
         ])
+        #expect(SettingsModel.Section.allCases.allSatisfy { !$0.line.isEmpty })
         let keys = SettingsModel.Section.allCases.flatMap(\.keys)
         #expect(Set(keys).count == keys.count)
+        // model and previewModel only fill in engines for an old file; Remember voices is in People.
+        #expect(Set(keys) == Set(ShepitCore.Settings.fileKeys).subtracting(["model", "previewModel", "rememberVoices"]))
     }
 
     @Test func theWindowRemembersItsSections() throws {
@@ -222,10 +227,15 @@ struct SettingsModelTests {
         #expect(navigation().settingsSection == .general)
         #expect(!navigation().sidebarCollapsed)
 
-        navigation().openSettings(.calls)
+        navigation().openSettings(.meetings)
         navigation().sidebarCollapsed = true
         let again = navigation()
-        #expect(again.section == .settings && again.settingsSection == .calls && again.sidebarCollapsed)
+        #expect(again.section == .settings && again.settingsSection == .meetings && again.sidebarCollapsed)
+
+        defaults.set("Overlay", forKey: "settingsSection") // pages the settings review merged into others
+        #expect(navigation().settingsSection == .dictation)
+        defaults.set("Calls", forKey: "settingsSection")
+        #expect(navigation().settingsSection == .meetings)
 
         defaults.set("Gone", forKey: "windowSection") // a section a later version dropped
         defaults.set("Statistics", forKey: "settingsSection")

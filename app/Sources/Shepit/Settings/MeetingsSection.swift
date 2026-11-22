@@ -2,13 +2,15 @@ import AppKit
 import SwiftUI
 import ShepitCore
 
-/// Settings → Meetings (spec §5.9, `04-settings.md`): where notes go and how they're named, the meeting name
-/// dialog, the microphone label and language, and the voice/speaker detection models.
+/// Settings → Meetings (spec §5.9, `04-settings.md`; settings review design §4): when calls start a transcript, where
+/// notes go and how they're named, the meeting name dialog, the microphone label and language, and the voice/speaker
+/// detection models.
 struct MeetingsSection: View {
     let model: SettingsModel
     let actions: WindowActions
 
     var body: some View {
+        CallsSection(model: model)
         Section("Notes") {
             FolderRow(model: model, key: "meetingsFolder", path: \.meetingsFolder, url: { $0.meetingsFolderURL(home: Paths.home) },
                       hint: "Where notes go; created if missing. Point it at a folder in your Obsidian vault. A synced folder (iCloud) uploads the notes")
@@ -18,17 +20,15 @@ struct MeetingsSection: View {
             }
             Button("Open meetings folder") { actions.perform(.openMeetingsFolder) }
         }
-        Section("Dictation") {
-            Hinted(hint: "When on, the dictation hotkey does nothing while a meeting is recording. When off, you can dictate during a meeting; that audio is left out of the transcript") {
-                Toggle("Block dictation during a meeting", isOn: model.binding("meetingBlocksDictation", \.meetingBlocksDictation))
-            }
-        }
         Section("Transcript") {
             Hinted(hint: "Label for what your microphone hears. Empty = your macOS account name (\(model.settings.myName()))") {
                 TextField("Your name", text: model.binding("meetingMyName", \.meetingMyName), prompt: Text(model.settings.myName()))
             }
             Hinted(hint: "Language of the meeting. Auto-detect handles calls that switch between Ukrainian and English") {
                 ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("meetingLanguage", \.meetingLanguage))
+            }
+            Hinted(hint: "When on, the dictation hotkey does nothing while a meeting is recording. When off, you can dictate during a meeting; that audio is left out of the transcript") {
+                Toggle("Block dictation during a meeting", isOn: model.binding("meetingBlocksDictation", \.meetingBlocksDictation))
             }
             let engine = model.settings.engine(for: .meetings)
             LabeledContent("Recognition") {
