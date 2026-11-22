@@ -207,7 +207,7 @@ Design: `docs/superpowers/specs/2026-11-22-back-forward-design.md`.
 | B7 | Close the window and open it again from the 🎙 menu; then quit and launch Shepit | The arrows still work; after the launch both are greyed | |
 | B8 | In Meetings, 🎙 → Settings… → ‹ | Meetings again | |
 | B9 | Click the recording card, go elsewhere; after Stop, ‹ | The finished meeting, not an empty Meetings | |
-| B10 | Choose a section in the list; the sidebar button, then ⌃⌘S | Icons only, each name as a hint, a click opens the section; back to the full sidebar; the chosen section keeps its colour both ways | ✅ 2026-11-22: the look "fits", after the full sidebar went back to macOS's own; the colour was lost, fixed after |
+| B10 | Choose a section in the list; the sidebar button, then ⌃⌘S | Icons only, each name as a hint, a click opens the section; back to the full sidebar; the chosen section keeps its colour both ways | ✅ 2026-11-22: the look "fits", after the full sidebar went back to macOS's own; the colour was lost; after the fix (b25e5e3) it keeps it |
 | B11 | Collapse the sidebar, quit and launch Shepit | Still collapsed | |
 | B12 | During a recording, collapsed | A red dot; its hint has the time and name; a click opens the running transcript | |
 | B13 | The arrows next to the sidebar button, left of the section's name | The author keeps the place | ✅ 2026-11-22 |
