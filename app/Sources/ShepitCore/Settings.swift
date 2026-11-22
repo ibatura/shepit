@@ -133,6 +133,7 @@ public struct Settings: Equatable, Sendable {
     public var mode: String
     public var hotkey: Hotkey
     public var cancelKey: String
+    /// Read only from an old file without `engines`, to fill in the dictation engine (README); nothing else uses it.
     public var model: String
     public var language: String
     public var stylePrompt: String
@@ -140,10 +141,10 @@ public struct Settings: Equatable, Sendable {
     public var restoreClipboard: Bool
     public var sounds: Bool
     public var maxRecordingSeconds: Int
-    public var serverPort: Int
     public var idleUnloadMinutes: Int
     public var overlay: Bool
     public var livePreview: Bool
+    /// Read only from an old file without `engines`, to fill in the live draft's engine; nothing else uses it.
     public var previewModel: String
     public var overlayStyle: OverlayStyle
     public var historyMenuItems: Int
@@ -202,7 +203,6 @@ public struct Settings: Equatable, Sendable {
         restoreClipboard: Bool,
         sounds: Bool,
         maxRecordingSeconds: Int,
-        serverPort: Int,
         idleUnloadMinutes: Int,
         overlay: Bool,
         livePreview: Bool,
@@ -246,7 +246,6 @@ public struct Settings: Equatable, Sendable {
         self.restoreClipboard = restoreClipboard
         self.sounds = sounds
         self.maxRecordingSeconds = maxRecordingSeconds
-        self.serverPort = serverPort
         self.idleUnloadMinutes = idleUnloadMinutes
         self.overlay = overlay
         self.livePreview = livePreview
@@ -331,7 +330,6 @@ public struct Settings: Equatable, Sendable {
         restoreClipboard: true,
         sounds: true,
         maxRecordingSeconds: 300,
-        serverPort: 8178,
         idleUnloadMinutes: 0,
         overlay: true,
         livePreview: true,

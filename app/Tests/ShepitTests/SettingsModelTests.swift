@@ -252,8 +252,4 @@ struct SettingsModelTests {
         #expect(model.lastError == nil && model.settings.meetingHotkey == nil)
         #expect(try json(file).keys.sorted() == ["sounds"])
     }
-
-    @Test func serverPortIsShownNowhere() {
-        #expect(!SettingsModel.Section.allCases.flatMap(\.keys).contains("serverPort"))
-    }
 }

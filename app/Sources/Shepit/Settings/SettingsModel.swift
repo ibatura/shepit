@@ -35,7 +35,7 @@ final class SettingsModel {
             }
         }
 
-        /// The settings.json keys each section edits (`serverPort` is accepted in the file but shown nowhere).
+        /// The settings.json keys each section edits.
         var keys: [String] {
             switch self {
             case .general: ["launchAtLogin", "sounds", "language"]

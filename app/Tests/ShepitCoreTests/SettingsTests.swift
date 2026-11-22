@@ -12,7 +12,6 @@ struct SettingsTests {
         #expect(settings?.cancelKey == "escape")
         #expect(settings?.model == "large-v3")
         #expect(settings?.language == "uk")
-        #expect(settings?.serverPort == 8178)
         #expect(settings?.maxRecordingSeconds == 300)
         #expect(settings?.idleUnloadMinutes == 0)
         #expect(settings?.refocusOriginalApp == true)
@@ -380,11 +379,12 @@ struct SettingsTests {
         #expect(settings.myName(fullName: "") == "Я")
     }
 
-    @Test func serverPortIsIgnoredEvenWhenOutsideLegacyRange() {
+    /// `serverPort` was the old whisper-server's port; nothing reads it now, and a file that still has it loads.
+    @Test func aFileWithTheDroppedServerPortLoads() {
         let (settings, errors) = validateSettings(["serverPort": 99999])
 
         #expect(errors.isEmpty)
-        #expect(settings?.serverPort == Settings.defaults.serverPort)
+        #expect(settings != nil)
     }
 
     @Test func realUserSettingsFileLoadsAndUnknownKeysAreIgnored() throws {
