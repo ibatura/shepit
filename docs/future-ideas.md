@@ -19,7 +19,7 @@ Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-1
 11. **L3 again** with the author (Cancel on the merge question): see "Meetings: left open".
 12. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open".
 13. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
-14. **Back and forward in the window** (the author, 2026-11-20; on 2026-11-22: now, before items 10–13), with a sidebar that collapses to its icons (asked on 2026-11-22 while trying it). Built on branch `back-forward` (2026-11-22), version 0.3.0; the spec is `docs/superpowers/specs/2026-11-22-back-forward-design.md`. Left: the list under "Back and forward: left open" below.
+14. **Back and forward in the window** (the author, 2026-11-20; on 2026-11-22: now, before items 10–13), with a sidebar that collapses to its icons (asked on 2026-11-22 while trying it). Built on branch `back-forward` (2026-11-22), version 0.3.0. Merged into `main` on 2026-11-22 as release `v0.3.0`. The spec is `docs/superpowers/specs/2026-11-22-back-forward-design.md`. Left: the list under "Back and forward: left open" below.
 
 Each gets its own spec and plan.
 
