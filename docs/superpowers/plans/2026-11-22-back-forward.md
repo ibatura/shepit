@@ -207,3 +207,8 @@ app/Tests/ShepitTests/
   - The sections describe their own choices: `MeetingsModel.describe`, `PeopleModel.describe`. A person's name now comes from the store, You's from the settings.
   - `MeetingStore.listed(person:)` replaces `lists(person:)` and shares its condition with `summaries`.
   - In `MainView`: one `SectionList` for both sidebars; `RecordingCard` lost its mode flag to a separate `RecordingDot`; the sidebar button joined the arrows in `WindowButtons`.
+- **After `/code-review` (2026-11-22; the author picked all five):**
+  - A running transcript that ends without becoming a meeting loses its steps: `finished(running:)` takes nil, and `onFinished` calls it on every way out. Before, the steps came back to life with the next transcript.
+  - `BackForward` skips a step equal to the current one, which a gone step between them can leave next to it; Back no longer "goes" to where the window already is.
+  - A sidebar collapsed or opened by dragging its divider keeps the list's focus too.
+  - A doubled `await` in a test, and CLAUDE.md's import-names checks.

@@ -83,6 +83,29 @@ struct BackForwardTests {
         #expect(history.back(alive: all) == "m")
     }
 
+    /// Back from a place, past a gone step, to the same place again would change nothing on screen.
+    @Test func aStepEqualToTheCurrentOneIsSkipped() {
+        var history = visited("a", "b", "a", "c")
+        _ = history.back(alive: all) // on the second "a"
+        #expect(history.peekBack(alive: { $0 != "b" }) == nil)
+        #expect(history.back(alive: { $0 != "b" }) == nil)
+        #expect(history.current == "a")
+        #expect(history.peekForward(alive: all) == "c")
+    }
+
+    @Test func replacingWithNothingDropsTheSteps() {
+        var history = visited("a", "run", "b", "run")
+        history.replace("run", with: nil)
+        #expect(history.current == nil)
+        #expect(history.back(alive: all) == "b")
+        #expect(history.back(alive: all) == "a")
+        #expect(history.back(alive: all) == nil)
+        #expect(history.forward(alive: all) == "b")
+        #expect(history.forward(alive: all) == nil)
+        history.visit("c") // nothing to keep behind for the place that went
+        #expect(history.back(alive: all) == "b")
+    }
+
     @Test func theOldestStepGoesPastTheLimit() {
         var history = BackForward<Int>()
         for step in 0...BackForward<Int>.limit + 1 { history.visit(step) }

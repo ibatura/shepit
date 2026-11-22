@@ -83,7 +83,7 @@ struct WindowNavigationTests {
         defer { r.clean() }
         await r.go { r.navigation.section = .people; r.people.selection = r.olena }
         await r.go { r.navigation.section = .meetings; r.meetings.selection = .meeting(r.two) } // Open in Meetings
-        await await r.go { r.navigation.back() } // the place it gives is no new step
+        await r.go { r.navigation.back() } // the place it gives is no new step
         #expect(r.navigation.section == .people && r.people.selection == r.olena)
         #expect(r.navigation.canGoForward)
         r.meetings.selection = .meeting(r.one) // chosen elsewhere meanwhile
@@ -151,6 +151,10 @@ struct WindowNavigationTests {
         await r.go { r.navigation.section = .meetings; r.meetings.selection = .running }
         await r.go { r.navigation.section = .dictations }
         r.meetings.setLive(nil)
+        #expect(r.navigation.backHint == "Back to Home") // skipped while nothing runs
+        r.navigation.finished(running: nil)
+        r.meetings.setLive(LiveMeeting(state: .recording(elapsed: 1, waiting: 0))) // the next transcript
+        #expect(r.navigation.backHint == "Back to Home")
         r.navigation.back()
         #expect(r.navigation.place == .section(.home))
     }

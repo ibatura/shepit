@@ -59,7 +59,7 @@ A **place** is one of these:
 - **A change made in one go counts once.** Open in Meetings sets the section and the meeting together, so it makes one step.
 - **The place the window opens on at launch** (the remembered section and choice) is the first step.
 - **A new step after Back** drops the steps ahead, as in a browser.
-- **The running transcript is a step of its own.** When it finishes and becomes a meeting, its steps become that meeting's, so Back never lands on Meetings with nothing running. The finished meeting already stays chosen today (`MeetingsModel.added`).
+- **The running transcript is a step of its own.** When it finishes and becomes a meeting, its steps become that meeting's, so Back never lands on Meetings with nothing running. The finished meeting already stays chosen today (`MeetingsModel.added`). One that ends without becoming a meeting (no entries, removed as an empty call, or listing failed) loses its steps, so they can't lead to the next transcript.
 - **With 50 steps**, the oldest one goes.
 
 ## 5. Going back and forward
@@ -151,7 +151,7 @@ The author asked for this after trying the arrows on the installed app, and deci
 - **Full:** the sidebar stays macOS's own, as before.
 - **Collapsed:** that sidebar is hidden, and a 52-pt column of the sections' icons, with the recording dot on top, opens the section's side.
 - **The bar:** one toolbar holds the window's buttons, the sidebar button, ‹ and ›, and the section's name. macOS's own sidebar button is removed.
-- **The focus:** if the list that goes had the keyboard focus, the list that comes takes it. Without this, AppKit gives the focus to the section's first text field, and the chosen section shows grey, as in a list with no focus (the author, on the installed app, 2026-11-22).
+- **The focus:** if the list that goes had the keyboard focus, the list that comes takes it, whether the button, ⌃⌘S or the dragged divider collapsed it. Without this, AppKit gives the focus to the section's first text field, and the chosen section shows grey, as in a list with no focus (the author, on the installed app, 2026-11-22).
 
 The first try was a sidebar of Shepit's own for both states, under one toolbar strip. The author saw it on the installed app (2026-11-22) and said it looked like a panel from elsewhere and should fit the design. So the full sidebar went back to macOS's own.
 

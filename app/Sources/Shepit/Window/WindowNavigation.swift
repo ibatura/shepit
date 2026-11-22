@@ -69,9 +69,10 @@ final class WindowNavigation {
     var backHint: String { hint("Back", history.peekBack(alive: exists)) }
     var forwardHint: String { hint("Forward", history.peekForward(alive: exists)) }
 
-    /// The running transcript was listed as meeting `id`: its steps become that meeting's.
-    func finished(running id: Int) {
-        history.replace(.meetings(.running), with: .meetings(.meeting(id)))
+    /// The running transcript ended: listed as meeting `id`, its steps become that meeting's; not listed (nil: no entries,
+    /// removed, or listing failed), they go, or the next transcript would bring them back to life.
+    func finished(running id: Int?) {
+        history.replace(.meetings(.running), with: id.map { .meetings(.meeting($0)) })
     }
 
     /// Every change of place is a step, wherever it comes from: a list, a link, the menu, the window closed or open. The

@@ -15,7 +15,7 @@ struct MainView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: Binding(get: { navigation.sidebarCollapsed ? .detailOnly : .all },
-                                                      set: { navigation.sidebarCollapsed = $0 == .detailOnly })) {
+                                                      set: { collapse($0 == .detailOnly) })) { // the divider dragged
             // The card and Home read `live` themselves: the meeting clock then redraws them, not the whole window.
             SectionList(navigation: navigation, iconsOnly: false)
                 .focused($focusedList, equals: false)
@@ -41,17 +41,18 @@ struct MainView: View {
             }
             .navigationTitle(navigation.section.rawValue)
             .toolbar {
-                ToolbarItemGroup(placement: .navigation) { WindowButtons(navigation: navigation, toggleSidebar: toggleSidebar) }
+                ToolbarItemGroup(placement: .navigation) { WindowButtons(navigation: navigation) { collapse(!navigation.sidebarCollapsed) } }
             }
         }
     }
 
     /// The list shown next takes the focus if the one hidden had it; AppKit would give it to the section's first text
     /// field (back and forward design §10).
-    private func toggleSidebar() {
+    private func collapse(_ collapsed: Bool) {
+        guard collapsed != navigation.sidebarCollapsed else { return }
         let refocus = focusedList != nil
-        navigation.sidebarCollapsed.toggle()
-        if refocus { Task { focusedList = navigation.sidebarCollapsed } } // the icons column is there on the next turn
+        navigation.sidebarCollapsed = collapsed
+        if refocus { Task { focusedList = collapsed } } // the icons column is there on the next turn
     }
 
     private func openRunning() {

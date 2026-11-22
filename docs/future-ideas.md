@@ -117,7 +117,6 @@ Found by the reviews of the branch and not changed: the author had all five poin
   - B1–B4, B10 and B13 passed on 2026-11-22;
   - B3 in a name field wasn't confirmed on its own;
   - B5–B9, B11 and B12 are open.
-- **A running transcript that isn't listed** (no entries, or listing failed) keeps its steps. Once the next transcript starts, they lead to that one. Only a listed transcript turns its steps into the meeting's (from the review of Task 2; skipped, a rare case).
 - **Back to a person reads twice:** their talk and suggestions are read when the person is chosen, and again when People appears (from the review of Task 2; skipped).
 - **What the arrows show:**
   - They ask the store whether a step's meeting or person still exists, with single-row reads, when they are drawn.
