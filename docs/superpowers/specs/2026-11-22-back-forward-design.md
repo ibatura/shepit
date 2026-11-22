@@ -151,11 +151,12 @@ The author asked for this after trying the arrows on the installed app, and deci
 - **Full:** the sidebar stays macOS's own, as before.
 - **Collapsed:** that sidebar is hidden, and a 52-pt column of the sections' icons, with the recording dot on top, opens the section's side.
 - **The bar:** one toolbar holds the window's buttons, the sidebar button, ‹ and ›, and the section's name. macOS's own sidebar button is removed.
+- **The focus:** if the list that goes had the keyboard focus, the list that comes takes it. Without this, AppKit gives the focus to the section's first text field, and the chosen section shows grey, as in a list with no focus (the author, on the installed app, 2026-11-22).
 
 The first try was a sidebar of Shepit's own for both states, under one toolbar strip. The author saw it on the installed app (2026-11-22) and said it looked like a panel from elsewhere and should fit the design. So the full sidebar went back to macOS's own.
 
 **Manual checks** B10–B13:
-- **B10:** the sidebar button gives icons only, with each name as a hint, and back. A click on an icon opens its section, and ⌃⌘S does the same as the button.
+- **B10:** the sidebar button gives icons only, with each name as a hint, and back. A click on an icon opens its section, and ⌃⌘S does the same as the button. A section chosen in the list keeps its colour across both.
 - **B11:** quit and launch Shepit with the sidebar collapsed: it is still collapsed.
 - **B12:** during a recording, collapsed: the red dot, its hint with the time and name, and a click opens the running transcript.
 - **B13:** the arrows' place, compared with the place they had in v0.3.0's first try (left of the section's name).

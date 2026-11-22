@@ -10,12 +10,15 @@ struct MainView: View {
     let live: WindowModel
     let sections: WindowSections
     @Bindable var navigation: WindowNavigation
+    /// The section list with the keyboard focus, by `iconsOnly`. A list without it shows its selection grey.
+    @FocusState private var focusedList: Bool?
 
     var body: some View {
         NavigationSplitView(columnVisibility: Binding(get: { navigation.sidebarCollapsed ? .detailOnly : .all },
                                                       set: { navigation.sidebarCollapsed = $0 == .detailOnly })) {
             // The card and Home read `live` themselves: the meeting clock then redraws them, not the whole window.
             SectionList(navigation: navigation, iconsOnly: false)
+                .focused($focusedList, equals: false)
                 .safeAreaInset(edge: .top) { RecordingCard(live: live, open: openRunning) }
                 .navigationSplitViewColumnWidth(190)
                 .toolbar(removing: .sidebarToggle)
@@ -25,6 +28,7 @@ struct MainView: View {
                     VStack(spacing: 0) {
                         RecordingDot(live: live, open: openRunning)
                         SectionList(navigation: navigation, iconsOnly: true)
+                            .focused($focusedList, equals: true)
                     }
                     .frame(width: 52)
                     Divider()
@@ -37,9 +41,17 @@ struct MainView: View {
             }
             .navigationTitle(navigation.section.rawValue)
             .toolbar {
-                ToolbarItemGroup(placement: .navigation) { WindowButtons(navigation: navigation) }
+                ToolbarItemGroup(placement: .navigation) { WindowButtons(navigation: navigation, toggleSidebar: toggleSidebar) }
             }
         }
+    }
+
+    /// The list shown next takes the focus if the one hidden had it; AppKit would give it to the section's first text
+    /// field (back and forward design §10).
+    private func toggleSidebar() {
+        let refocus = focusedList != nil
+        navigation.sidebarCollapsed.toggle()
+        if refocus { Task { focusedList = navigation.sidebarCollapsed } } // the icons column is there on the next turn
     }
 
     private func openRunning() {
@@ -100,9 +112,10 @@ private struct SectionList: View {
 /// these buttons.
 private struct WindowButtons: View {
     @Bindable var navigation: WindowNavigation
+    let toggleSidebar: () -> Void
 
     var body: some View {
-        Button { navigation.sidebarCollapsed.toggle() } label: { Label("Sidebar", systemImage: "sidebar.left") }
+        Button(action: toggleSidebar) { Label("Sidebar", systemImage: "sidebar.left") }
             .help(navigation.sidebarCollapsed ? "Show the sidebar" : "Collapse the sidebar to its icons")
             .keyboardShortcut("s", modifiers: [.control, .command])
         Button(action: navigation.back) { Label("Back", systemImage: "chevron.left") }
