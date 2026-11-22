@@ -44,6 +44,16 @@ final class PeopleModel {
 
     var chosen: PeoplePage.Person? { people.first { $0.id == selection } }
 
+    /// What a back or forward step to person `id` is called in its hint (back and forward design §5–6); nil when People
+    /// no longer lists them: merged, or left with no lines. Asked of the store, as the list is read only when the section
+    /// appears and edits in Meetings can leave it behind; a read that fails names nothing ("") rather than dropping the step.
+    func describe(_ id: Int) -> String? {
+        do {
+            guard let person = try store.listed(person: id) else { return nil }
+            return person.you ? settings().myName() : person.name ?? ""
+        } catch { return "" }
+    }
+
     @ObservationIgnored private let store: MeetingStore
     @ObservationIgnored private let settings: () -> ShepitCore.Settings
     @ObservationIgnored private let defaults: UserDefaults

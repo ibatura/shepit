@@ -28,26 +28,6 @@ enum WindowSection: String, CaseIterable, Identifiable {
     }
 }
 
-/// Which section the window shows. Window state, so it is kept in the app's preferences, not in settings.json.
-@MainActor
-@Observable
-final class WindowNavigation {
-    var section: WindowSection { didSet { defaults.set(section.rawValue, forKey: "windowSection") } }
-    var settingsSection: SettingsModel.Section { didSet { defaults.set(settingsSection.rawValue, forKey: "settingsSection") } }
-    @ObservationIgnored private let defaults: UserDefaults
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        section = defaults.string(forKey: "windowSection").flatMap(WindowSection.init) ?? .home
-        settingsSection = defaults.string(forKey: "settingsSection").flatMap(SettingsModel.Section.init) ?? .general
-    }
-
-    func openSettings(_ section: SettingsModel.Section) {
-        settingsSection = section
-        self.section = .settings
-    }
-}
-
 /// The sections with a model of their own, made once by `AppHost` and kept while the window is closed. A new one is
 /// added here and in `MainView.section`.
 @MainActor
@@ -85,7 +65,7 @@ final class WindowModel {
 /// The one window (window shell design §4). Shepit is a regular app with a Dock icon only while it is open.
 @MainActor
 final class MainWindow: NSObject, NSWindowDelegate {
-    let navigation = WindowNavigation()
+    let navigation: WindowNavigation
     let sections: WindowSections
     private let live = WindowModel()
     private let model: SettingsModel
@@ -99,6 +79,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
         self.actions = actions
         self.sections = sections
         self.snapshot = snapshot
+        navigation = WindowNavigation(meetings: sections.meetings, people: sections.people)
         super.init()
         // Past midnight Today and the other periods move on: the open section reads its period again.
         NotificationCenter.default.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { [weak self] _ in
@@ -126,6 +107,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
 
     /// A meeting was added: chosen if its running transcript was, and listed in the open Meetings section.
     func meetingAdded(_ id: Int) {
+        navigation.finished(running: id)
         sections.meetings.added(id)
         reload(.meetings)
         reload(.people)

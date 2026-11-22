@@ -254,6 +254,25 @@ struct MeetingVoicesTests {
         #expect(try !store.knownNames().contains("Olena")) // she is gone
     }
 
+    /// Back and forward design §5: a step to a person People no longer lists is skipped.
+    @Test func aPersonIsListedWhileTheyHaveALine() throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = try meeting(store, dir, "a", start: start, labels: ["Me", "Person 1", "Person 2"], voices: [:])
+        try name(store, a, "Person 1", "Olena")
+        try name(store, a, "Person 2", "Marko")
+        let olena = try #require(try store.people(a.id)[1].person), marko = try #require(try store.people(a.id)[2].person)
+        #expect(try store.listed(person: olena)?.name == "Olena")
+        #expect(try store.listed(person: store.people(a.id)[0].person ?? 0)?.you == true)
+        try store.give(a.id, line: try store.lines(a.id)[1].place, to: "Person 2") // her only line
+        #expect(try store.listed(person: olena) == nil)
+        #expect(try !store.summaries().contains { $0.person == olena }) // as People shows it
+        try store.merge(person: marko, into: olena, myName: "Me")
+        #expect(try store.listed(person: olena)?.name == "Olena")
+        #expect(try store.listed(person: marko) == nil)
+        #expect(try store.listed(person: 999) == nil)
+    }
+
     @Test func mergeIntoYouMakesThePersonYou() throws {
         let (store, dir) = setUp()
         defer { try? FileManager.default.removeItem(at: dir) }

@@ -194,6 +194,7 @@ extension AppHost {
             // An empty one waits for the call offer, which removes it (no list, no statistics row) when it was a call's.
             let list = { self.addToMeetings(note, you: config.myName, start: record.start, duration: record.duration, session: session) }
             var id = session.entries > 0 ? list() : nil
+            defer { self.mainWindow.navigation.finished(running: id) } // every way out; a meeting just added has done it
             let recognised = if let id { await self.recognisePeople(id) } else { 0 }
             let detail = CallOffer.readyDetail(title: title, duration: record.duration, speakers: record.speakers, recognised: recognised)
             let effects = self.callEvent(.sessionFinished(entries: session.entries, detail: detail))

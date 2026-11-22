@@ -213,16 +213,23 @@ struct SettingsModelTests {
         let name = "shepit-test-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
-        #expect(WindowNavigation(defaults: defaults).section == .home)
-        #expect(WindowNavigation(defaults: defaults).settingsSection == .general)
+        let store = MeetingStore(file: FileManager.default.temporaryDirectory.appending(path: "\(name).sqlite")) // never written
+        func navigation() -> WindowNavigation {
+            WindowNavigation(meetings: MeetingsModel(store: store, settings: { .defaults }, defaults: defaults),
+                             people: PeopleModel(store: store, settings: { .defaults }, defaults: defaults), defaults: defaults)
+        }
+        #expect(navigation().section == .home)
+        #expect(navigation().settingsSection == .general)
+        #expect(!navigation().sidebarCollapsed)
 
-        WindowNavigation(defaults: defaults).openSettings(.calls)
-        let again = WindowNavigation(defaults: defaults)
-        #expect(again.section == .settings && again.settingsSection == .calls)
+        navigation().openSettings(.calls)
+        navigation().sidebarCollapsed = true
+        let again = navigation()
+        #expect(again.section == .settings && again.settingsSection == .calls && again.sidebarCollapsed)
 
         defaults.set("Gone", forKey: "windowSection") // a section a later version dropped
         defaults.set("Statistics", forKey: "settingsSection")
-        let unknown = WindowNavigation(defaults: defaults)
+        let unknown = navigation()
         #expect(unknown.section == .home && unknown.settingsSection == .general)
     }
 
