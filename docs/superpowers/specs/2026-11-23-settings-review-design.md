@@ -18,6 +18,9 @@ This part puts every setting where it is looked for, makes each page say what it
 - **Each call app has three choices:** Teams, Zoom and Google Meet each get **Auto, Offer or Off**: start a transcript on its own, offer one in the panel, or do nothing. These replace "Offer a transcript when a call starts", "Start automatically" and the apps' on/off switches.
 - **Rules by meeting name name the app.** A rule is an app, a meeting name and what to do (Auto, Offer or Off). Zoom gives no name today (only a repeat's remembered name), but it may later, so a rule can be written for any of the three apps.
 - **The app's choice comes first.** An app set to Off does nothing for its calls, whatever a rule for it says: a Zoom rule "Auto" is ignored while Zoom is Off. For an app set to Auto or Offer, a rule that matches the call's name decides.
+- **The words are Auto, Offer, Off**, and the control that picks them looks as macOS's own (the author: the first drawing's buttons looked poor). Which control is in §3.3.
+- **A rule matches when the call's name contains its text** ("name has"), ignoring case. Whether a rule may also say "is" or "starts with" is in §3.3.
+- **The 🎙 menu keeps the languages, both of them:** "Dictation language ▸" in the dictation group and "Meeting language ▸" in the meeting group, so each is switched from the menu and neither is taken for the other.
 
 ## 3. To decide
 
@@ -36,24 +39,36 @@ My recommendations first; none is decided until the author says so.
 ### 3.2 Home and the 🎙 menu
 
 - **Home**, top to bottom: Needs attention (only when something is wrong, each with one button that fixes it, a chosen model that isn't downloaded among them); Dictation (the status line); Meeting (as today); Recent dictations; Recent meetings (§2). Mode, Language, Microphone, the engine pickers, Download models… and the two Reload buttons leave.
-- **The 🎙 menu** in groups, each led by its state as a line that can't be clicked: ⚠ problems first; Meeting (state, Start or Stop meeting transcript); Dictation (state, Copy last dictation, Recent dictations ▸, Add word to dictionary…); Shepit (Open Shepit ⌘O, Settings… ⌘,, About Shepit, Quit Shepit ⌘Q). Mode, Language and Dictation engine leave; if the author switches the dictation language often, "Dictation language ▸" stays in the Dictation group.
+- **The 🎙 menu** in groups, each led by its state as a line that can't be clicked: ⚠ problems first; Meeting (state, Start or Stop meeting transcript, Meeting language ▸); Dictation (state, Copy last dictation, Recent dictations ▸, Add word to dictionary…, Dictation language ▸); Shepit (Open Shepit ⌘O, Settings… ⌘,, About Shepit, Quit Shepit ⌘Q). Mode and Dictation engine leave. The two languages are decided (§2).
 
 ### 3.3 Calls
 
-- **The words:** Auto, Offer, Off (the author's choice, 2026-11-23), each with a hint: "Starts a transcript on its own after N s", "Shows a panel with the call's name and a Start button", "Does nothing".
-- **How a rule matches:** the call's name contains the rule's text, ignoring case, so "Daily scrum" also catches "Daily scrum & Refinement". Other choice: the whole name, exactly.
+- **The control for Auto, Offer, Off:** a pop-up menu on the right of each app's row ("Teams … Offer ▾"), as System Settings does for a choice in a row. Other choice: macOS's segmented control (three joined buttons) in each row. Each choice has a hint: "Starts a transcript on its own after N s", "Shows a panel with the call's name and a Start button", "Does nothing".
+- **More ways to match:** "contains" (decided, the default) and "is", the whole name, in a pop-up of the rule: "Daily scrum" with "contains" also catches "Daily scrum & Refinement", and with "is" only "Daily scrum". "Starts with" adds little: repeating meetings of one team often start the same way. Other choice: "contains" only.
 - **Two rules match:** the first in the list wins; rules can be moved up and down. Other choice: the longest text wins.
 - **No name found:** rules don't apply; the app's choice does.
 - **The delays** (start after, hide the panel after, stop after the call ends) stay one setting each for all apps.
 - **The settings file:** the new choice per app and the rules get keys of their own; the old `callOffer`, `callAutoStart` and `callApps` are read while the new keys are missing, and nothing rewrites the file on its own.
-- **Google Meet in Chrome** gets no offer (item 12 in `docs/future-ideas.md`): fix it in this branch, since it is the same code, or keep it for later.
+- **Google Meet in Chrome** (item 12 in `docs/future-ideas.md`): on 2026-11-17 the author saw no offer during a Meet call in Chrome. `stats.sqlite` has an offer for Meet that day at 11:01 and two on 2026-11-20, each "hidden": Shepit found the call, showed the offer as far as it knows, and the offer timed out with no click. So the call is found and the panel is not seen; why (another display, another Space, drawn off screen) needs a Meet call in Chrome. My recommendation: look into it in this branch, since the calls part changes the same code and needs a Meet call in Chrome to check anyway.
+- **The panels after a call** ("Transcript ready", "Call ended") show even with the offer off today ("Call offer: left open"). With Off for an app, they don't show for its calls either, unless a transcript was started by hand.
 
 ### 3.4 The same controls
 
 - **The period menu:** one control with one label, in one place, in Dictations, Statistics and People. Where (left or right) is to decide.
 - **The rest of the window:** go through every section for other controls that differ.
 
-### 3.5 Voice numbers
+### 3.5 Found in the docs (2026-11-23)
+
+The author asked to go through every idea for more about settings. Besides the review's own item ("Every setting reviewed", with the remarks of 2026-11-19 and 2026-11-22), automatic start per app and rules by meeting name:
+
+- **What each engine is for** (2026-11-16): Engines and models says what each engine and model is good at (speed, accuracy, memory, languages), which one is recommended for which job, and when a model on disk is used by nothing and can be deleted. It goes with "Models" in §3.1.
+- **Window shell: left open** (2026-11-14), which this review settles: the job titles and hints differ between Home and Engines and models, the `engines` object is written in two places, and Home greys out Mode, Language, Microphone and the engine pickers while Settings keeps them editable. Home losing those controls ends all three. Also `examples/settings.json` lacks `meetingHotkey`, and the test that every key is in exactly one page checks "at most one".
+- **Call offer: left open:** `Settings.callApps` keeps strings and there are two browser lists; the new choice per app replaces `callApps`.
+- **Keys no page shows:** `serverPort` and `previewModel` are only read by the settings code; check whether anything still uses them, and drop them if not.
+- **A new look for the dictation overlay** (New ideas): a redesign of the panel itself, not where its settings live; it stays a part of its own.
+- No other idea in the docs asks for a new switch.
+
+### 3.6 Voice numbers
 
 - The threshold, margin, samples, microphone minutes and 30 days stay fixed, not settings: they were settled on the author's meetings and need more people in several meetings before they change (Voices, 2026-11-20).
 
