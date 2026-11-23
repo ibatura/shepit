@@ -114,11 +114,11 @@ struct CallOfferTests {
     }
 
     @Test func offersOffOrAppOffGivesNothing() {
+        // An app set to Off is not watched (settings review design §7.1); offers off in an old file is Off for every app.
         var m = Machine()
         m.settings.callOffer = false
         m.teamsCall()
-        #expect(m.panel == nil && m.log == [.lookForName]) // no offer; the name is for Home's Start
-        #expect(m.offer.current == CallOffer.Current(name: nil, app: .teams))
+        #expect(m.panel == nil && m.log.isEmpty && m.offer.current == nil && !m.offer.needsTick)
 
         var n = Machine()
         n.settings.callApps = ["Zoom"]
@@ -488,5 +488,82 @@ struct CallOfferTests {
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: nil) == "10 min")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 0) == "10 min")
         #expect(CallOffer.readyDetail(title: nil, duration: 600, speakers: 4, recognised: 2) == "10 min · 4 people · 2 recognised")
+    }
+
+    // Settings review design §7.1: each app's choice and the rules by meeting name.
+
+    @Test func eachAppGetsItsOwnChoice() {
+        var m = Machine()
+        m.settings.callModes = [.teams: .auto, .zoom: .offer]
+        m.teamsCall()
+        #expect(m.panel == .autoStart(title: "Teams call", app: .teams, startsIn: 5))
+        var z = Machine()
+        z.settings.callModes = [.teams: .auto, .zoom: .offer]
+        z.send(.took(.app(.zoom), pid: 1), at: 0)
+        z.send(.tick, at: 3)
+        #expect(z.panel == .offer(title: "Zoom call", app: .zoom, hidesIn: 15))
+    }
+
+    @Test func anAppSetToOffIsNotWatchedAndAHandStartedTranscriptStaysOrdinary() {
+        var m = Machine()
+        m.settings.callModes = [.zoom: .offer]
+        m.teamsCall()
+        #expect(m.panel == nil && m.log.isEmpty && m.offer.current == nil)
+        m.send(.sessionStarted(byPanel: false), at: 5)
+        m.send(.released(pid: 1), at: 10)
+        m.send(.tick, at: 14)
+        #expect(m.panel == nil) // no "Call ended" countdown
+        #expect(m.send(.sessionFinished(entries: 0, detail: "1 min"), at: 60).isEmpty) // its note is kept
+        #expect(m.panel == .ready(detail: "1 min"))
+    }
+
+    @Test func withRulesTheChoiceWaitsForTheName() {
+        var m = Machine()
+        m.settings.callRules = [CallRule(app: .teams, match: .contains, text: "Daily", then: .auto),
+                                CallRule(app: .teams, match: .contains, text: "Retro", then: .off)]
+        m.teamsCall()
+        #expect(m.log == [.lookForName] && m.panel == nil)
+        #expect(m.offer.current == CallOffer.Current(name: nil, app: .teams)) // the name lookup and Home's Start need it
+        m.send(.named("Daily scrum"), at: 4)
+        #expect(m.panel == .autoStart(title: "Daily scrum", app: .teams, startsIn: 5))
+
+        var r = Machine()
+        r.settings.callRules = m.settings.callRules
+        r.teamsCall()
+        r.send(.named("Sprint retro"), at: 4)
+        #expect(r.panel == nil && !r.offer.needsTick) // a rule's Off: nothing on screen
+        #expect(r.offer.current == CallOffer.Current(name: "Sprint retro", app: .teams))
+        #expect(r.send(.startCurrent, at: 9) == [.start(title: "Sprint retro", app: .teams)])
+    }
+
+    @Test func withNoNameInFiveSecondsTheAppsChoiceDecides() {
+        var m = Machine()
+        m.settings.callRules = [CallRule(app: .teams, match: .contains, text: "Daily", then: .auto)]
+        m.teamsCall()
+        m.send(.tick, at: 7)
+        #expect(m.panel == nil)
+        m.send(.tick, at: 8)
+        #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 15))
+        m.send(.named("Daily scrum"), at: 9) // too late to decide: it only names the panel
+        #expect(m.panel == .offer(title: "Daily scrum", app: .teams, hidesIn: 14))
+    }
+
+    @Test func rulesOfAnotherAppOrWithNoTextDontHoldTheOfferUp() {
+        var m = Machine()
+        m.settings.callRules = [CallRule(app: .zoom, match: .contains, text: "Daily", then: .off),
+                                CallRule(app: .teams, match: .contains, text: " ", then: .off)]
+        m.teamsCall()
+        #expect(m.panel == .offer(title: "Teams call", app: .teams, hidesIn: 15))
+    }
+
+    @Test func aStartFromHomeWhileTheNameIsAwaitedEndsTheOffer() {
+        var m = Machine()
+        m.settings.callRules = [CallRule(app: .teams, match: .contains, text: "Daily", then: .auto)]
+        m.teamsCall()
+        #expect(m.send(.startCurrent, at: 4) == [.start(title: nil, app: .teams)])
+        m.send(.sessionStarted(byPanel: false), at: 4)
+        m.send(.named("Daily scrum"), at: 5)
+        m.send(.tick, at: 9)
+        #expect(m.panel == nil && m.log.filter { if case .start = $0 { true } else { false } }.count == 1)
     }
 }

@@ -94,6 +94,15 @@ public enum HomeModel {
         return missing.isEmpty ? nil : missing.joined(separator: ", ")
     }
 
+    /// What happens when a call starts, by the apps' choices.
+    private static func callHint(_ settings: Settings) -> String {
+        switch Set(CallApp.allCases.map(settings.callMode)).subtracting([.off]) {
+        case []: "Call offers are off"
+        case [.auto]: "Shepit starts a transcript when a call starts"
+        default: "Shepit offers a transcript when a call starts"
+        }
+    }
+
     private static func card(_ view: AppSnapshot) -> Home.Card? {
         let headline: String
         switch view.meeting?.state ?? .idle {
@@ -123,7 +132,7 @@ public enum HomeModel {
                                    button: Home.Button(title: "Start transcript", action: missing == nil ? .startCall : nil))
         }
         return Home.MeetingRow(title: "No call right now",
-                               hint: missing ?? (view.settings.callOffer ? "Shepit offers a transcript when a call starts" : "Call offers are off"),
+                               hint: missing ?? callHint(view.settings),
                                button: Home.Button(title: "Start transcript", action: missing == nil ? .startMeeting : nil))
     }
 }

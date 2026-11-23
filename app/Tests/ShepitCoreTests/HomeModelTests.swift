@@ -69,6 +69,9 @@ struct HomeModelTests {
         #expect(home().meeting == Home.MeetingRow(title: "No call right now", hint: "Shepit offers a transcript when a call starts",
                                                    button: .init(title: "Start transcript", action: .startMeeting)))
         #expect(home { $0.settings.callOffer = false }.meeting.hint == "Call offers are off")
+        #expect(home { $0.settings.callModes = [:] }.meeting.hint == "Call offers are off")
+        #expect(home { $0.settings.callModes = [.meet: .auto] }.meeting.hint == "Shepit starts a transcript when a call starts")
+        #expect(home { $0.settings.callModes = [.meet: .auto, .zoom: .offer] }.meeting.hint == "Shepit offers a transcript when a call starts")
         #expect(home { $0.meeting = .init(state: .done(speakers: 2)) }.meeting.button?.action == .startMeeting)
     }
 

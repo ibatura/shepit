@@ -55,6 +55,11 @@ extension Settings {
         return callAutoStart ? .auto : .offer
     }
 
+    /// Whether the app's choice can turn on the call's name: it has a rule with some text.
+    public func hasCallRules(for app: CallApp) -> Bool {
+        callRules.contains { $0.app == app && !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
     /// What a call of `app` named `name` gets: an app set to Off ignores its rules; else its first rule that matches
     /// the name, else the app's choice.
     public func callChoice(app: CallApp, name: String?) -> CallMode {
