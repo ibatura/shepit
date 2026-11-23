@@ -199,16 +199,22 @@ struct SettingsModelTests {
         #expect(SettingsModel.idleChoices(45).map(\.0) == [0, 5, 15, 30, 45, 60, 120, 240, 480])
     }
 
-    @Test func aCallAppSwitchWritesTheListInOrder() throws {
-        #expect(SettingsModel.callApps(["Meet", "Teams"], .zoom, on: true) == ["Teams", "Zoom", "Meet"])
-        #expect(SettingsModel.callApps(["Teams", "Zoom", "Meet"], .teams, on: false) == ["Zoom", "Meet"])
-        let file = try makeFile("{}")
+    // Settings review design §7.2–7.3.
+    @Test func theFirstChoiceWritesEveryAppsChoiceAndDropsTheOldKeys() throws {
+        let file = try makeFile(#"{"callApps":["Teams","Zoom"],"callAutoStart":true,"callOfferSeconds":20}"#)
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
         let store = SettingsStore(file: file)
         store.load()
         let model = SettingsModel(store: store, dictionaryStore: DictionaryStore(file: file.deletingLastPathComponent().appending(path: "dictionary.json")))
-        model.set("callApps", SettingsModel.callApps(model.settings.callApps, .meet, on: false))
-        #expect(model.lastError == nil && model.settings.callApps == ["Teams", "Zoom"])
+        model.setCallMode(.zoom, .offer)
+        #expect(model.lastError == nil)
+        #expect(model.settings.callModes == [.teams: .auto, .zoom: .offer, .meet: .off])
+        let written = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        #expect(written["callApps"] == nil && written["callAutoStart"] == nil && written["callOfferSeconds"] as? Int == 20)
+
+        let rules = [CallRule(app: .teams, match: .is, text: "Daily scrum", then: .off), CallRule(app: .meet, match: .contains, text: "", then: .auto)]
+        model.setCallRules(rules)
+        #expect(model.lastError == nil && model.settings.callRules == rules)
     }
 
     @Test func settingsSectionsInTheWindowsOrderAndEveryKeyOnExactlyOne() {
