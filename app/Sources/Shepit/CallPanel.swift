@@ -9,36 +9,50 @@ import SwiftUI
 final class CallPanel {
     private let model = CallPanelModel()
     private var panel: NSPanel?
+    /// The card, at the panel's left at its own size, so the panel can open out around it.
+    private lazy var card = FirstClickHostingView(rootView: CallPanelView(model: model))
     private var screen: NSScreen?
 
     func show(_ value: CallOffer.Panel, onMain: @escaping () -> Void, onOther: @escaping () -> Void) {
         model.show(value, onMain: onMain, onOther: onOther)
         let panel = ensurePanel()
-        // SwiftUI draws the new state now, so the panel is measured and shown finished: it came in pieces, the card
+        // SwiftUI draws the new state now, so the card is measured and shown finished: it came in pieces, the card
         // flying in from the top left, when it was shown first and drawn on the next pass (the author, 2026-11-16).
-        panel.contentView?.layoutSubtreeIfNeeded()
+        card.layoutSubtreeIfNeeded()
         if panel.isVisible {
             // Only a new size moves it, so a slide that is still going lands where it was going.
-            if let frame = frame(), frame.size != panel.frame.size { panel.setFrame(frame, display: true) }
+            if card.fittingSize != card.frame.size { settle() }
             return
         }
         // It stays on the screen it appeared on.
         screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
         guard let frame = frame() else { return }
-        // It slides in from the screen's right edge as it fades in; within the screen, so it never shows on the one beside it.
-        panel.setFrame(frame.offsetBy(dx: 16, dy: 0), display: true)
-        panel.alphaValue = 0
+        card.frame = NSRect(origin: .zero, size: frame.size)
+        // It slides in whole from beyond the screen's edge (the author, 2026-11-24): the panel opens out leftwards from
+        // that edge with the card at its left, so the card never shows on a screen beside this one.
+        let edge = frame.maxX + 16
+        panel.setFrame(NSRect(x: edge, y: frame.minY, width: 0, height: frame.height), display: true)
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            panel.animator().setFrame(frame, display: true)
-            panel.animator().alphaValue = 1
+            context.duration = 0.35
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().setFrame(NSRect(x: frame.minX, y: frame.minY, width: edge - frame.minX, height: frame.height), display: true)
+        } completionHandler: { [weak self] in
+            self?.settle()
         }
     }
 
-    /// The top right of its screen.
+    /// The card at its size, and the panel just around it: the strip it came in through is cut off.
+    private func settle() {
+        guard let panel, panel.isVisible, let frame = frame() else { return }
+        card.frame = NSRect(origin: .zero, size: frame.size)
+        panel.setFrame(frame, display: true)
+    }
+
+    /// The card's place: the top right of its screen.
     private func frame() -> NSRect? {
-        guard let visible = screen?.visibleFrame, let size = panel?.contentView?.fittingSize else { return nil }
+        guard let visible = screen?.visibleFrame else { return nil }
+        let size = card.fittingSize
         return NSRect(x: visible.maxX - size.width - 16, y: visible.maxY - size.height - 16, width: size.width, height: size.height)
     }
 
@@ -57,7 +71,8 @@ final class CallPanel {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.hidesOnDeactivate = false
-        panel.contentView = FirstClickHostingView(rootView: CallPanelView(model: model))
+        panel.contentView = NSView()
+        panel.contentView?.addSubview(card)
         self.panel = panel
         return panel
     }
