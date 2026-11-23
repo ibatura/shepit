@@ -27,6 +27,40 @@ struct Hinted<Content: View>: View {
     }
 }
 
+/// A text setting that looks editable and is saved on purpose (the author, 2026-11-23): a bordered field, with Save
+/// while the text differs from the saved one. Enter saves too, Esc puts the saved text back; clicking elsewhere keeps
+/// the draft and saves nothing.
+struct SettingField: View {
+    let saved: String
+    var prompt = ""
+    /// A draft it refuses keeps Save greyed.
+    var canSave: (String) -> Bool = { _ in true }
+    /// Each edit, for a caller that shows something from the draft.
+    var edited: (String) -> Void = { _ in }
+    let save: (String) -> Void
+    @State private var draft = ""
+
+    var body: some View {
+        HStack {
+            TextField(prompt, text: $draft, prompt: Text(prompt))
+                .textFieldStyle(.roundedBorder)
+                .labelsHidden()
+                .onSubmit(commit)
+                .onExitCommand { draft = saved }
+            if draft != saved {
+                Button("Save", action: commit).disabled(!canSave(draft))
+            }
+        }
+        .onAppear { draft = saved }
+        .onChange(of: saved) { draft = $1 }
+        .onChange(of: draft) { edited($1) }
+    }
+
+    private func commit() {
+        if draft != saved, canSave(draft) { save(draft) }
+    }
+}
+
 /// A small caption over a block, as in the mockups ("People", "Transcript (read only)").
 struct Caption: View {
     let text: String

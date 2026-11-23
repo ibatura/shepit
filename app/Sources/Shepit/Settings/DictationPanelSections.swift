@@ -71,7 +71,9 @@ struct DictationPanelSections: View {
     }
 
     private func field(_ title: String, _ key: String, _ path: KeyPath<OverlayStyle, String>) -> some View {
-        TextField(title, text: model.styleBinding(key, path))
+        LabeledContent(title) {
+            SettingField(saved: style[keyPath: path]) { model.setStyle(key, $0) }
+        }
     }
 
     private func color(_ title: String, _ key: String, _ path: KeyPath<OverlayStyle, String>, alpha: Bool) -> some View {

@@ -13,11 +13,14 @@ struct CallsSection: View {
             ForEach(CallApp.allCases, id: \.self) { app in
                 let mode = settings.callMode(for: app)
                 Hinted(hint: hint(mode, settings) + (app == .meet ? " · in Chrome, Edge, Brave or Arc" : "")) {
-                    Picker(app.title, selection: Binding(get: { mode }, set: { model.setCallMode(app, $0) })) {
-                        ForEach(CallMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                    LabeledContent(app.title) { // on the right, as every other control
+                        Picker(app.title, selection: Binding(get: { mode }, set: { model.setCallMode(app, $0) })) {
+                            ForEach(CallMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .fixedSize()
                     }
-                    .pickerStyle(.segmented)
-                    .fixedSize()
                 }
             }
         } header: {
@@ -29,19 +32,21 @@ struct CallsSection: View {
             }
         }
         Section {
-            ForEach(Array(settings.callRules.enumerated()), id: \.offset) { index, rule in
-                RuleRow(rule: rule, ignored: settings.callMode(for: rule.app) == .off) { changed in
-                    // The rules as they are now: a field that loses focus as its row goes must not bring back the old list.
+            let rules = settings.callRules
+            ForEach(Array(rules.enumerated()), id: \.offset) { index, rule in
+                RuleRow(rule: rule, ignored: settings.callMode(for: rule.app) == .off,
+                        first: index == 0, last: index == rules.count - 1) { changed in
+                    // The rules as they are now, not as this row was drawn.
                     var rules = model.settings.callRules
                     guard rules.indices.contains(index) else { return }
                     if let changed { rules[index] = changed } else { rules.remove(at: index) }
                     model.setCallRules(rules)
+                } move: { by in
+                    var rules = model.settings.callRules
+                    guard rules.indices.contains(index), rules.indices.contains(index + by) else { return }
+                    rules.swapAt(index, index + by)
+                    model.setCallRules(rules)
                 }
-            }
-            .onMove { from, to in
-                var rules = settings.callRules
-                rules.move(fromOffsets: from, toOffset: to)
-                model.setCallRules(rules)
             }
             Button {
                 let app = CallApp.allCases.first { settings.callMode(for: $0) != .off } ?? .teams
@@ -53,7 +58,7 @@ struct CallsSection: View {
         } header: {
             Text("Rules by meeting name")
         } footer: {
-            Text("The first rule that matches the call's name decides; a call that matches none gets its app's choice. Drag a rule to move it.")
+            Text("The first rule that matches the call's name decides; a call that matches none gets its app's choice. The arrows move a rule up or down.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         Section("Delays") {
@@ -86,15 +91,19 @@ struct CallsSection: View {
     }
 }
 
-/// A rule: app, contains or is, the text, and the choice. The text is saved on Enter or when the field loses focus.
+/// A rule: app, contains or is, the text (saved with Save or Enter), the choice, and the arrows that move it.
 private struct RuleRow: View {
     let rule: CallRule
     /// Its app is set to Off.
     let ignored: Bool
+    let first: Bool
+    let last: Bool
     /// nil: remove the rule.
     let change: (CallRule?) -> Void
+    /// -1 up, 1 down.
+    let move: (Int) -> Void
+    /// The text as typed, so a choice made before Save keeps it.
     @State private var draft = ""
-    @FocusState private var focused: Bool
 
     var body: some View {
         let row = HStack {
@@ -102,20 +111,24 @@ private struct RuleRow: View {
                 .labelsHidden().fixedSize()
             Picker("Match", selection: field(\.match)) { ForEach(CallRule.Match.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
                 .labelsHidden().fixedSize()
-            TextField("Meeting name", text: $draft, prompt: Text("Meeting name"))
-                .labelsHidden()
-                .focused($focused)
-                .onSubmit(save)
-                .onChange(of: focused) { if !$1 { save() } }
+            SettingField(saved: rule.text, prompt: "Meeting name", edited: { draft = $0 }) {
+                var changed = rule
+                changed.text = $0
+                change(changed)
+            }
             Text("then").foregroundStyle(.secondary)
             Picker("Then", selection: field(\.then)) { ForEach(CallMode.allCases, id: \.self) { Text($0.title).tag($0) } }
                 .labelsHidden().fixedSize()
-            Button { change(nil) } label: { Image(systemName: "minus.circle") }
-                .buttonStyle(.borderless)
-                .help("Remove this rule")
+            Group {
+                Button { move(-1) } label: { Image(systemName: "chevron.up") }
+                    .disabled(first).help("Move up: checked earlier")
+                Button { move(1) } label: { Image(systemName: "chevron.down") }
+                    .disabled(last).help("Move down: checked later")
+                Button { change(nil) } label: { Image(systemName: "minus.circle") }
+                    .help("Remove this rule")
+            }
+            .buttonStyle(.borderless)
         }
-        .onAppear { draft = rule.text }
-        .onChange(of: rule.text) { draft = $1 }
         if ignored {
             Hinted(hint: "Ignored: \(rule.app.title) is Off") { row.opacity(0.55) }
         } else {
@@ -127,16 +140,9 @@ private struct RuleRow: View {
         Binding(get: { rule[keyPath: path] }, set: {
             var changed = rule
             changed[keyPath: path] = $0
-            changed.text = draft // a choice made while the text is being typed keeps it
+            changed.text = draft
             change(changed)
         })
-    }
-
-    private func save() {
-        guard draft != rule.text else { return }
-        var changed = rule
-        changed.text = draft
-        change(changed)
     }
 }
 

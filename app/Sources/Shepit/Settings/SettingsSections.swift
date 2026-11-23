@@ -243,28 +243,26 @@ struct HistoryPrivacySection: View {
     }
 }
 
-/// Saves the style prompt after a short pause in typing, not on every keystroke.
+/// The style prompt in a bordered box, saved with Save; Cancel puts the saved text back.
 private struct StylePromptEditor: View {
     let model: SettingsModel
-    @State private var text: String?
-    @State private var pending: Task<Void, Never>?
+    @State private var draft = ""
 
     var body: some View {
-        TextEditor(text: Binding(get: { text ?? model.settings.stylePrompt }, set: { value in
-            text = value
-            pending?.cancel()
-            pending = Task {
-                try? await Task.sleep(for: .milliseconds(800))
-                guard !Task.isCancelled else { return }
-                model.set("stylePrompt", value)
-                text = nil
+        let saved = model.settings.stylePrompt
+        VStack(alignment: .trailing) {
+            TextEditor(text: $draft)
+                .font(.body)
+                .frame(minHeight: 70)
+                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.separator)) // a field, as SettingField
+            if draft != saved { // saved on purpose, as SettingField
+                HStack {
+                    Button("Cancel") { draft = saved }
+                    Button("Save") { model.set("stylePrompt", draft) }
+                }
             }
-        }))
-        .font(.body)
-        .frame(minHeight: 70)
-        .onDisappear {
-            if let text, pending != nil { model.set("stylePrompt", text) }
-            pending?.cancel()
         }
+        .onAppear { draft = saved }
+        .onChange(of: saved) { draft = $1 }
     }
 }

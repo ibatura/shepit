@@ -23,7 +23,9 @@ struct MeetingsSection: View {
         }
         Section("Transcript") {
             Hinted(hint: "Label for what your microphone hears. Empty = your macOS account name (\(model.settings.myName()))") {
-                TextField("Your name", text: model.binding("meetingMyName", \.meetingMyName), prompt: Text(model.settings.myName()))
+                LabeledContent("Your name") {
+                    SettingField(saved: model.settings.meetingMyName, prompt: model.settings.myName()) { model.set("meetingMyName", $0) }
+                }
             }
             Hinted(hint: "Language of the meeting. Auto-detect handles calls that switch between Ukrainian and English") {
                 ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("meetingLanguage", \.meetingLanguage))
@@ -33,39 +35,37 @@ struct MeetingsSection: View {
             }
             let _ = actions.downloads.revision // re-read the disk after a download or delete
             let engine = model.settings.engine(for: .meetings)
+            // Each is a link to where it's chosen and downloaded (the author, 2026-11-23).
             LabeledContent("Recognition") {
-                Text(engine.title + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"))
+                Button(engine.title + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"), action: openEngines)
+                    .buttonStyle(.link).help("Choose the engine in Engines and models")
             }
             let missing = MeetingModel.allCases.filter { !$0.isDownloaded() }.map { $0 == .vad ? "voice detection" : "speaker detection" }
             LabeledContent("Voice and speaker detection") {
-                Text(missing.isEmpty ? "Installed" : "Not downloaded: \(missing.joined(separator: ", "))")
+                Button(missing.isEmpty ? "Installed" : "Not downloaded: \(missing.joined(separator: ", "))", action: openEngines)
+                    .buttonStyle(.link).help("Download the models in Engines and models")
             }
-            Button("Choose the engine and download models in Engines and models", action: openEngines)
-                .buttonStyle(.link)
         }
     }
 }
 
-/// A folder setting (`meetingsFolder`, `databasesFolder`): typed (saved on Enter) or chosen in a folder picker.
+/// A folder setting (`meetingsFolder`, `databasesFolder`): typed (saved with Save or Enter) or chosen in a folder picker.
 struct FolderRow: View {
     let model: SettingsModel
     let key: String
     let path: KeyPath<ShepitCore.Settings, String>
     let url: (ShepitCore.Settings) -> URL
     let hint: String
-    @State private var draft = ""
 
     var body: some View {
         Hinted(hint: hint) {
             LabeledContent("Folder") {
                 HStack {
-                    TextField("Folder", text: $draft).labelsHidden().onSubmit { model.set(key, draft) }
+                    SettingField(saved: model.settings[keyPath: path]) { model.set(key, $0) }
                     Button("Choose…", action: choose)
                 }
             }
         }
-        .onAppear { draft = model.settings[keyPath: path] }
-        .onChange(of: model.settings[keyPath: path]) { draft = $1 }
     }
 
     private func choose() {
@@ -82,23 +82,24 @@ struct FolderRow: View {
     }
 }
 
-/// `meetingFileName` with a live example; saved on Enter, and only when it's valid.
+/// `meetingFileName` with a live example; saved with Save or Enter, and only when it's valid.
 private struct FileNameRow: View {
     let model: SettingsModel
+    /// The name as typed, for the example.
     @State private var draft = ""
 
     var body: some View {
         let error = MeetingFileName.validate(draft)
         VStack(alignment: .leading, spacing: 4) {
             LabeledContent("File name") {
-                TextField("File name", text: $draft).labelsHidden().onSubmit { if error == nil { model.set("meetingFileName", draft) } }
+                SettingField(saved: model.settings.meetingFileName, canSave: { MeetingFileName.validate($0) == nil },
+                             edited: { draft = $0 }) { model.set("meetingFileName", $0) }
             }
             Group {
                 if let error {
                     Text("⚠ The file name \(error)").foregroundStyle(.orange)
                 } else {
-                    Text("Example: " + MeetingFileName.relativePath(draft, start: Self.exampleDate, title: "Weekly sync", app: "Teams")
-                         + (draft == model.settings.meetingFileName ? "" : " — press Enter to save"))
+                    Text("Example: " + MeetingFileName.relativePath(draft, start: Self.exampleDate, title: "Weekly sync", app: "Teams"))
                         .foregroundStyle(.secondary)
                 }
                 Text("Placeholders: " + MeetingFileName.placeholders.map { "{\($0)}" }.joined(separator: " ") + ". A / makes subfolders.")
@@ -106,8 +107,6 @@ private struct FileNameRow: View {
             }
             .font(.caption)
         }
-        .onAppear { draft = model.settings.meetingFileName }
-        .onChange(of: model.settings.meetingFileName) { draft = $1 }
     }
 
     /// A fixed moment so the example doesn't tick: Monday 26 Oct 2026, 14:05.

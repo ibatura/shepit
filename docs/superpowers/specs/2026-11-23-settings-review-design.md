@@ -65,6 +65,8 @@ Asked with drawings, in three rounds; "recommended" marks where the author took 
 
 Seven pages, in this order. Each starts with a line in secondary text. What moves is marked "from …".
 
+Every text setting (Your name, the folders, the file name, the panel's titles, a rule's text, the style prompt) is a bordered field, saved with Save, which shows while the text differs from the saved one; Enter saves too and Esc puts the saved text back (the author, 2026-11-23: what can be edited must look editable, and be saved on purpose).
+
 - **General**: "Shepit itself: starting at login, sounds, and its files." Launch at login, Sounds; Files: Open settings file, Open data folder, Reload settings (from Home).
 - **Hotkeys**: "The keys that start dictation and meetings." As today: Mode, Dictation hotkey, Cancel key, Add-word hotkey, Meeting transcript hotkey.
 - **Dictation**: "How you dictate: language, microphone, pasting, and the panel shown while you speak."
@@ -76,7 +78,7 @@ Seven pages, in this order. Each starts with a line in secondary text. What move
 - **Meetings**: "Meeting transcripts: when they start, where the notes go, how they are transcribed."
   - Calls (from Calls): Teams, Zoom, Google Meet, each Auto · Offer · Off; Rules by meeting name; Start after (Auto), Hide the panel after (Offer), Stop after the call ends; the Accessibility warning for Meet, as today.
   - Notes: Folder, File name, Ask for the meeting name, Open meetings folder.
-  - Transcript: Your name, Language, Block dictation during a meeting (from its own part), Recognition, with "Voice and speaker detection: installed" or what is missing, and a link to Engines and models.
+  - Transcript: Your name, Language, Block dictation during a meeting (from its own part), Recognition, with "Voice and speaker detection: installed" or what is missing; each of the two is a link to Engines and models (the author, 2026-11-23: the link goes on the item it is about).
 - **Engines and models**: "Which engine does each job, and every model on this Mac."
   - Jobs: Dictation, Live draft, Meetings, each with its engine, model and a line on what the job is; then Voice detection and Speaker detection, each with its one model in a menu, so it shows as the chosen one (the author, 2026-11-23: a second model would go there). One line under each name, a warning in its place when the model is missing.
   - Unload models when idle: a menu (Never, after 5, 15, 30 minutes, 1, 2, 4, 8 hours), not a stepper (the author, 2026-11-23).
@@ -130,8 +132,8 @@ Today the panel shows first and the name fills in when found. With rules the cho
 
 ### 7.3 The controls
 
-- Each app: its name and the segmented control Auto · Offer · Off, with a hint on each choice: "Starts a transcript on its own after N s", "Shows a panel with the call's name and a Start button", "Does nothing".
-- Rules by meeting name: a list with + and − below it, as macOS lists have. Each row: app (pop-up), match (pop-up: contains, is), text (field), then (pop-up: Auto, Offer, Off). Rows move by dragging; the first match wins. A rule of an app set to Off is greyed, with "Ignored: Teams is Off" as its hint.
+- Each app: its name and the segmented control Auto · Offer · Off, with a hint on each choice: "Starts a transcript on its own after N s", "Shows a panel with the call's name and a Start button", "Does nothing". The control sits on the right, as every other control.
+- Rules by meeting name: a list with + and − below it, as macOS lists have. Each row: app (pop-up), match (pop-up: contains, is), text (field), then (pop-up: Auto, Offer, Off). Rows move with ↑ and ↓ in each row (dragging doesn't work in a settings form, the author, 2026-11-23); the first match wins. A rule of an app set to Off is greyed, with "Ignored: Teams is Off" as its hint.
 - The delays as today, each saying which choice it is for.
 
 ## 8. Google Meet in Chrome
