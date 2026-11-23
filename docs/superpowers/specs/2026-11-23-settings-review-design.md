@@ -46,7 +46,7 @@ Asked with drawings, in three rounds; "recommended" marks where the author took 
 - No name found: the app's choice decides.
 - The delays (start after, hide the panel after, stop after the call ends) stay one setting each for all apps.
 - Old settings files keep working: while the new keys are missing, the old ones are read. Shepit doesn't rewrite the file on its own.
-- The "Call ended" and "Transcript ready" panels don't show for an app set to Off.
+- The "Call ended" panel doesn't show for an app set to Off. "Transcript ready" does for a transcript started by hand, as for every one (the author, 2026-11-23; §7.1).
 - Why the author saw no offer for Google Meet in Chrome is looked into in this branch, on a real Meet call (§8).
 
 **The same controls** (recommended)
@@ -133,7 +133,7 @@ Today the panel shows first and the name fills in when found. With rules the cho
 ### 7.3 The controls
 
 - Each app: its name and the segmented control Auto · Offer · Off, with a hint on each choice: "Starts a transcript on its own after N s", "Shows a panel with the call's name and a Start button", "Does nothing". The control sits on the right, as every other control.
-- Rules by meeting name: a list with + and − below it, as macOS lists have. Each row: app (pop-up), match (pop-up: contains, is), text (field), then (pop-up: Auto, Offer, Off). Rows move with ↑ and ↓ in each row (dragging doesn't work in a settings form, the author, 2026-11-23); the first match wins. A rule of an app set to Off is greyed, with "Ignored: Teams is Off" as its hint.
+- Rules by meeting name: a list with Add rule below it and − in each row. Each row: app (pop-up), match (pop-up: contains, is), text (field), then (pop-up: Auto, Offer, Off). Rows move with ↑ and ↓ in each row (dragging doesn't work in a settings form, the author, 2026-11-23); the first match wins. A rule of an app set to Off is greyed, with "Ignored: Teams is Off" as its hint.
 - The delays as today, each saying which choice it is for.
 
 ## 8. Google Meet in Chrome
@@ -144,7 +144,7 @@ A task of the plan, with the author on a real Meet call in Chrome: `Shepit call-
 
 ## 9. The period menu
 
-Today Dictations has "Show: Last month" on the left of its top bar, Statistics an unlabelled menu with Custom… on the right, and People its own on the right. All three get Statistics' menu, on the right of the top bar: the period's name as its title, the presets, Custom…. Dictations and People gain Custom…, which `StatsPeriod` already covers. Each section still remembers its own period.
+Today Dictations has "Show: Last month" on the left of its top bar, Statistics an unlabelled menu with Custom… on the right, and People its own on the right. All three get Statistics' menu, on the right of the top bar: the period's name as its title, the presets, Custom…. In People it stays beside Who talked how much, as the period is the chosen person's and People's top bar is Remember voices. Dictations and People gain Custom…, which `StatsPeriod` already covers. Each section still remembers its own period.
 
 Then every section is looked through for other controls that differ (top bars, buttons at the bottom, empty states, questions and alerts); each difference found is fixed or written under "left open".
 

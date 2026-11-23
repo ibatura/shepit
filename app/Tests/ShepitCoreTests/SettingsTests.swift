@@ -440,5 +440,8 @@ struct SettingsTests {
         #expect(settings?.launchAtLogin == true)
         #expect(settings?.typingSpeedWpm == 40)
         #expect(settings?.collectStats == true)
+        #expect(settings?.meetingHotkey == Hotkey(mods: ["ctrl", "alt"], key: "m"))
+        #expect(settings.map { s in CallApp.allCases.map { s.callMode(for: $0) } } == [.offer, .offer, .offer])
+        #expect(settings?.callChoice(app: .teams, name: "Daily Scrum — team") == .auto)
     }
 }

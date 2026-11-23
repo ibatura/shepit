@@ -26,7 +26,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
   - `ShepitCore`: pure logic with tests (settings, dictionary, meeting session and notes, meeting names, language choice).
   - `ShepitEngines`: whisper.cpp, WhisperKit, Parakeet, Apple Speech.
   - `Shepit`: the app (menu, hotkeys, overlay, audio, call tap, Accessibility scan of meeting apps in `MeetingApps.swift`).
-- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (669 Swift tests on 2026-11-22).
+- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (674 Swift tests on 2026-11-23).
 - `scripts/`: build, sign, install, uninstall, model downloads (pinned SHA-256 in `scripts/models/`).
 
 ## Docs
@@ -35,7 +35,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 - `docs/superpowers/specs/`: designs. `docs/superpowers/plans/`: implementation plans of phases 1–3.
 - `docs/manual-test-checklist.md`: manual checks on a real Mac and real calls. Checks the author puts off for long go to its "Need to test later" list at the bottom.
 
-## Where things stand (2026-11-22)
+## Where things stand (2026-11-23)
 
 - Phases 1–3 are done: dictation, settings, statistics, meeting transcripts.
 - Meeting names: Teams window title, Meet tab title or page bar, remembered names for repeats (`meeting-names.json`). Zoom shows no topic. Mute state is read from all three apps. Checked on real calls in each app.
@@ -64,12 +64,20 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
     - Whether a step is alive, and its name in a hint, come from the sections: `MeetingsModel.describe` and `PeopleModel.describe`, which ask the store (`store.meeting`, `MeetingStore.listed(person:)`).
     - `MainWindow.meetingAdded` turns the running transcript's steps into the meeting's; the end of every transcript (`onFinished` in `AppHost+Meetings`) drops what is left of them.
     - In `MainView`: `SectionList` is the sidebar list, icons only when collapsed; `WindowButtons` holds the sidebar button and the arrows; `RecordingDot` stands for the recording card when collapsed.
+- The settings review is built on branch `settings-review` (2026-11-23, version 0.4.0), not merged yet; Task 9 (the Meet panel in Chrome) and the end-of-branch reviews are left:
+  - What it does: seven Settings pages (General, Hotkeys, Dictation with the panel, Meetings with Calls, Engines and models, History and privacy, Appearance), each with a line on what it is for. Home is a status page (Needs attention, Dictation, Meeting, Recent dictations, Recent meetings). The 🎙 menu is in groups with a language submenu for meetings and one for dictation. Each call app is Auto, Offer or Off, with rules by meeting name. Engines and models lists every model by kind. One period menu, with Custom…, in Dictations, Statistics and People. Text settings are saved with Save, numbers are menus.
+  - Spec `docs/superpowers/specs/2026-11-23-settings-review-design.md`, plan `docs/superpowers/plans/2026-11-23-settings-review.md`. Manual checks R1–R11. What is left open is in `docs/future-ideas.md` under "Settings review: left open".
+  - How it fits together:
+    - `SettingsModel.Section` is the pages: each one's `line` and `keys` (a test checks every key of the file is on exactly one); a remembered Overlay or Calls page opens Dictation or Meetings.
+    - Calls: `CallRules.swift` (ShepitCore) has `CallMode`, `CallRule` and, on `Settings`, `callMode(for:)` (read from the old keys while `callModes` is missing), `hasCallRules(for:)` and `callChoice(app:name:)`. `CallOffer` waits for the call's name (`naming`, 5 s at most) only while the app has a rule with text. `CallsSection` draws the part; `SettingsModel.setCallMode` writes every app's choice, so the store drops `callOffer`, `callAutoStart` and `callApps` on the first change.
+    - Home and the menu: `HomeModel` and `MenuModel` from `AppSnapshot`, which gained `meetingModels` and `recentMeetings`; the actions `setLanguage`, `setMeetingLanguage` and `openModels`.
+    - Engines and models: `EnginesSection`, the models by kind; `EngineTask.title` and `MeetingModel.job` name the jobs.
+    - Controls (`Window/Controls.swift`): `SettingField` (a text setting with Save, Enter and Esc), `NumberMenu` (a number as a menu of set values), `Hinted`, `ChoicePicker`. `Window/PeriodMenu.swift`: `PeriodMenu` and how each section keeps its `StatsPeriod` in the app's preferences. `DictationStore.page(in:)` and `MeetingStore.presences(of:in:)` take a range with an end.
 - Next, in this order unless the author says otherwise (written 2026-11-20; back and forward, moved first on 2026-11-22, is merged):
   1. The open checks of import names with the author: I4, I5, and I6 once the 29 Oct meeting has names (the author, 2026-11-23: on a day with calls, after the settings review has started). I3 and I7, with Zoom's files, are put off for long (the author, 2026-11-22). Teams `.docx` and the Meet `.txt` format are later parts. For every part of the main window: a spec and a plan first (decisions with the author), then the build, as for Voices: Ponytail per task, a review per task, the three end-of-branch reviews.
-  2. The settings review, now on branch `settings-review`: spec `docs/superpowers/specs/2026-11-23-settings-review-design.md` (approved 2026-11-23), plan `docs/superpowers/plans/2026-11-23-settings-review.md`. Also asked for (2026-11-16): a review of every setting with the author, which takes in what each engine and model is for, automatic start per app (Teams, Zoom, Meet), rules by meeting name (offer or do nothing), and whether the voice numbers (threshold, margin, samples, microphone minutes, 30 days) become settings; the author's remarks on each page (2026-11-22: models in two places, the dictation language in General, Overlay, Meetings vs Calls, History and privacy, Appearance, the Calls apps' switches; the 🎙 menu and Home: what belongs there, with recommendations); and the same controls looking and sitting the same in every section (2026-11-22: the period menu is on the left in Dictations and on the right in Statistics and People). Details in `docs/future-ideas.md` under "New ideas". The app icon and the check of the name are there too (2026-11-22, not ordered).
+  2. Finish the settings review on branch `settings-review`: Task 9, why no call offer shows for Google Meet in Chrome (the author, 2026-11-17; C1 passed there on 2026-11-12), on a real Meet call with the author (details in `docs/future-ideas.md` under "Call offer: left open"); then the end-of-branch reviews, then ask about the pull request. The app icon and the check of the name are in `docs/future-ideas.md` under "New ideas" (2026-11-22, not ordered).
   3. Left from the small fixes: look at L3 again with the author (Cancel on the merge question).
-  4. Fix: no call offer for Google Meet in Chrome (the author, 2026-11-17; C1 passed there on 2026-11-12). Details in `docs/future-ideas.md` under "Call offer: left open".
-  5. Check every query of the three databases with `EXPLAIN QUERY PLAN` and every index for use (the author, 2026-11-17); `stats.sqlite` is done. Details in `docs/future-ideas.md` under "New ideas".
+  4. Check every query of the three databases with `EXPLAIN QUERY PLAN` and every index for use (the author, 2026-11-17); `stats.sqlite` is done. Details in `docs/future-ideas.md` under "New ideas".
   The look and the screens are fixed in `docs/superpowers/specs/2026-11-11-visual-style/` (spec and `mockups.html`).
   Decisions and the build order are in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy with full history is on GitLab (`local-dictation-tool`); it is no longer updated.

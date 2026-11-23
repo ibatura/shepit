@@ -55,7 +55,7 @@ Other engines are optional and can also be downloaded later in **Settings → En
 While you speak, a small panel shows **🔴 Слухаю**, a timer, a frequency meter and a draft of what you're saying. After you stop it shows **⏳ Розпізнаю…**, then the final text, then disappears. The panel never takes focus — your cursor stays where it was.
 
 - **Esc** while recording cancels it.
-- **Hold-to-talk** mode: hold ⌥Space while speaking, release to paste (menu → Mode, or Settings → Hotkeys).
+- **Hold-to-talk** mode: hold ⌥Space while speaking, release to paste (Settings → Hotkeys → Mode).
 - **⌃⌥D** adds the selected word to the dictionary (see [Dictionary](#dictionary)).
 - The draft text comes from the draft engine; the pasted text from the dictation engine, so they may differ slightly.
 - Your clipboard is restored about a second after pasting (some apps read it late).
@@ -63,22 +63,25 @@ While you speak, a small panel shows **🔴 Слухаю**, a timer, a frequency
 
 ### The 🎙 menu
 
-The menu has the quick actions; everything else is in [the window](#the-window).
+The menu has the quick actions, in groups for meetings, dictation and Shepit itself; everything else is in [the window](#the-window).
 
 | Item | What it does |
 |---|---|
-| Status line | Ready / Loading / Recording / Transcribing, or the current error; ⚠ lines below it name settings errors or permission problems. While a meeting runs, a second line shows its name, its time and how many phrases wait for recognition |
-| Open Shepit (⌘O) | Opens the window on the section it showed last (also: launch Shepit again) |
+| ⚠ lines | Settings errors and permission problems; a click opens the fix where there is one |
+| Meeting line | While a meeting runs: its name, its time and how many phrases wait for recognition |
 | Start / Stop meeting transcript | See [Meeting transcripts](#meeting-transcripts) |
+| Meeting language | Ukrainian, English or Auto-detect, for meetings; greyed while a meeting records |
+| Dictation: Ready — … | The dictation status with its engine, or the current error |
 | Copy last dictation | The newest dictation, to the clipboard |
-| Recent | Your last dictations. Click one to copy its full text |
-| Add word… | Same as ⌃⌥D |
-| Mode | Toggle or Hold to talk |
-| Language | Ukrainian, English or Auto-detect |
-| Dictation engine | The engine for the pasted text — only downloaded ones are listed |
-| About Shepit | The version, and the commit it was built from: "Version 0.2.0 (ff170a9)" |
+| Recent dictations | Your last dictations. Click one to copy its full text |
+| Add word to dictionary… | Same as ⌃⌥D |
+| Dictation language | Ukrainian, English or Auto-detect, for dictation; greyed while you dictate |
+| Open Shepit (⌘O) | Opens the window on the section it showed last (also: launch Shepit again) |
 | Settings… (⌘,) | Opens the window on Settings |
-| Quit Shepit | Quits Shepit |
+| About Shepit | The version, and the commit it was built from: "Version 0.4.0 (ff170a9)" |
+| Quit Shepit (⌘Q) | Quits Shepit |
+
+Mode and the engines are in Settings (Hotkeys, Engines and models).
 
 Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open the menu to see it) · ⏺ in front while a meeting transcript runs.
 
@@ -88,7 +91,7 @@ Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open 
 
 | Section | What is there |
 |---|---|
-| Home | Dictation status, Mode, Language, Microphone, **Reload settings** (re-reads both files now; normally automatic within 2 s) and **Reload model** (if an engine got stuck); the engine for each job; the meeting transcript with Start and Stop; your last 10 dictations with Copy |
+| Home | **Needs attention**, only when something is wrong (the hotkey, Accessibility, microphone access, a model a job needs that isn't downloaded), each with its button; the dictation status; the meeting transcript with Start and Stop; your last 10 dictations with Copy; your last 10 meetings, a click opens one in Meetings |
 | Meetings | Every meeting transcript: name the meeting and its people, merge people, give a line to another person (see [Meetings in the window](#meetings-in-the-window)) |
 | Dictations | Your kept dictations by day, newest first, with the app each went to and Copy (see [Dictations in the window](#dictations-in-the-window)) |
 | Dictionary | Terms, replace rules and drop phrases, and **Add word** (see [Dictionary](#dictionary)) |
@@ -185,16 +188,22 @@ To see how well the saved voices would have recognised your people in earlier me
 
 ### The call panel
 
-You don't have to open the menu. When Teams, Zoom or a Google Meet tab (Chrome, Edge, Brave, Arc) has held the microphone for 3 seconds, a small panel appears in the top right corner with the call's name and **Start transcript**. It never takes the keyboard.
+You don't have to open the menu. When Teams, Zoom or a Google Meet tab (Chrome, Edge, Brave, Arc) has held the microphone for 3 seconds, what happens depends on that app's choice in Settings → Meetings → **Calls**:
+
+- **Offer** (the default): a small panel appears in the top right corner with the call's name and **Start transcript**. It never takes the keyboard.
+- **Auto**: the same panel counts down 5 seconds (`callAutoStartSeconds`) and the transcript starts by itself unless you press **Don't record**.
+- **Off**: nothing. A transcript you start yourself during such a call is an ordinary one: it doesn't stop when the call ends.
+
+**Rules by meeting name** decide for some meetings instead of the app's choice, for example *Teams, contains "Daily scrum", then Auto*, or *then Off* for a meeting you never record. The first rule that matches the call's name decides (↑ and ↓ move a rule); a call that matches none gets its app's choice. While an app has a rule, Shepit waits for the call's name before it decides, up to 5 seconds.
 
 - **Start transcript** starts at once, without the name dialog. The name is the one found in the call window, or the one a repeating meeting had last time; without a name the panel says "Zoom call".
 - **Not this call**, or the panel hiding by itself after 15 seconds (`callOfferSeconds`), means no more panels for this call. Start from the menu still works.
-- **Nothing is recorded without your click**, unless you turn on **Start automatically** (`callAutoStart`): then the panel counts down and the transcript starts unless you press **Don't record**.
-- When the call ends, the panel counts down 10 seconds (`callAutoStopSeconds`) and the transcript stops by itself; **Keep recording** leaves it running. This applies to a transcript started from the panel, or from the menu during the call. A transcript started with no call is never stopped this way.
+- **Nothing is recorded without your click**, unless the app or a rule says Auto.
+- When the call ends, the panel counts down 10 seconds (`callAutoStopSeconds`) and the transcript stops by itself; **Keep recording** leaves it running. This applies to a transcript started from the panel, or from the menu during the call of an app that isn't Off. A transcript started with no call is never stopped this way.
 - After Stop the panel says **Transcript ready**, with **Name people**, which opens the meeting in the window.
 - A call's transcript without a single line is removed (for example Start on a pre-join screen that you then closed).
 
-The settings are in 🎙 → Settings… → **Calls**. Known limits, because a call is detected only by an app holding the microphone:
+The settings are in Settings → Meetings → **Calls**. Known limits, because a call is detected only by an app holding the microphone:
 
 - The panel can appear on the pre-join screen (Teams turns the microphone on there).
 - A microphone test or a voice message in Teams or Zoom longer than 3 seconds gives a panel.
@@ -237,7 +246,7 @@ Yes, the release candidate is ready.
 
 ## Settings
 
-Everything is in the window's **Settings** section (**Settings…**, ⌘,): General, Hotkeys, Engines and models, Dictation, Overlay, Meetings, Calls, History and privacy, Appearance. Every change is saved at once. **History and privacy** has Clear history… (clearing also deletes kept audio of failed attempts, and asks first). **Hotkeys** can also record a shortcut that starts or stops a meeting transcript (`meetingHotkey`); a shortcut another Shepit hotkey already uses is refused. **Appearance** has the theme and the accent colour.
+Everything is in the window's **Settings** section (**Settings…**, ⌘,), on seven pages, each starting with a line on what it is for: General, Hotkeys, Dictation (with the panel shown while you speak), Meetings (with Calls), Engines and models (every model on this Mac, what it is for and what uses it), History and privacy, Appearance. A switch or a menu is saved at once; a text field (your name, the folders, the file name, the panel's titles, a rule's text, the style prompt) shows **Save** while you change it, Enter saves too and Esc puts the saved text back. **History and privacy** has Clear history… (clearing also deletes kept audio of failed attempts) and Clear statistics…; both ask first. **Hotkeys** can also record a shortcut that starts or stops a meeting transcript (`meetingHotkey`); a shortcut another Shepit hotkey already uses is refused. **Appearance** has the theme and the accent colour.
 
 The window reads and writes `~/.config/dictation/settings.json`, which you can also edit by hand (**Settings → General → Open settings file**). Hand edits apply within 2 seconds. Only the fields you set are stored; anything missing uses the default. If the file has an error (wrong value or broken JSON), Shepit keeps working with the last good settings, and the menu and the window name the field and what's allowed — the window is read-only until the file is fixed.
 
@@ -283,22 +292,23 @@ Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` 
 | `collectStats` | `true` | `true`, `false` | Record usage statistics on this Mac (numbers only) |
 | `typingSpeedWpm` | `40` | 10–200 | Your typing speed, for "time saved" in Statistics |
 | `databasesFolder` | `"~/.local/share/dictation"` | absolute path or starting with `~/` | Where `dictations.sqlite`, `meetings.sqlite` and `stats.sqlite` are kept. Read at launch; files already there are not moved. A synced folder (iCloud) uploads them |
-| `overlayStyle` | see below | object | Look of the panel (Settings → Overlay) |
+| `overlayStyle` | see below | object | Look of the panel (Settings → Dictation) |
 | `meetingsFolder` | `"~/.local/share/dictation/meetings"` | absolute path or starting with `~/` | Where meeting notes go; created if missing. Point it at a folder in your Obsidian vault |
 | `meetingFileName` | `"{date} {time} {title}"` | 1–200 characters; see below | Note file name without `.md`; `/` makes subfolders |
 | `meetingAskTitle` | `true` | `true`, `false` | Ask for the meeting name at Start (only when the file name uses `{title}`) |
 | `meetingMyName` | `""` | any text | Label for your microphone; `""` = your macOS account name |
 | `meetingBlocksDictation` | `false` | `true`, `false` | The dictation hotkey does nothing while a meeting is recording |
 | `meetingLanguage` | `"auto"` | `"uk"`, `"en"`, `"auto"` | Language of meeting phrases; `auto` picks Ukrainian or English for each part of a phrase, cut at short pauses (whisper.cpp), so a speaker can switch language mid-phrase; English parts get only the dictionary terms as a hint, not the Ukrainian style sentence. A switch with no pause at all stays in one language |
-| `callOffer` | `true` | `true`, `false` | Show a small panel when a call starts in Teams, Zoom or Google Meet, with the call's name and a Start button |
-| `callOfferSeconds` | `15` | `0`, or 5–120 | Seconds until that panel hides; `0` keeps it until you press a button |
-| `callAutoStart` | `false` | `true`, `false` | The panel counts down and the transcript starts by itself unless you press Don't record |
-| `callAutoStartSeconds` | `5` | 3–60 | Length of that countdown |
+| `callModes` | `{"Teams": "offer", "Zoom": "offer", "Meet": "offer"}` | `"Teams"`, `"Zoom"`, `"Meet"` to `"auto"`, `"offer"` or `"off"` | What a call in each app does (see [The call panel](#the-call-panel)); an app left out is Off |
+| `callRules` | `[]` | a list of `{"app": "Teams", "match": "contains", "text": "Daily scrum", "then": "auto"}`; `match`: `"contains"`, `"is"`; `then`: `"auto"`, `"offer"`, `"off"` | Rules by meeting name, in order; the first that matches the call's name decides. Case doesn't matter; an empty text matches nothing |
+| `callOfferSeconds` | `15` | `0`, or 5–120 | Seconds until the offer panel hides; `0` keeps it until you press a button |
+| `callAutoStartSeconds` | `5` | 3–60 | Length of the Auto countdown |
 | `callAutoStopSeconds` | `10` | 3–120 | Seconds from the call's end until the transcript stops, unless you press Keep recording |
-| `callApps` | `["Teams", "Zoom", "Meet"]` | any of these | Apps that get the panel |
 | `theme` | `"system"` | `"system"`, `"light"`, `"dark"` | Light or dark for the window, the call panels and the dialogs; `system` follows macOS |
 | `accentColor` | `"system"` | `"system"`, `"blue"`, `"purple"`, `"pink"`, `"red"`, `"orange"`, `"yellow"`, `"green"`, `"graphite"` | Accent colour; `system` follows macOS |
 | `rememberVoices` | `false` | `true`, `false` | Keep a voice sample of each transcript line on this Mac, so people you name are recognised in later meetings (set in the window's People section) |
+
+A file from before 0.4.0 has `callOffer`, `callAutoStart` and `callApps` instead of `callModes`. Shepit reads them as before (an app not in `callApps`, or every app with `callOffer` off, is Off; with `callAutoStart` on the rest are Auto) until the first change in Calls, which writes `callModes` and removes them.
 
 **Meeting file names.** Placeholders: `{date}` (2026-10-26), `{time}` (14-05), `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`, `{weekday}` (Mon), `{title}` (the meeting name, up to 80 characters), `{app}` (Teams, Meet). Empty parts and the separators around them are dropped; a name that's taken gets ` (2)`. Not allowed outside placeholders: `\ : * ? " < > | # ^ [ ]`. Examples for a meeting "Weekly sync" on Monday 26 Oct 2026 at 14:05:
 
@@ -350,7 +360,7 @@ Settings → Meetings shows a live example as you type.
 | Text isn't pasted, "Text copied — allow Accessibility" | System Settings → Privacy & Security → Accessibility → turn on Shepit. If it's on but doesn't work: remove Shepit with **−**, add it again with **+** from `~/Applications`. The text is on the clipboard and in history meanwhile |
 | "no microphone access" | System Settings → Privacy & Security → Microphone → turn on Shepit |
 | 🎙⚠ in the menu bar | Open the menu to read the error. Try **Reload model** on the window's Home. "Not downloaded" → Settings → Engines and models → Download |
-| No draft text in the panel | The draft engine isn't downloaded (Settings → Engines and models), or Overlay → Live draft is off |
+| No draft text in the panel | The draft engine isn't downloaded (Settings → Engines and models), or Settings → Dictation → Live draft is off |
 | English words come out in Cyrillic | Add them to `terms` and a `replace` rule (see Dictionary) |
 | First words cut off / worse recognition with Bluetooth headphones | Using their microphone switches Bluetooth to a low-quality headset mode, which also takes ~0.5 s to start. Choose MacBook Pro Microphone on Home (🎙 → Open Shepit) or in Settings → Dictation; your music stays in high quality |
 | Meeting note has only your voice | System Settings → Privacy & Security → Screen & System Audio Recording → turn on Shepit (Shepit says so after 2 min of your speech with a silent call) |

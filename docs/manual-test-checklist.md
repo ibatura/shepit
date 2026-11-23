@@ -212,6 +212,26 @@ Design: `docs/superpowers/specs/2026-11-22-back-forward-design.md`.
 | B12 | During a recording, collapsed | A red dot; its hint has the time and name; a click opens the running transcript | |
 | B13 | The arrows next to the sidebar button, left of the section's name | The author keeps the place | ✅ 2026-11-22 |
 
+## Main window: Settings review
+
+Date: 2026-11-23
+
+Design: `docs/superpowers/specs/2026-11-23-settings-review-design.md`. R6–R8 change no file of the author's: R6 and R7 are real calls with the Calls part set in the window, R8 reads a copy of an old `settings.json` in a test folder.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| R1 | Go through the seven Settings pages | Each starts with its line; every setting of the old pages is on one of them | ✅ 2026-11-23 |
+| R2 | Quit with the old Overlay or Calls page chosen (from 0.3.0), open Settings | Dictation or Meetings opens | ✅ 2026-11-23 |
+| R3 | Engines and models | One line per job; Voice and Speaker detection chosen with the jobs; the models by kind, each with what it is for, "Used for: …" or "Not used: can be deleted"; Unload when idle is a menu | ✅ 2026-11-23, after the author's remarks (16a7d70) |
+| R4 | Home with a model a job needs deleted, and with recent meetings; click one | Needs attention names the model, Download… opens Engines and models; Recent meetings lists 10 with app and length, a click opens the meeting | ✅ 2026-11-23 |
+| R5 | The 🎙 menu, with and without a meeting; both language submenus | Groups for problems, Meeting, Dictation and Shepit; each language submenu changes only its own language, greyed while its recording runs | ✅ 2026-11-23 |
+| R6 | A Teams call with Teams on Offer; then a rule "contains <its name>, then Off"; then the rule's Off changed to Auto | The offer panel with the name; then no panel, Home still shows the call with Start; then the countdown and a transcript | |
+| R7 | Zoom set to Off, a Zoom call; Start by hand, then end the call | No panel; the transcript doesn't stop when the call ends and ends with Transcript ready | |
+| R8 | A copy of a 0.3.0 `settings.json` with `callOffer`, `callAutoStart` and `callApps` in a test folder, read by a test build | Calls shows the same behaviour as before; nothing is written until a change in Calls, which writes `callModes` and removes the three keys | |
+| R9 | The period menu in Dictations, Statistics and People: a preset, then Custom…; reopen the window | Same menu on the right in each; Custom… shows only those days; each section keeps its own period | ✅ 2026-11-23 |
+| R10 | Google Meet in Chrome, Meet on Offer, a real call | The offer panel with the call's name (Task 9) | |
+| R11 | Settings controls: change a text field (Your name, a folder, a rule) with Save, Enter and Esc; the number menus; rules' ↑ ↓; the → icons on Recognition and Voice and speaker detection; Clear history… and Clear statistics…; Add word | Bordered fields saved only with Save or Enter, Esc puts the text back; menus instead of − +; Max recording length in seconds; the arrows reorder rules; each → opens Engines and models; both Clear… ask in a sheet; the Add word dialog in English | ✅ 2026-11-23 |
+
 ## Version
 
 Date: 2026-11-21
@@ -220,6 +240,7 @@ Date: 2026-11-21
 |---|---|---|---|
 | A1 | Install; 🎙 → About Shepit (and Shepit → About Shepit while the window is open) | macOS's About panel: Shepit, "Version 0.2.0 (…)" with the commit `git rev-parse --short HEAD` gives | ✅ 2026-11-21: "Version 0.2.0 (7ea3925)", the installed Info.plist says the same |
 | A2 | The same after version 0.3.0 is installed | "Version 0.3.0 (…)" | |
+| A3 | The same after version 0.4.0 is installed | "Version 0.4.0 (…)" | |
 
 ## Need to test later
 
