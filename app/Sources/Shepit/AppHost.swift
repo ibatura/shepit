@@ -141,7 +141,6 @@ final class AppHost: ControllerHost {
             }
         }
         if initial || before?.theme != after.theme { applyTheme(after.theme) }
-        if initial || before?.engines != after.engines { lookups.meetingMissing = meetingMissing } // follows the meetings engine
         if initial || before?.accentColor != after.accentColor { applyAccentColor(after.accentColor) }
         if announce, settingsOK, dictionaryOK { panel.message("Config reloaded") }
         refreshStatus()
@@ -213,7 +212,6 @@ final class AppHost: ControllerHost {
         view.history = lookups.history
         view.accessibilityGranted = lookups.accessibilityGranted
         view.microphoneDenied = lookups.microphoneDenied
-        view.meetingMissing = lookups.meetingMissing
         view.recentMeetings = lookups.recentMeetings
         return view
     }
@@ -225,21 +223,19 @@ final class AppHost: ControllerHost {
         var history: [DictationStore.Entry] = []
         var accessibilityGranted = true
         var microphoneDenied = false
-        var meetingMissing: String?
         var recentMeetings: [MeetingStore.Meeting] = []
     }
 
     /// Enough history for Home and for the menu's Recent.
     var recentHistory: [DictationStore.Entry] {
-        (try? dictations.page(limit: max(HomeModel.dictationCount, settings.historyMenuItems))) ?? []
+        (try? dictations.page(limit: max(HomeModel.recentCount, settings.historyMenuItems))) ?? []
     }
 
     func gatherLookups() {
         lookups = Lookups(downloaded: ModelCatalog.downloadedChoices(), meetingModels: MeetingModel.allCases.filter { $0.isDownloaded() },
                           history: recentHistory,
                           accessibilityGranted: Permissions.accessibilityGranted, microphoneDenied: Permissions.microphoneDenied,
-                          meetingMissing: meetingMissing,
-                          recentMeetings: (try? meetingStore.meetings(limit: HomeModel.dictationCount)) ?? [])
+                          recentMeetings: (try? meetingStore.meetings(limit: HomeModel.recentCount)) ?? [])
     }
 
     private var hotkeyProblem: String? {
@@ -319,8 +315,8 @@ final class AppHost: ControllerHost {
         case .openWindow: showWindow()
         case .openSettings: showWindow(.settings)
         case .openModels:
-            mainWindow.navigation.settingsSection = .engines
-            showWindow(.settings)
+            mainWindow.navigation.openSettings(.engines)
+            showWindow()
         case .reloadConfig: reloadConfig(announce: true)
         case .clearHistory: clearHistory()
         case .copyText(let text):

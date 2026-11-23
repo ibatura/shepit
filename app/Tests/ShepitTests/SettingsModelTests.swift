@@ -181,13 +181,9 @@ struct SettingsModelTests {
                                                          "overlay", "livePreview", "overlayStyle"])
     }
 
-    @Test func aNumberMenuKeepsAValueFromTheFileAndNamesItsUnits() {
+    @Test func aNumberMenuKeepsAValueFromTheFile() {
         #expect(NumberMenu.values([0, 5, 15, 30], current: 15) == [0, 5, 15, 30])
         #expect(NumberMenu.values([0, 5, 15, 30], current: 7) == [0, 5, 7, 15, 30])
-        #expect([1, 45, 60, 90, 300, 3600, 7200].map(NumberMenu.seconds)
-                == ["1 second", "45 seconds", "1 minute", "90 seconds", "5 minutes", "1 hour", "2 hours"])
-        #expect([1, 6, 24, 72, 168, 720].map(NumberMenu.hours) == ["1 hour", "6 hours", "1 day", "3 days", "1 week", "30 days"])
-        #expect([1, 30, 365, 730].map(NumberMenu.days) == ["1 day", "30 days", "1 year", "2 years"])
     }
 
     // Settings review design §7.2–7.3.

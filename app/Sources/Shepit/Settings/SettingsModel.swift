@@ -78,6 +78,8 @@ final class SettingsModel {
     var isReadOnly: Bool { !errors.isEmpty }
 
     @ObservationIgnored private let store: SettingsStore
+    /// The text settings typed and not saved yet.
+    @ObservationIgnored let drafts = SettingDrafts()
     @ObservationIgnored private let dictionaryStore: DictionaryStore
     /// Called after a successful write, so the app applies the change at once.
     @ObservationIgnored var onChange: () -> Void = {}

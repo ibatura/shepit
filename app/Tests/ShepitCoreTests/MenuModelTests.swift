@@ -193,7 +193,7 @@ struct MenuModelTests {
         #expect(find(MenuModel.build(view { $0.meeting = .init(state: .recording(elapsed: 1, waiting: 0)) }), "Stop meeting transcript")?.action == .stopMeeting)
         let finishing = find(MenuModel.build(view { $0.meeting = .init(state: .finishing(left: 2)) }), "Start meeting transcript")
         #expect(finishing?.enabled == false)
-        let missing = MenuModel.build(view { $0.meetingMissing = "download the model in Settings" })
+        let missing = MenuModel.build(view { $0.meetingModels = [.diarization] }) // no voice detection
         #expect(find(missing, "Start meeting transcript (download the model in Settings)")?.enabled == false)
         #expect(find(MenuModel.build(view { $0.meeting = .init(state: .done(speakers: 1)) }), "Start meeting transcript")?.enabled == true)
     }

@@ -4,6 +4,23 @@ import Foundation
 /// one, or nothing.
 public enum CallMode: String, CaseIterable, Sendable {
     case auto, offer, off
+
+    public var title: String {
+        switch self {
+        case .auto: "Auto"
+        case .offer: "Offer"
+        case .off: "Off"
+        }
+    }
+
+    /// What the choice does, under it in Settings.
+    public func about(autoStartSeconds: Int) -> String {
+        switch self {
+        case .auto: "Starts a transcript on its own after \(autoStartSeconds) s"
+        case .offer: "Shows a panel with the call's name and a Start button"
+        case .off: "Does nothing"
+        }
+    }
 }
 
 /// A rule by meeting name: the first of an app's rules that matches the call's name decides instead of the app's choice.
@@ -47,13 +64,8 @@ public struct CallRule: Hashable, Sendable {
 }
 
 extension Settings {
-    /// The app's choice: `callModes`, where a missing app is Off; while the file has none, the old keys, as today's
-    /// offer reads them (an app in `callApps` gets a panel only with `callOffer`, one that starts with `callAutoStart`).
-    public func callMode(for app: CallApp) -> CallMode {
-        if let callModes { return callModes[app] ?? .off }
-        guard callApps.contains(app.rawValue), callOffer else { return .off }
-        return callAutoStart ? .auto : .offer
-    }
+    /// The app's choice; an app missing from `callModes` is Off.
+    public func callMode(for app: CallApp) -> CallMode { callModes[app] ?? .off }
 
     /// Whether the app's choice can turn on the call's name: it has a rule with some text.
     public func hasCallRules(for app: CallApp) -> Bool {

@@ -48,9 +48,9 @@ public struct CallOffer: Sendable {
         /// A process took or released the microphone (`CallWatch`).
         case took(CallSource, pid: Int32), released(pid: Int32)
         /// Answers to `.lookForMeet` and `.lookForName`.
-        case meetFound(Bool), named(String?)
-        /// Last time's name of a repeating meeting, for an app with rules: it decides only if the app shows no name
-        /// within the wait, as the lookup for the app's own name can outlast it.
+        case meetFound(Bool), named(String)
+        /// Last time's name of a repeating meeting, shown until the app shows one. With rules it decides only if the app
+        /// shows none within the wait: the app's own name goes first (settings review design §7.1).
         case remembered(String)
         /// The panel's main and second button.
         case pressedMain, pressedOther
@@ -110,9 +110,13 @@ public struct CallOffer: Sendable {
         var app: CallApp?
         var since: Date
         var releasedAt: Date?
+        /// The name the app shows.
         var name: String?
         var remembered: String?
         var phase = Phase.pending
+
+        /// The name the call goes by.
+        var title: String? { name ?? remembered }
     }
 
     private struct Session {
@@ -151,7 +155,7 @@ public struct CallOffer: Sendable {
     public var current: Current? {
         guard let call, let app = call.app, call.releasedAt == nil else { return nil }
         switch call.phase {
-        case .naming, .offered, .quiet: return Current(name: call.name, app: app)
+        case .naming, .offered, .quiet: return Current(name: call.title, app: app)
         case .pending, .checkingMeet, .held: return nil
         }
     }
@@ -208,7 +212,7 @@ public struct CallOffer: Sendable {
             if case .offered = call?.phase {
                 effects.append(start(app, .started)) // counted like its offer's Start
             } else {
-                effects.append(.start(title: call?.name, app: app)) // the offer was answered already, or never shown
+                effects.append(.start(title: call?.title, app: app)) // the offer was answered already, or never shown
             }
         case .pressedOther:
             switch panel {
@@ -257,7 +261,7 @@ public struct CallOffer: Sendable {
     private mutating func start(_ app: CallApp, _ outcome: Outcome) -> Effect {
         starting = (outcome, app)
         call?.phase = .quiet
-        return .start(title: call?.name, app: app)
+        return .start(title: call?.title, app: app)
     }
 
     /// The call is confirmed: offer it, unless a transcript already runs. A transcript that is finishing no longer
@@ -285,7 +289,7 @@ public struct CallOffer: Sendable {
     /// The call's choice (settings review design §7.1): Auto or Offer puts its panel up; Off leaves Home's Start only.
     private mutating func decide(_ now: Date, _ settings: Settings) {
         guard let app = call?.app else { return }
-        let choice = settings.callChoice(app: app, name: call?.name)
+        let choice = settings.callChoice(app: app, name: call?.title)
         call?.phase = choice == .off ? .quiet : .offered(since: now, auto: choice == .auto)
     }
 
@@ -320,7 +324,6 @@ public struct CallOffer: Sendable {
                 call?.phase = .checkingMeet(next: nil)
                 effects.append(.lookForMeet)
             case .naming(let since) where now.timeIntervalSince(since) >= Self.namingWait:
-                call?.name = current.name ?? current.remembered
                 decide(now, settings)
             case .offered(let since, let auto):
                 guard let app = current.app else { break }
@@ -349,7 +352,7 @@ public struct CallOffer: Sendable {
         func left(_ total: Int, _ since: Date) -> Int { max(0, Int((Double(total) - now.timeIntervalSince(since)).rounded(.up))) }
         if let since = session?.endingSince { return .ended(stopsIn: left(settings.callAutoStopSeconds, since)) }
         if let call, case .offered(let since, let auto) = call.phase, let app = call.app {
-            let title = call.name ?? "\(app.title) call"
+            let title = call.title ?? "\(app.title) call"
             if auto { return .autoStart(title: title, app: app, startsIn: left(settings.callAutoStartSeconds, since)) }
             return .offer(title: title, app: app, hidesIn: settings.callOfferSeconds == 0 ? nil : left(settings.callOfferSeconds, since))
         }

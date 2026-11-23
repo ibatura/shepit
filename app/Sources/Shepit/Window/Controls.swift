@@ -29,24 +29,6 @@ struct NumberMenu: View {
     }
 
     static func values(_ values: [Int], current: Int) -> [Int] { Set(values + [current]).sorted() }
-
-    /// "90 seconds", "5 minutes", "1 hour".
-    static func seconds(_ seconds: Int) -> String {
-        seconds > 0 && seconds % 3600 == 0 ? count(seconds / 3600, "hour")
-            : seconds > 0 && seconds % 60 == 0 ? count(seconds / 60, "minute") : count(seconds, "second")
-    }
-
-    /// "6 hours", "1 day", "1 week".
-    static func hours(_ hours: Int) -> String {
-        hours > 0 && hours % 168 == 0 ? count(hours / 168, "week") : hours > 0 && hours % 24 == 0 ? count(hours / 24, "day") : count(hours, "hour")
-    }
-
-    /// "30 days", "1 year".
-    static func days(_ days: Int) -> String {
-        days > 0 && days % 365 == 0 ? count(days / 365, "year") : count(days, "day")
-    }
-
-    static func count(_ number: Int, _ unit: String) -> String { number == 1 ? "1 \(unit)" : "\(number) \(unit)s" }
 }
 
 /// A control with the README's one-line hint under it.
@@ -67,9 +49,12 @@ struct Hinted<Content: View>: View {
 /// the draft and saves nothing, and so does leaving the page (`SettingDrafts`).
 struct SettingField: View {
     let saved: String
+    let drafts: SettingDrafts
     /// Where its draft is kept while the page is not shown.
     let keep: String
     var prompt = ""
+    /// `.vertical` grows to a few lines, for a paragraph.
+    var axis = Axis.horizontal
     /// A draft it refuses keeps Save greyed.
     var canSave: (String) -> Bool = { _ in true }
     /// Each edit, for a caller that shows something from the draft.
@@ -79,7 +64,8 @@ struct SettingField: View {
 
     var body: some View {
         HStack {
-            TextField(prompt, text: $draft, prompt: Text(prompt))
+            TextField(prompt, text: $draft, prompt: Text(prompt), axis: axis)
+                .lineLimit(axis == .vertical ? 3...8 : 1...1)
                 .textFieldStyle(.roundedBorder)
                 .labelsHidden()
                 .onSubmit(commit)
@@ -88,10 +74,10 @@ struct SettingField: View {
                 Button("Save", action: commit).disabled(!canSave(draft))
             }
         }
-        .onAppear { draft = SettingDrafts.draft(keep, saved: saved) ?? saved }
+        .onAppear { draft = drafts.draft(keep, saved: saved) ?? saved }
         .onChange(of: saved) { draft = $1 }
         .onChange(of: draft) {
-            SettingDrafts.keep(keep, saved: saved, draft: $1)
+            drafts.keep(keep, saved: saved, draft: $1)
             edited($1)
         }
     }
@@ -101,16 +87,16 @@ struct SettingField: View {
     }
 }
 
-/// Unsaved drafts of text settings while Shepit runs: a page left and opened again shows them with Save, as a draft is
-/// saved only on purpose. One comes back only while the text it was typed over is still the saved one.
-@MainActor enum SettingDrafts {
-    private static var drafts: [String: (saved: String, draft: String)] = [:]
+/// Unsaved drafts of text settings while Shepit runs (`SettingsModel.drafts`): a page left and opened again shows them
+/// with Save, as a draft is saved only on purpose. One comes back only while the text it was typed over is still saved.
+@MainActor final class SettingDrafts {
+    private var drafts: [String: (saved: String, draft: String)] = [:]
 
-    static func draft(_ key: String, saved: String) -> String? {
+    func draft(_ key: String, saved: String) -> String? {
         drafts[key].flatMap { $0.saved == saved ? $0.draft : nil }
     }
 
-    static func keep(_ key: String, saved: String, draft: String) {
+    func keep(_ key: String, saved: String, draft: String) {
         drafts[key] = draft == saved ? nil : (saved, draft)
     }
 }

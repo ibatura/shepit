@@ -13,15 +13,11 @@ public func validateSettings(
     var errors: [String] = []
     let engineValuesForPrecedence = raw["engines"] as? [String: Any] ?? [:]
 
-    for (key, check) in settingChecks {
+    for (key, field) in settingFields {
         if (key == "model" && engineValuesForPrecedence[EngineTask.dictation.rawValue] != nil)
             || (key == "previewModel" && engineValuesForPrecedence[EngineTask.preview.rawValue] != nil) { continue }
         guard let value = raw[key] else { continue }
-        if let problem = check(value) {
-            errors.append("settings.json: \"\(key)\" \(problem)")
-            continue
-        }
-        assign(value, to: key, settings: &settings)
+        if let problem = field(value, &settings) { errors.append("settings.json: \"\(key)\" \(problem)") }
     }
 
     if let value = raw["hotkey"] {
@@ -45,146 +41,185 @@ public func validateSettings(
             errors.append(#"settings.json: "overlayStyle" must be an object"#)
             return (nil, errors.sorted())
         }
-        for key in OverlayStyleKeys.all {
+        for (key, field) in overlayFields {
             guard let value = styleValues[key] else { continue }
-            if let problem = validateOverlayValue(value, key: key) {
-                errors.append("settings.json: \"overlayStyle.\(key)\" \(problem)")
-            } else {
-                assignOverlay(value, key: key, style: &settings.overlayStyle)
-            }
+            if let problem = field(value, &settings.overlayStyle) { errors.append("settings.json: \"overlayStyle.\(key)\" \(problem)") }
         }
     }
 
+    var engineValues: [String: Any] = [:]
     if let rawEngines = raw["engines"] {
-        guard let engineValues = rawEngines as? [String: Any], isJSONObject(engineValues) else {
+        guard let values = rawEngines as? [String: Any], isJSONObject(values) else {
             errors.append(#"settings.json: "engines" must be an object"#)
             return (nil, errors.sorted())
         }
+        engineValues = values
         let allowedTasks = EngineTask.allCases.map(\.rawValue)
         for taskName in engineValues.keys.sorted() where !allowedTasks.contains(taskName) {
             errors.append("settings.json: \"engines\" has unknown task \"\(taskName)\"; allowed: \(allowedTasks.joined(separator: ", "))")
         }
-        for task in EngineTask.allCases {
-            if let explicit = engineValues[task.rawValue] {
-                if let choice = validateEngineChoice(explicit, task: task, catalog: catalog, errors: &errors) {
-                    settings.engines[task] = choice
-                }
-            } else {
-                if task == .dictation, raw["model"] != nil {
-                    settings.engines[task] = EngineChoice(engine: .whispercpp, model: settings.model)
-                } else if task == .preview, raw["previewModel"] != nil {
-                    settings.engines[task] = EngineChoice(engine: .whispercpp, model: settings.previewModel)
-                }
+    }
+    // An old file: `model` and `previewModel` fill in the engines `engines` doesn't name (README).
+    let oldModelKeys: [EngineTask: String] = [.dictation: "model", .preview: "previewModel"]
+    for task in EngineTask.allCases {
+        if let explicit = engineValues[task.rawValue] {
+            if let choice = validateEngineChoice(explicit, task: task, catalog: catalog, errors: &errors) {
+                settings.engines[task] = choice
             }
+        } else if let model = oldModelKeys[task].flatMap({ raw[$0] as? String }) {
+            settings.engines[task] = EngineChoice(engine: .whispercpp, model: model)
         }
-    } else {
-        if raw["model"] != nil {
-            settings.engines[.dictation] = EngineChoice(engine: .whispercpp, model: settings.model)
-        }
-        if raw["previewModel"] != nil {
-            settings.engines[.preview] = EngineChoice(engine: .whispercpp, model: settings.previewModel)
-        }
+    }
+    // An old file without `callModes`: each app's choice from `callApps`, `callOffer` and `callAutoStart`, as the offer read
+    // them (settings review design §7.2).
+    if raw["callModes"] == nil {
+        let apps = raw["callApps"] as? [String] ?? Settings.callAppNames
+        let offer = raw["callOffer"] as? Bool ?? true, auto = raw["callAutoStart"] as? Bool ?? false
+        settings.callModes = Dictionary(uniqueKeysWithValues: CallApp.allCases.map { app in
+            (app, apps.contains(app.rawValue) && offer ? (auto ? CallMode.auto : .offer) : .off)
+        })
     }
 
     return errors.isEmpty ? (settings, []) : (nil, errors.sorted())
 }
 
-/// The plain keys and their checks; `hotkey`, `addWordHotkey`, `meetingHotkey`, `overlayStyle` and `engines` are read apart.
-private let settingChecks: [(String, @Sendable (Any) -> String?)] = [
-    ("mode", enumCheck(Settings.modes.map(\.value))),
-    ("cancelKey", kindCheck("string")),
-    ("model", enumCheck(["large-v3", "large-v3-turbo"])),
-    ("language", enumCheck(Settings.languages.map(\.value))),
-    ("stylePrompt", kindCheck("string")),
-    ("refocusOriginalApp", kindCheck("boolean")),
+/// A key of the file: reads its value into the settings, or says what is wrong with it ("must be …").
+private typealias Field<Root> = @Sendable (Any, inout Root) -> String?
 
-    ("restoreClipboard", kindCheck("boolean")),
-    ("sounds", kindCheck("boolean")),
-    ("maxRecordingSeconds", integerCheck(5, 3600)),
-    ("idleUnloadMinutes", integerCheck(0, 1440)),
-    ("overlay", kindCheck("boolean")),
-    ("livePreview", kindCheck("boolean")),
-    ("previewModel", enumCheck(["large-v3", "large-v3-turbo"])),
-    ("historyMenuItems", integerCheck(0, 50)),
-    ("microphone", kindCheck("string")),
-    ("saveHistory", kindCheck("boolean")),
-    ("historyDays", integerCheck(0, 3650)),
-    ("failedAudioHours", integerCheck(0, 720)),
-    ("launchAtLogin", kindCheck("boolean")),
-    ("typingSpeedWpm", integerCheck(10, 200)),
-    ("collectStats", kindCheck("boolean")),
-    ("databasesFolder", folderCheck),
-    ("meetingsFolder", folderCheck),
-    ("meetingFileName", { value in
+/// The plain keys; `hotkey`, `addWordHotkey`, `meetingHotkey`, `overlayStyle` and `engines` are read apart. The keys of an
+/// old file are only checked here, and read at the end into `engines` and `callModes`.
+private let settingFields: [(String, Field<Settings>)] = [
+    ("mode", oneOf(\.mode, Settings.modes.map(\.value))),
+    ("cancelKey", string(\.cancelKey)),
+    ("model", checked(oldModelProblem) { ($0 as? String).flatMap { oldModels.contains($0) ? $0 : nil } }),
+    ("language", oneOf(\.language, Settings.languages.map(\.value))),
+    ("stylePrompt", string(\.stylePrompt)),
+    ("refocusOriginalApp", boolean(\.refocusOriginalApp)),
+    ("restoreClipboard", boolean(\.restoreClipboard)),
+    ("sounds", boolean(\.sounds)),
+    ("maxRecordingSeconds", integer(\.maxRecordingSeconds, 5...3600)),
+    ("idleUnloadMinutes", integer(\.idleUnloadMinutes, 0...1440)),
+    ("overlay", boolean(\.overlay)),
+    ("livePreview", boolean(\.livePreview)),
+    ("previewModel", checked(oldModelProblem) { ($0 as? String).flatMap { oldModels.contains($0) ? $0 : nil } }),
+    ("historyMenuItems", integer(\.historyMenuItems, 0...50)),
+    ("microphone", string(\.microphone)),
+    ("saveHistory", boolean(\.saveHistory)),
+    ("historyDays", integer(\.historyDays, 0...3650)),
+    ("failedAudioHours", integer(\.failedAudioHours, 0...720)),
+    ("launchAtLogin", boolean(\.launchAtLogin)),
+    ("typingSpeedWpm", integer(\.typingSpeedWpm, 10...200)),
+    ("collectStats", boolean(\.collectStats)),
+    ("databasesFolder", folder(\.databasesFolder)),
+    ("meetingsFolder", folder(\.meetingsFolder)),
+    ("meetingFileName", { value, settings in
         guard let template = value as? String else { return "must be a string" }
-        return MeetingFileName.validate(template)
-    }),
-    ("meetingAskTitle", kindCheck("boolean")),
-    ("meetingBlocksDictation", kindCheck("boolean")),
-    ("meetingMyName", kindCheck("string")),
-    ("meetingLanguage", enumCheck(Settings.languages.map(\.value))),
-    ("callOffer", kindCheck("boolean")),
-    ("callOfferSeconds", { value in
-        guard let seconds = integerValue(value), seconds == 0 || (5...120).contains(seconds) else {
-            return "must be 0 or a whole number from 5 to 120"
-        }
+        if let problem = MeetingFileName.validate(template) { return problem }
+        settings.meetingFileName = template
         return nil
     }),
-    ("callAutoStart", kindCheck("boolean")),
-    ("callAutoStartSeconds", integerCheck(3, 60)),
-    ("callAutoStopSeconds", integerCheck(3, 120)),
-    ("callApps", { value in
-        guard let apps = value as? [String], Set(apps).count == apps.count,
-              apps.allSatisfy(Settings.callAppNames.contains) else {
-            return "must be a list of: \(Settings.callAppNames.joined(separator: ", ")), each at most once"
-        }
-        return nil
+    ("meetingAskTitle", boolean(\.meetingAskTitle)),
+    ("meetingBlocksDictation", boolean(\.meetingBlocksDictation)),
+    ("meetingMyName", string(\.meetingMyName)),
+    ("meetingLanguage", oneOf(\.meetingLanguage, Settings.languages.map(\.value))),
+    ("callOffer", checked("must be a boolean") { isBoolean($0) ? $0 : nil }),
+    ("callOfferSeconds", field(\.callOfferSeconds, "must be 0 or a whole number from 5 to 120") {
+        integerValue($0).flatMap { $0 == 0 || (5...120).contains($0) ? $0 : nil }
     }),
-    ("callModes", { value in
-        Settings.callModes(file: value) == nil ? "must be an object from an app (\(Settings.callAppNames.joined(separator: ", "))) to auto, offer or off" : nil
+    ("callAutoStart", checked("must be a boolean") { isBoolean($0) ? $0 : nil }),
+    ("callAutoStartSeconds", integer(\.callAutoStartSeconds, 3...60)),
+    ("callAutoStopSeconds", integer(\.callAutoStopSeconds, 3...120)),
+    ("callApps", checked("must be a list of: \(Settings.callAppNames.joined(separator: ", ")), each at most once") {
+        ($0 as? [String]).flatMap { Set($0).count == $0.count && $0.allSatisfy(Settings.callAppNames.contains) ? $0 : nil }
     }),
-    ("callRules", { value in
-        Settings.callRules(file: value) == nil
-            ? "must be a list of rules, each with app (\(Settings.callAppNames.joined(separator: ", "))), match (contains, is), text and then (auto, offer, off)"
-            : nil
+    ("callModes", field(\.callModes, "must be an object from an app (\(Settings.callAppNames.joined(separator: ", "))) to auto, offer or off") {
+        Settings.callModes(file: $0)
     }),
-    ("theme", enumCheck(Settings.themes.map(\.value))),
-    ("accentColor", enumCheck(AccentColor.allCases.map(\.rawValue))),
-    ("rememberVoices", kindCheck("boolean")),
+    ("callRules", field(\.callRules, "must be a list of rules, each with app (\(Settings.callAppNames.joined(separator: ", "))), match (contains, is), text and then (auto, offer, off)") {
+        Settings.callRules(file: $0)
+    }),
+    ("theme", oneOf(\.theme, Settings.themes.map(\.value))),
+    ("accentColor", field(\.accentColor, "must be one of: \(AccentColor.allCases.map(\.rawValue).joined(separator: ", "))") {
+        ($0 as? String).flatMap(AccentColor.init(rawValue:))
+    }),
+    ("rememberVoices", boolean(\.rememberVoices)),
 ]
+
+/// The models `model` and `previewModel` could name: whisper.cpp's.
+private let oldModels = ["large-v3", "large-v3-turbo"]
+private let oldModelProblem = "must be one of: \(oldModels.joined(separator: ", "))"
+
+private let overlayFields: [(String, Field<OverlayStyle>)] = [
+    ("position", oneOf(\.position, ["bottom", "top", "center"])),
+    ("width", integer(\.width, 360...1600)),
+    ("opacity", number(\.opacity, 0.2...1)),
+    ("backgroundColor", color(\.backgroundColor)),
+    ("textColor", color(\.textColor)),
+    ("fontSize", integer(\.fontSize, 10...28)),
+    ("listeningText", string(\.listeningText)),
+    ("transcribingText", string(\.transcribingText)),
+    ("doneText", string(\.doneText)),
+    ("showTimer", boolean(\.showTimer)),
+    ("showMeter", boolean(\.showMeter)),
+    ("meterColor", color(\.meterColor)),
+    ("bars", integer(\.bars, 3...24)),
+    ("doneSeconds", number(\.doneSeconds, 0...10)),
+    ("messageSeconds", number(\.messageSeconds, 0.5...10)),
+]
+
+/// A value `read` accepts goes to `path`; anything else is `problem`.
+private func field<Root, Value>(_ path: WritableKeyPath<Root, Value> & Sendable, _ problem: String,
+                                _ read: @escaping @Sendable (Any) -> Value?) -> Field<Root> {
+    { value, root in
+        guard let read = read(value) else { return problem }
+        root[keyPath: path] = read
+        return nil
+    }
+}
+
+/// A key of an old file: checked, and read later into the key that replaced it.
+private func checked<Root, Value>(_ problem: String, _ read: @escaping @Sendable (Any) -> Value?) -> Field<Root> {
+    { value, _ in read(value) == nil ? problem : nil }
+}
+
+private func string<Root>(_ path: WritableKeyPath<Root, String> & Sendable) -> Field<Root> {
+    field(path, "must be a string") { $0 as? String }
+}
+
+private func boolean<Root>(_ path: WritableKeyPath<Root, Bool> & Sendable) -> Field<Root> {
+    field(path, "must be a boolean") { isBoolean($0) ? $0 as? Bool : nil }
+}
+
+private func integer<Root>(_ path: WritableKeyPath<Root, Int> & Sendable, _ range: ClosedRange<Int>) -> Field<Root> {
+    field(path, "must be a whole number from \(range.lowerBound) to \(range.upperBound)") { integerValue($0).flatMap { range.contains($0) ? $0 : nil } }
+}
+
+private func number<Root>(_ path: WritableKeyPath<Root, Double> & Sendable, _ range: ClosedRange<Double>) -> Field<Root> {
+    field(path, "must be a number from \(decimalString(range.lowerBound)) to \(decimalString(range.upperBound))") {
+        guard !isBoolean($0), let number = ($0 as? NSNumber)?.doubleValue, range.contains(number) else { return nil }
+        return number
+    }
+}
+
+private func oneOf<Root>(_ path: WritableKeyPath<Root, String> & Sendable, _ values: [String]) -> Field<Root> {
+    field(path, "must be one of: \(values.joined(separator: ", "))") { ($0 as? String).flatMap { values.contains($0) ? $0 : nil } }
+}
+
+private func color<Root>(_ path: WritableKeyPath<Root, String> & Sendable) -> Field<Root> {
+    field(path, ##"must be a color like "#FF4D4D" (or "#RRGGBBAA")"##) {
+        ($0 as? String).flatMap { $0.range(of: #"^#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"#, options: .regularExpression) != nil ? $0 : nil }
+    }
+}
+
+private func folder<Root>(_ path: WritableKeyPath<Root, String> & Sendable) -> Field<Root> {
+    field(path, "must be an absolute path or start with ~/") {
+        ($0 as? String).flatMap { $0.hasPrefix("/") || ($0.hasPrefix("~/") && $0.count > 2) ? $0 : nil }
+    }
+}
 
 extension Settings {
     /// Every key settings.json may have. `model` and `previewModel` only fill in `engines` for an old file.
-    public static let fileKeys = settingChecks.map(\.0) + ["hotkey", "addWordHotkey", "meetingHotkey", "overlayStyle", "engines"]
-}
-
-private enum OverlayStyleKeys {
-    static let all = [
-        "position", "width", "opacity", "backgroundColor", "textColor", "fontSize",
-        "listeningText", "transcribingText", "doneText", "showTimer", "showMeter",
-        "meterColor", "bars", "doneSeconds", "messageSeconds"
-    ]
-}
-
-private func validateOverlayValue(_ value: Any, key: String) -> String? {
-    switch key {
-    case "position": return enumCheck(["bottom", "top", "center"])(value)
-    case "width": return integerCheck(360, 1600)(value)
-    case "opacity": return numberCheck(0.2, 1)(value)
-    case "backgroundColor", "textColor", "meterColor":
-        guard let color = value as? String,
-              color.range(of: #"^#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"#, options: .regularExpression) != nil else {
-            return ##"must be a color like "#FF4D4D" (or "#RRGGBBAA")"##
-        }
-        return nil
-    case "fontSize": return integerCheck(10, 28)(value)
-    case "listeningText", "transcribingText", "doneText": return kindCheck("string")(value)
-    case "showTimer", "showMeter": return kindCheck("boolean")(value)
-    case "bars": return integerCheck(3, 24)(value)
-    case "doneSeconds": return numberCheck(0, 10)(value)
-    case "messageSeconds": return numberCheck(0.5, 10)(value)
-    default: return nil
-    }
+    public static let fileKeys = settingFields.map(\.0) + ["hotkey", "addWordHotkey", "meetingHotkey", "overlayStyle", "engines"]
 }
 
 private func validateHotkey(_ value: Any, key: String, errors: inout [String]) -> Hotkey? {
@@ -246,51 +281,6 @@ private func validateEngineChoice(
     return EngineChoice(engine: engine, model: model)
 }
 
-private func enumCheck(_ values: [String]) -> @Sendable (Any) -> String? {
-    { value in
-        guard let string = value as? String, values.contains(string) else {
-            return "must be one of: \(values.joined(separator: ", "))"
-        }
-        return nil
-    }
-}
-
-private func folderCheck(_ value: Any) -> String? {
-    guard let path = value as? String, path.hasPrefix("/") || (path.hasPrefix("~/") && path.count > 2) else {
-        return "must be an absolute path or start with ~/"
-    }
-    return nil
-}
-
-private func kindCheck(_ expected: String) -> @Sendable (Any) -> String? {
-    { value in
-        switch expected {
-        case "boolean": return isBoolean(value) ? nil : "must be a boolean"
-        case "string": return value is String ? nil : "must be a string"
-        default: return nil
-        }
-    }
-}
-
-private func integerCheck(_ min: Int, _ max: Int) -> @Sendable (Any) -> String? {
-    { value in
-        guard let integer = integerValue(value), (min...max).contains(integer) else {
-            return "must be a whole number from \(min) to \(max)"
-        }
-        return nil
-    }
-}
-
-private func numberCheck(_ min: Double, _ max: Double) -> @Sendable (Any) -> String? {
-    { value in
-        guard !isBoolean(value), let number = value as? NSNumber,
-              number.doubleValue >= min, number.doubleValue <= max else {
-            return "must be a number from \(decimalString(min)) to \(decimalString(max))"
-        }
-        return nil
-    }
-}
-
 private func decimalString(_ value: Double) -> String {
     let formatter = NumberFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -316,70 +306,4 @@ private func integerValue(_ value: Any) -> Int? {
     guard double.isFinite, double.rounded(.towardZero) == double,
           let integer = Int(exactly: double) else { return nil }
     return integer
-}
-
-private func assign(_ value: Any, to key: String, settings: inout Settings) {
-    switch key {
-    case "mode": settings.mode = value as! String
-    case "cancelKey": settings.cancelKey = value as! String
-    case "model": settings.model = value as! String
-    case "language": settings.language = value as! String
-    case "stylePrompt": settings.stylePrompt = value as! String
-    case "refocusOriginalApp": settings.refocusOriginalApp = value as! Bool
-    case "restoreClipboard": settings.restoreClipboard = value as! Bool
-    case "sounds": settings.sounds = value as! Bool
-    case "maxRecordingSeconds": settings.maxRecordingSeconds = integerValue(value)!
-    case "idleUnloadMinutes": settings.idleUnloadMinutes = integerValue(value)!
-    case "overlay": settings.overlay = value as! Bool
-    case "livePreview": settings.livePreview = value as! Bool
-    case "previewModel": settings.previewModel = value as! String
-    case "historyMenuItems": settings.historyMenuItems = integerValue(value)!
-    case "microphone": settings.microphone = value as! String
-    case "saveHistory": settings.saveHistory = value as! Bool
-    case "historyDays": settings.historyDays = integerValue(value)!
-    case "failedAudioHours": settings.failedAudioHours = integerValue(value)!
-    case "launchAtLogin": settings.launchAtLogin = value as! Bool
-    case "typingSpeedWpm": settings.typingSpeedWpm = integerValue(value)!
-    case "collectStats": settings.collectStats = value as! Bool
-    case "databasesFolder": settings.databasesFolder = value as! String
-    case "meetingsFolder": settings.meetingsFolder = value as! String
-    case "meetingFileName": settings.meetingFileName = value as! String
-    case "meetingAskTitle": settings.meetingAskTitle = value as! Bool
-    case "meetingBlocksDictation": settings.meetingBlocksDictation = value as! Bool
-    case "meetingMyName": settings.meetingMyName = value as! String
-    case "meetingLanguage": settings.meetingLanguage = value as! String
-    case "callOffer": settings.callOffer = value as! Bool
-    case "callOfferSeconds": settings.callOfferSeconds = integerValue(value)!
-    case "callAutoStart": settings.callAutoStart = value as! Bool
-    case "callAutoStartSeconds": settings.callAutoStartSeconds = integerValue(value)!
-    case "callAutoStopSeconds": settings.callAutoStopSeconds = integerValue(value)!
-    case "callApps": settings.callApps = value as! [String]
-    case "callModes": settings.callModes = Settings.callModes(file: value)!
-    case "callRules": settings.callRules = Settings.callRules(file: value)!
-    case "theme": settings.theme = value as! String
-    case "accentColor": settings.accentColor = AccentColor(rawValue: value as! String)!
-    case "rememberVoices": settings.rememberVoices = value as! Bool
-    default: break
-    }
-}
-
-private func assignOverlay(_ value: Any, key: String, style: inout OverlayStyle) {
-    switch key {
-    case "position": style.position = value as! String
-    case "width": style.width = integerValue(value)!
-    case "opacity": style.opacity = (value as! NSNumber).doubleValue
-    case "backgroundColor": style.backgroundColor = value as! String
-    case "textColor": style.textColor = value as! String
-    case "fontSize": style.fontSize = integerValue(value)!
-    case "listeningText": style.listeningText = value as! String
-    case "transcribingText": style.transcribingText = value as! String
-    case "doneText": style.doneText = value as! String
-    case "showTimer": style.showTimer = value as! Bool
-    case "showMeter": style.showMeter = value as! Bool
-    case "meterColor": style.meterColor = value as! String
-    case "bars": style.bars = integerValue(value)!
-    case "doneSeconds": style.doneSeconds = (value as! NSNumber).doubleValue
-    case "messageSeconds": style.messageSeconds = (value as! NSNumber).doubleValue
-    default: break
-    }
 }

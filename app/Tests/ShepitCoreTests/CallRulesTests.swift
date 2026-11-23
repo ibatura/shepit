@@ -10,17 +10,18 @@ private func settings(_ change: (inout Settings) -> Void) -> Settings {
 // Settings review design §7.1–7.2.
 struct CallRulesTests {
     @Test func withoutCallModesEachAppsChoiceComesFromTheOldKeys() {
-        #expect(CallApp.allCases.map(Settings.defaults.callMode) == [.offer, .offer, .offer])
-        #expect(settings { $0.callAutoStart = true }.callMode(for: .zoom) == .auto)
-        #expect(settings { $0.callApps = ["Teams"] }.callMode(for: .zoom) == .off)
-        // Today a call gets no panel with offers off, Start automatically or not.
-        #expect(settings { $0.callOffer = false }.callMode(for: .teams) == .off)
-        #expect(settings { $0.callOffer = false; $0.callAutoStart = true }.callMode(for: .teams) == .off)
+        func modes(_ raw: [String: Any]) -> [CallMode]? { validateSettings(raw).0.map { CallApp.allCases.map($0.callMode) } }
+        #expect(modes([:]) == [.offer, .offer, .offer])
+        #expect(modes(["callAutoStart": true]) == [.auto, .auto, .auto])
+        #expect(modes(["callApps": ["Teams"]]) == [.offer, .off, .off])
+        // An old file gave a call no panel with offers off, Start automatically or not.
+        #expect(modes(["callOffer": false]) == [.off, .off, .off])
+        #expect(modes(["callOffer": false, "callAutoStart": true]) == [.off, .off, .off])
     }
 
     @Test func callModesWinOverTheOldKeysAndAMissingAppIsOff() {
-        let modes = settings { $0.callModes = [.teams: .auto, .zoom: .offer]; $0.callOffer = false }
-        #expect(CallApp.allCases.map(modes.callMode) == [.auto, .offer, .off])
+        let modes = validateSettings(["callModes": ["Teams": "auto", "Zoom": "offer"], "callOffer": false]).0
+        #expect(modes.map { CallApp.allCases.map($0.callMode) } == [.auto, .offer, .off])
     }
 
     @Test func theFirstMatchingRuleOfTheAppDecides() {

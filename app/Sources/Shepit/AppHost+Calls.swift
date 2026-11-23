@@ -59,12 +59,9 @@ extension AppHost {
             }
         case .lookForName:
             guard let app = callOffer.current?.app else { return }
-            // A repeating meeting (same time last week, or daily) is named like last time, at once. When rules decide by the
-            // name, the app's own name goes first and last time's only if the app shows none (settings review design §7.1).
+            // A repeating meeting (same time last week, or daily) is named like last time, at once.
             let names = MeetingNames.load(Paths.dataDir.appending(path: MeetingNames.fileName))
-            if let remembered = MeetingNames.repeating(names, at: Date(), app: app.rawValue) {
-                callEvent(settings.hasCallRules(for: app) ? .remembered(remembered) : .named(remembered))
-            }
+            if let remembered = MeetingNames.repeating(names, at: Date(), app: app.rawValue) { callEvent(.remembered(remembered)) }
             callNameLookup?.cancel()
             callNameLookup = Task {
                 // The name the app shows wins. The call window's tree can still be building: look up to 5 times, as Start does.

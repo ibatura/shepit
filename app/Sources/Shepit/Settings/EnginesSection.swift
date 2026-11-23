@@ -34,7 +34,7 @@ struct EnginesSection: View {
         Section {
             Hinted(hint: "Frees the speech models' memory; they load again on the next dictation") {
                 NumberMenu(title: "Unload models when idle", values: [0, 5, 15, 30, 60, 120, 240, 480],
-                           selection: model.binding("idleUnloadMinutes", \.idleUnloadMinutes)) { $0 == 0 ? "Never" : "After " + NumberMenu.seconds($0 * 60) }
+                           selection: model.binding("idleUnloadMinutes", \.idleUnloadMinutes)) { $0 == 0 ? "Never" : "After " + StatusText.seconds($0 * 60) }
             }
         }
         Section("Speech recognition models") {
@@ -167,7 +167,7 @@ private struct ModelRow: View {
                     Text(state)
                     if let use {
                         Text(use).font(.caption).foregroundStyle(.secondary)
-                    } else if downloaded, !isApple {
+                    } else if item.isDownloaded, !isApple {
                         Text("Not used: can be deleted").font(.caption).foregroundStyle(.secondary)
                     }
                     if let error = downloads.errors[item] { Text("⚠ \(error)").font(.caption).foregroundStyle(.orange) }
@@ -176,12 +176,12 @@ private struct ModelRow: View {
                     if progress < 0 { ProgressView().controlSize(.small) } else { ProgressView(value: progress).frame(width: 90) }
                     Button("Cancel") { downloads.cancel(item) }
                 } else if isApple {
-                    if downloaded {
+                    if item.isDownloaded {
                         Button("Install language") { downloads.download(item, language: language) }
                             .disabled(downloads.running != nil)
                             .help("Asks macOS to install the speech assets for the dictation language")
                     }
-                } else if downloaded {
+                } else if item.isDownloaded {
                     Button("Delete…") { confirmDelete = true }
                         .disabled(engineInUse)
                         .help(engineInUse ? "In use — choose another engine for those tasks first" : "Remove this model from disk")
@@ -192,26 +192,12 @@ private struct ModelRow: View {
                 }
             }
         } label: {
-            TitleAndAbout(title: title, about: about)
+            TitleAndAbout(title: item.title, about: about)
         }
-        .confirmationDialog("Delete \(title)?", isPresented: $confirmDelete) {
+        .confirmationDialog("Delete \(item.title)?", isPresented: $confirmDelete) {
             Button("Delete", role: .destructive) { downloads.delete(item, inUse: engineInUse) }
         } message: {
             Text("It can be downloaded again later.")
-        }
-    }
-
-    private var title: String {
-        switch item {
-        case .engine(let choice): choice.title
-        case .meeting(let meetingModel): meetingModel.title
-        }
-    }
-
-    private var downloaded: Bool {
-        switch item {
-        case .engine(let choice): ModelCatalog.isDownloaded(choice)
-        case .meeting(let meetingModel): meetingModel.isDownloaded()
         }
     }
 
@@ -221,8 +207,8 @@ private struct ModelRow: View {
     private var engineInUse: Bool { if case .engine = item { use != nil } else { false } }
 
     private var state: String {
-        if isApple { return downloaded ? "System-managed" : "Needs macOS 26" }
-        guard downloaded else { return "Not downloaded" }
+        if isApple { return item.isDownloaded ? "System-managed" : "Needs macOS 26" }
+        guard item.isDownloaded else { return "Not downloaded" }
         guard case .engine(let choice) = item else { return "Downloaded" }
         let size = ModelCatalog.sizeOnDisk(choice).map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) }
         return "Downloaded" + (size.map { " · \($0)" } ?? "")

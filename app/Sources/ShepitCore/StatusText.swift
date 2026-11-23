@@ -30,8 +30,27 @@ extension EngineChoice {
     }
 }
 
-/// Pieces of text the menu and Home share.
+/// Pieces of text the menu, Home and Settings share.
 public enum StatusText {
+    /// "90 seconds", "5 minutes", "1 hour".
+    public static func seconds(_ seconds: Int) -> String {
+        seconds > 0 && seconds % 3600 == 0 ? count(seconds / 3600, "hour")
+            : seconds > 0 && seconds % 60 == 0 ? count(seconds / 60, "minute") : count(seconds, "second")
+    }
+
+    /// "6 hours", "1 day", "1 week".
+    public static func hours(_ hours: Int) -> String {
+        hours > 0 && hours % 168 == 0 ? count(hours / 168, "week") : hours > 0 && hours % 24 == 0 ? count(hours / 24, "day") : count(hours, "hour")
+    }
+
+    /// "30 days", "1 year".
+    public static func days(_ days: Int) -> String {
+        days > 0 && days % 365 == 0 ? count(days / 365, "year") : count(days, "day")
+    }
+
+    /// "1 second", "2 seconds".
+    public static func count(_ number: Int, _ unit: String) -> String { number == 1 ? "1 \(unit)" : "\(number) \(unit)s" }
+
     static let maxLine = 90
 
     static func shorten(_ s: String, to max: Int = maxLine) -> String {

@@ -53,15 +53,15 @@ public struct Home: Equatable, Sendable {
 
 public enum HomeModel {
     /// How many of the last dictations, and of the last meetings, Home lists.
-    public static let dictationCount = 10
+    public static let recentCount = 10
 
     public static func build(_ view: AppSnapshot) -> Home {
         Home(status: view.statusLine, warnings: warnings(view), meeting: meeting(view), card: card(view),
-             dictations: view.history.prefix(dictationCount).map {
+             dictations: view.history.prefix(recentCount).map {
                  Home.Dictation(text: $0.text, detail: [DictationPage.when($0.time, now: view.now), $0.appName].compactMap { $0 }.joined(separator: " · "))
              },
              noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)",
-             meetings: view.recentMeetings.prefix(dictationCount).map {
+             meetings: view.recentMeetings.prefix(recentCount).map {
                  Home.Meeting(id: $0.id, title: MeetingPage.title($0.title, $0.app),
                               detail: [$0.app.map(CallApp.title(of:)), MeetingPage.minutes($0.duration)].compactMap { $0 }.joined(separator: " · "))
              })

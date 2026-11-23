@@ -12,7 +12,7 @@ struct CallsSection: View {
         Section {
             ForEach(CallApp.allCases, id: \.self) { app in
                 let mode = settings.callMode(for: app)
-                Hinted(hint: hint(mode, settings) + (app == .meet ? " · in Chrome, Edge, Brave or Arc" : "")) {
+                Hinted(hint: mode.about(autoStartSeconds: settings.callAutoStartSeconds) + (app == .meet ? " · in Chrome, Edge, Brave or Arc" : "")) {
                     LabeledContent(app.title) { // on the right, as every other control
                         Picker(app.title, selection: Binding(get: { mode }, set: { model.setCallMode(app, $0) })) {
                             ForEach(CallMode.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -34,7 +34,8 @@ struct CallsSection: View {
         Section {
             let rules = settings.callRules
             ForEach(Array(rules.enumerated()), id: \.offset) { index, rule in
-                RuleRow(rule: rule, keep: "callRules \(index) \(rule)", ignored: settings.callMode(for: rule.app) == .off,
+                // The draft is kept for this rule in this place: the hash stands for the rule while Shepit runs.
+                RuleRow(rule: rule, drafts: model.drafts, keep: "callRules.\(index).\(rule.hashValue)", ignored: settings.callMode(for: rule.app) == .off,
                         first: index == 0, last: index == rules.count - 1) { changed in
                     // The rules as they are now, not as this row was drawn.
                     var rules = model.settings.callRules
@@ -65,23 +66,15 @@ struct CallsSection: View {
         }
         Section("Delays") {
             NumberMenu(title: "Auto: start after", values: [3, 5, 10, 15, 30, 60],
-                       selection: model.binding("callAutoStartSeconds", \.callAutoStartSeconds), text: NumberMenu.seconds)
+                       selection: model.binding("callAutoStartSeconds", \.callAutoStartSeconds), text: StatusText.seconds)
             Hinted(hint: "Never keeps it until you press a button") {
                 NumberMenu(title: "Offer: hide the panel after", values: [0, 10, 15, 30, 60, 120],
-                           selection: model.binding("callOfferSeconds", \.callOfferSeconds)) { $0 == 0 ? "Never" : NumberMenu.seconds($0) }
+                           selection: model.binding("callOfferSeconds", \.callOfferSeconds)) { $0 == 0 ? "Never" : StatusText.seconds($0) }
             }
             Hinted(hint: "A transcript of a call stops by itself unless you press Keep recording") {
                 NumberMenu(title: "When the call ends, stop after", values: [5, 10, 15, 30, 60, 120],
-                           selection: model.binding("callAutoStopSeconds", \.callAutoStopSeconds), text: NumberMenu.seconds)
+                           selection: model.binding("callAutoStopSeconds", \.callAutoStopSeconds), text: StatusText.seconds)
             }
-        }
-    }
-
-    private func hint(_ mode: CallMode, _ settings: ShepitCore.Settings) -> String {
-        switch mode {
-        case .auto: "Starts a transcript on its own after \(settings.callAutoStartSeconds) s"
-        case .offer: "Shows a panel with the call's name and a Start button"
-        case .off: "Does nothing"
         }
     }
 }
@@ -89,7 +82,8 @@ struct CallsSection: View {
 /// A rule: app, contains or is, the text (saved with Save or Enter), the choice, and the arrows that move it.
 private struct RuleRow: View {
     let rule: CallRule
-    /// Where its text's draft is kept while the page is not shown.
+    let drafts: SettingDrafts
+    /// Where its text's draft is kept, typed and not saved.
     let keep: String
     /// Its app is set to Off.
     let ignored: Bool
@@ -99,8 +93,6 @@ private struct RuleRow: View {
     let change: (CallRule?) -> Void
     /// -1 up, 1 down.
     let move: (Int) -> Void
-    /// The text as typed, so a choice made before Save keeps it.
-    @State private var draft = ""
 
     var body: some View {
         let row = HStack {
@@ -108,7 +100,7 @@ private struct RuleRow: View {
                 .labelsHidden().fixedSize()
             Picker("Match", selection: field(\.match)) { ForEach(CallRule.Match.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
                 .labelsHidden().fixedSize()
-            SettingField(saved: rule.text, keep: keep, prompt: "Meeting name", edited: { draft = $0 }) {
+            SettingField(saved: rule.text, drafts: drafts, keep: keep, prompt: "Meeting name") {
                 var changed = rule
                 changed.text = $0
                 change(changed)
@@ -137,19 +129,9 @@ private struct RuleRow: View {
         Binding(get: { rule[keyPath: path] }, set: {
             var changed = rule
             changed[keyPath: path] = $0
-            changed.text = draft
+            changed.text = drafts.draft(keep, saved: rule.text) ?? rule.text // a choice made before Save keeps the text typed
             change(changed)
         })
-    }
-}
-
-private extension CallMode {
-    var title: String {
-        switch self {
-        case .auto: "Auto"
-        case .offer: "Offer"
-        case .off: "Off"
-        }
     }
 }
 

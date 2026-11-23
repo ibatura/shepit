@@ -8,6 +8,20 @@ import Speech
 enum DownloadItem: Hashable {
     case engine(EngineChoice)
     case meeting(MeetingModel)
+
+    var title: String {
+        switch self {
+        case .engine(let choice): choice.title
+        case .meeting(let model): model.title
+        }
+    }
+
+    var isDownloaded: Bool {
+        switch self {
+        case .engine(let choice): ModelCatalog.isDownloaded(choice)
+        case .meeting(let model): model.isDownloaded()
+        }
+    }
 }
 
 /// Download / delete of models from Settings. Nothing touches the network unless the user clicks Download.

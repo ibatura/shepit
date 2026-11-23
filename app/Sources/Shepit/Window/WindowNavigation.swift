@@ -52,6 +52,12 @@ final class WindowNavigation {
         self.section = .settings
     }
 
+    /// A meeting in Meetings: one step, as both change in one go.
+    func openMeeting(_ id: Int) {
+        meetings.selection = .meeting(id)
+        section = .meetings
+    }
+
     /// What the window shows now: only the choice of the section shown counts.
     var place: WindowPlace {
         switch section {

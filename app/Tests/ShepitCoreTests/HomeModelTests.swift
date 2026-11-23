@@ -73,7 +73,6 @@ struct HomeModelTests {
     @Test func meetingRowWithNoCall() {
         #expect(home().meeting == Home.MeetingRow(title: "No call right now", hint: "Shepit offers a transcript when a call starts",
                                                    button: .init(title: "Start transcript", action: .startMeeting)))
-        #expect(home { $0.settings.callOffer = false }.meeting.hint == "Call offers are off")
         #expect(home { $0.settings.callModes = [:] }.meeting.hint == "Call offers are off")
         #expect(home { $0.settings.callModes = [.meet: .auto] }.meeting.hint == "Shepit starts a transcript when a call starts")
         #expect(home { $0.settings.callModes = [.meet: .auto, .zoom: .offer] }.meeting.hint == "Shepit offers a transcript when a call starts")
@@ -115,11 +114,11 @@ struct HomeModelTests {
 
     @Test func withoutTheModelStartIsOffButTheCallIsStillNamed() {
         let missing = "download the model in Settings"
-        #expect(home { $0.meetingMissing = missing }.meeting
+        #expect(home { $0.meetingModels = [.diarization] }.meeting
             == Home.MeetingRow(title: "No call right now", hint: "To start a transcript, \(missing)", button: .init(title: "Start transcript")))
-        #expect(home { $0.meetingMissing = missing; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
+        #expect(home { $0.downloaded = []; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
             == Home.MeetingRow(title: "Zoom call", hint: "To start a transcript, \(missing)", button: .init(title: "Start transcript")))
-        #expect(home { $0.meetingMissing = missing; $0.call = CallOffer.Current(name: "Weekly sync", app: .teams) }.meeting.hint
+        #expect(home { $0.meetingModels = []; $0.call = CallOffer.Current(name: "Weekly sync", app: .teams) }.meeting.hint
             == "Teams · To start a transcript, \(missing)")
     }
 

@@ -11,9 +11,9 @@ extension AppHost {
     }
 
     /// nil when a meeting can start; else what the menu says is missing.
+    /// As the disk is now, for a start.
     var meetingMissing: String? {
-        let engine = settings.engine(for: .meetings)
-        return ModelCatalog.isDownloaded(engine) && MeetingModel.vad.isDownloaded() ? nil : "download the model in Settings"
+        AppSnapshot.meetingMissing(engine: ModelCatalog.isDownloaded(settings.engine(for: .meetings)), voiceDetection: MeetingModel.vad.isDownloaded())
     }
 
     var meetingActive: Bool { meeting?.state.isActive == true }

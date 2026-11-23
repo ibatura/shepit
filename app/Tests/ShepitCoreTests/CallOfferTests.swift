@@ -114,14 +114,14 @@ struct CallOfferTests {
     }
 
     @Test func offersOffOrAppOffGivesNothing() {
-        // An app set to Off is not watched (settings review design §7.1); offers off in an old file is Off for every app.
+        // An app set to Off is not watched (settings review design §7.1).
         var m = Machine()
-        m.settings.callOffer = false
+        m.settings.callModes = [:]
         m.teamsCall()
         #expect(m.panel == nil && m.log.isEmpty && m.offer.current == nil && !m.offer.needsTick)
 
         var n = Machine()
-        n.settings.callApps = ["Zoom"]
+        n.settings.callModes = [.zoom: .offer]
         n.teamsCall()
         n.send(.took(.browser, pid: 2), at: 4)
         n.send(.tick, at: 8)
@@ -160,7 +160,7 @@ struct CallOfferTests {
 
     @Test func automaticStartCountsDownAndStarts() {
         var m = Machine()
-        m.settings.callAutoStart = true
+        m.settings.callModes[.teams] = .auto
         m.teamsCall()
         #expect(m.panel == .autoStart(title: "Teams call", app: .teams, startsIn: 5))
         m.send(.tick, at: 6)
@@ -172,7 +172,7 @@ struct CallOfferTests {
 
     @Test func dontRecordCancelsAutomaticStart() {
         var m = Machine()
-        m.settings.callAutoStart = true
+        m.settings.callModes[.teams] = .auto
         m.teamsCall()
         m.send(.pressedOther, at: 4)
         m.send(.tick, at: 20)
@@ -565,6 +565,14 @@ struct CallOfferTests {
         t.send(.remembered("Daily scrum"), at: 3)
         t.send(.named("Planning"), at: 4) // the app's name wins
         #expect(t.panel == .offer(title: "Planning", app: .teams, hidesIn: 15))
+
+        var n = Machine() // without rules last time's name shows at once, until the app's
+        n.teamsCall()
+        n.send(.remembered("Weekly sync"), at: 3)
+        #expect(n.panel == .offer(title: "Weekly sync", app: .teams, hidesIn: 15))
+        n.send(.named("Weekly sync (moved)"), at: 4)
+        #expect(n.panel == .offer(title: "Weekly sync (moved)", app: .teams, hidesIn: 14))
+        #expect(n.send(.pressedMain, at: 5) == [.start(title: "Weekly sync (moved)", app: .teams)])
     }
 
     @Test func rulesOfAnotherAppOrWithNoTextDontHoldTheOfferUp() {

@@ -168,14 +168,16 @@ struct DictationSection: View {
             Hinted(hint: "Recording stops and is transcribed automatically after this long") {
                 // In seconds, not minutes (the author, 2026-11-23).
                 NumberMenu(title: "Max recording length", values: [30, 60, 90, 120, 180, 300, 600, 900, 1800, 3600],
-                           selection: model.binding("maxRecordingSeconds", \.maxRecordingSeconds)) { NumberMenu.count($0, "second") }
+                           selection: model.binding("maxRecordingSeconds", \.maxRecordingSeconds)) { StatusText.count($0, "second") }
             }
         }
         Section("Text") {
             Hinted(hint: "Example text the engine imitates. Keep English terms in Latin script here — this is what makes it write pull request instead of «пул реквест»") {
                 VStack(alignment: .leading) {
                     Text("Style prompt")
-                    StylePromptEditor(model: model)
+                    SettingField(saved: model.settings.stylePrompt, drafts: model.drafts, keep: "stylePrompt", axis: .vertical) {
+                        model.set("stylePrompt", $0)
+                    }
                 }
             }
             Hinted(hint: "Paste into the app you started in, even if you switched apps while speaking") {
@@ -201,7 +203,7 @@ struct HistoryPrivacySection: View {
                 }
                 Hinted(hint: "History entries older than this are deleted") {
                     NumberMenu(title: "Keep history", values: [0, 7, 30, 90, 180, 365, 730],
-                               selection: model.binding("historyDays", \.historyDays)) { $0 == 0 ? "Forever" : NumberMenu.days($0) }
+                               selection: model.binding("historyDays", \.historyDays)) { $0 == 0 ? "Forever" : StatusText.days($0) }
                 }
                 Hinted(hint: "How many recent dictations the Recent dictations submenu shows") {
                     NumberMenu(title: "Recent menu items", values: [0, 5, 10, 15, 20],
@@ -209,7 +211,7 @@ struct HistoryPrivacySection: View {
                 }
                 Hinted(hint: "How long the audio of a failed transcription is kept so you can retry") {
                     NumberMenu(title: "Keep failed audio", values: [0, 1, 6, 24, 72, 168],
-                               selection: model.binding("failedAudioHours", \.failedAudioHours)) { $0 == 0 ? "Delete at once" : NumberMenu.hours($0) }
+                               selection: model.binding("failedAudioHours", \.failedAudioHours)) { $0 == 0 ? "Delete at once" : StatusText.hours($0) }
                 }
             }
             .disabled(model.isReadOnly)
@@ -236,31 +238,5 @@ struct HistoryPrivacySection: View {
                       hint: "Where dictations, meetings and statistics are kept. Used from the next start of Shepit; files already there are not moved. A synced folder (iCloud) uploads them")
                 .disabled(model.isReadOnly)
         }
-    }
-}
-
-/// The style prompt in a bordered box, saved with Save; Cancel puts the saved text back. Its draft outlives the page, as
-/// a `SettingField`'s does.
-private struct StylePromptEditor: View {
-    let model: SettingsModel
-    @State private var draft = ""
-
-    var body: some View {
-        let saved = model.settings.stylePrompt
-        VStack(alignment: .trailing) {
-            TextEditor(text: $draft)
-                .font(.body)
-                .frame(minHeight: 70)
-                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.separator)) // a field, as SettingField
-            if draft != saved { // saved on purpose, as SettingField
-                HStack {
-                    Button("Cancel") { draft = saved }
-                    Button("Save") { model.set("stylePrompt", draft) }
-                }
-            }
-        }
-        .onAppear { draft = SettingDrafts.draft("stylePrompt", saved: saved) ?? saved }
-        .onChange(of: saved) { draft = $1 }
-        .onChange(of: draft) { SettingDrafts.keep("stylePrompt", saved: saved, draft: $1) }
     }
 }

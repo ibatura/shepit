@@ -8,7 +8,6 @@ struct HomeSection: View {
     /// Read in `body`, so the meeting clock redraws Home and not the window around it.
     let live: WindowModel
     let navigation: WindowNavigation
-    let openMeeting: (Int) -> Void
 
     private var home: Home { live.home }
 
@@ -40,7 +39,7 @@ struct HomeSection: View {
                     }
                 }
                 HStack {
-                    Text("The last \(HomeModel.dictationCount) are shown here").foregroundStyle(.secondary)
+                    Text("The last \(HomeModel.recentCount) are shown here").foregroundStyle(.secondary)
                     Spacer()
                     Button("All dictations") { navigation.section = .dictations }
                 }
@@ -48,7 +47,7 @@ struct HomeSection: View {
             if !home.meetings.isEmpty {
                 Section("Recent meetings") {
                     ForEach(home.meetings) { meeting in
-                        Button { openMeeting(meeting.id) } label: {
+                        Button { navigation.openMeeting(meeting.id) } label: {
                             HStack {
                                 Text(meeting.title).lineLimit(1)
                                 Spacer()
