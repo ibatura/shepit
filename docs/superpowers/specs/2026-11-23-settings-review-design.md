@@ -78,7 +78,7 @@ Every text setting (Your name, the folders, the file name, the panel's titles, a
 - **Meetings**: "Meeting transcripts: when they start, where the notes go, how they are transcribed."
   - Calls (from Calls): Teams, Zoom, Google Meet, each Auto · Offer · Off; Rules by meeting name; Start after (Auto), Hide the panel after (Offer), Stop after the call ends; the Accessibility warning for Meet, as today.
   - Notes: Folder, File name, Ask for the meeting name, Open meetings folder.
-  - Transcript: Your name, Language, Block dictation during a meeting (from its own part), Recognition, with "Voice and speaker detection: installed" or what is missing; each of the two is a link to Engines and models (the author, 2026-11-23: the link goes on the item it is about).
+  - Transcript: Your name, Language, Block dictation during a meeting (from its own part), Recognition, with "Voice and speaker detection: installed" or what is missing; each of the two has its own → icon beside it that opens Engines and models (the author, 2026-11-23: the link goes on the item it is about, as an icon, not the value itself).
 - **Engines and models**: "Which engine does each job, and every model on this Mac."
   - Jobs: Dictation, Live draft, Meetings, each with its engine, model and a line on what the job is; then Voice detection and Speaker detection, each with its one model in a menu, so it shows as the chosen one (the author, 2026-11-23: a second model would go there). One line under each name, a warning in its place when the model is missing.
   - Unload models when idle: a menu (Never, after 5, 15, 30 minutes, 1, 2, 4, 8 hours), not a stepper (the author, 2026-11-23).

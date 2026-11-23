@@ -35,17 +35,26 @@ struct MeetingsSection: View {
             }
             let _ = actions.downloads.revision // re-read the disk after a download or delete
             let engine = model.settings.engine(for: .meetings)
-            // Each is a link to where it's chosen and downloaded (the author, 2026-11-23).
             LabeledContent("Recognition") {
-                Button(engine.title + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"), action: openEngines)
-                    .buttonStyle(.link).help("Choose the engine in Engines and models")
+                HStack {
+                    Text(engine.title + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"))
+                    goToEngines("Choose the engine in Engines and models")
+                }
             }
             let missing = MeetingModel.allCases.filter { !$0.isDownloaded() }.map { $0 == .vad ? "voice detection" : "speaker detection" }
             LabeledContent("Voice and speaker detection") {
-                Button(missing.isEmpty ? "Installed" : "Not downloaded: \(missing.joined(separator: ", "))", action: openEngines)
-                    .buttonStyle(.link).help("Download the models in Engines and models")
+                HStack {
+                    Text(missing.isEmpty ? "Installed" : "Not downloaded: \(missing.joined(separator: ", "))")
+                    goToEngines("Download the models in Engines and models")
+                }
             }
         }
+    }
+
+    /// The link is an icon of its own beside the value, not the value itself (the author, 2026-11-23).
+    private func goToEngines(_ help: String) -> some View {
+        Button(action: openEngines) { Image(systemName: "arrow.forward.circle") }
+            .buttonStyle(.borderless).help(help).accessibilityLabel(help)
     }
 }
 
