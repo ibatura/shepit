@@ -28,15 +28,6 @@ extension EngineChoice {
         case .apple: "Apple Speech"
         }
     }
-
-    /// "whisper.cpp · large-v3", as Home's pickers write a pair; engines with one model show the name alone.
-    public var pairTitle: String {
-        switch engine {
-        case .whispercpp: "whisper.cpp · \(model)"
-        case .whisperkit: "WhisperKit · \(model)"
-        case .parakeet, .apple: title
-        }
-    }
 }
 
 /// Pieces of text the menu and Home share.

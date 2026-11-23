@@ -188,7 +188,7 @@ public enum MeetingPage {
         [meeting.app.map(CallApp.title(of:)), DateFormatter.english("d MMM yyyy, HH:mm", calendar).string(from: meeting.start), minutes(meeting.duration)].compactMap { $0 }
     }
 
-    private static func minutes(_ duration: TimeInterval?) -> String? {
+    static func minutes(_ duration: TimeInterval?) -> String? {
         duration.map { "\(max(1, Int(($0 / 60).rounded()))) min" }
     }
 

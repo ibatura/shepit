@@ -89,6 +89,14 @@ public enum MeetingModel: String, CaseIterable, Sendable {
         }
     }
 
+    /// The meeting job the model does, in Engines and models and on Home.
+    public var job: String {
+        switch self {
+        case .vad: "Voice detection"
+        case .diarization: "Speaker detection"
+        }
+    }
+
     var manifest: String { "\(rawValue).sha256" }
 
     var source: String {

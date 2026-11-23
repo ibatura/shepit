@@ -8,25 +8,25 @@ struct EnginesSection: View {
     let model: SettingsModel
     let actions: WindowActions
 
-    private let tasks: [(EngineTask, String, String)] = [
-        (.dictation, "Dictation", "The text that gets pasted"),
-        (.preview, "Live draft", "The draft text in the panel while you speak"),
-        (.meetings, "Meetings", "Meeting transcripts"),
+    private let tasks: [(EngineTask, String)] = [
+        (.dictation, "The text that gets pasted"),
+        (.preview, "The draft text in the panel while you speak"),
+        (.meetings, "Meeting transcripts"),
     ]
 
     /// The meetings' other jobs: one model each for now, shown as chosen all the same (the author, 2026-11-23).
-    private let detection: [(MeetingModel, String, String)] = [
-        (.vad, "Voice detection", "Where someone speaks in a meeting's audio"),
-        (.diarization, "Speaker detection", "Which voice in a call is whose"),
+    private let detection: [(MeetingModel, String)] = [
+        (.vad, "Where someone speaks in a meeting's audio"),
+        (.diarization, "Which voice in a call is whose"),
     ]
 
     var body: some View {
         Section {
-            ForEach(tasks, id: \.0) { task, title, hint in
-                TaskEngineRow(model: model, actions: actions, task: task, title: title, hint: hint)
+            ForEach(tasks, id: \.0) { task, hint in
+                TaskEngineRow(model: model, actions: actions, task: task, hint: hint)
             }
-            ForEach(detection, id: \.0) { meetingModel, title, hint in
-                DetectionRow(meetingModel: meetingModel, title: title, hint: hint, downloads: actions.downloads)
+            ForEach(detection, id: \.0) { meetingModel, hint in
+                DetectionRow(meetingModel: meetingModel, hint: hint, downloads: actions.downloads)
             }
         } footer: {
             Text("The same engine and model can serve several tasks; it's loaded once.").font(.caption).foregroundStyle(.secondary)
@@ -40,15 +40,15 @@ struct EnginesSection: View {
         }
         Section("Speech recognition models") {
             ForEach(allChoices, id: \.self) { choice in
-                let usedBy = tasks.filter { model.settings.engines[$0.0] == choice }.map(\.1)
+                let usedBy = tasks.filter { model.settings.engines[$0.0] == choice }.map(\.0.title)
                 ModelRow(item: .engine(choice), about: Self.about(choice),
                          use: usedBy.isEmpty ? nil : "Used for: \(usedBy.joined(separator: ", "))",
                          downloads: actions.downloads, language: model.settings.language)
             }
         }
-        ForEach(detection, id: \.0) { meetingModel, title, _ in
-            Section("\(title) models") {
-                ModelRow(item: .meeting(meetingModel), about: Self.about(meetingModel), use: "Used for: \(title)",
+        ForEach(detection, id: \.0) { meetingModel, _ in
+            Section("\(meetingModel.job) models") {
+                ModelRow(item: .meeting(meetingModel), about: Self.about(meetingModel), use: "Used for: \(meetingModel.job)",
                          downloads: actions.downloads, language: model.settings.language)
             }
         }
@@ -81,7 +81,6 @@ private struct TaskEngineRow: View {
     let model: SettingsModel
     let actions: WindowActions
     let task: EngineTask
-    let title: String
     let hint: String
     @State private var languageNote: String?
 
@@ -105,7 +104,7 @@ private struct TaskEngineRow: View {
                 }
             }
         } label: {
-            TitleAndAbout(title: title, about: languageNote ?? (ModelCatalog.isDownloaded(current) ? hint : "⚠ Not downloaded — \(hint.lowercased())"))
+            TitleAndAbout(title: task.title, about: languageNote ?? (ModelCatalog.isDownloaded(current) ? hint : "⚠ Not downloaded — \(hint.lowercased())"))
         }
         .task(id: "\(current.engine.rawValue)/\(current.model)/\(model.settings.language)") {
             languageNote = await actions.languageNote(current, model.settings.language)
@@ -125,7 +124,6 @@ private struct TaskEngineRow: View {
 /// A meeting job with its one model, and whether that model is on this Mac.
 private struct DetectionRow: View {
     let meetingModel: MeetingModel
-    let title: String
     let hint: String
     let downloads: ModelDownloads
 
@@ -134,7 +132,7 @@ private struct DetectionRow: View {
         LabeledContent {
             Picker("Model", selection: .constant(meetingModel)) { Text(meetingModel.title).tag(meetingModel) }.labelsHidden()
         } label: {
-            TitleAndAbout(title: title, about: meetingModel.isDownloaded() ? hint : "⚠ Not downloaded — \(hint.lowercased())")
+            TitleAndAbout(title: meetingModel.job, about: meetingModel.isDownloaded() ? hint : "⚠ Not downloaded — \(hint.lowercased())")
         }
     }
 }

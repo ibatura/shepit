@@ -21,6 +21,15 @@ public enum EngineTask: String, CaseIterable, Sendable {
     case dictation
     case preview
     case meetings
+
+    /// The job's name, in Engines and models and on Home.
+    public var title: String {
+        switch self {
+        case .dictation: "Dictation"
+        case .preview: "Live draft"
+        case .meetings: "Meetings"
+        }
+    }
 }
 
 public struct Hotkey: Equatable, Sendable {

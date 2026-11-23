@@ -63,7 +63,10 @@ struct MainView: View {
     @ViewBuilder private var section: some View {
         switch navigation.section {
         case .home:
-            HomeSection(model: model, actions: actions, live: live, navigation: navigation)
+            HomeSection(actions: actions, live: live, navigation: navigation) {
+                navigation.section = .meetings
+                sections.meetings.selection = .meeting($0)
+            }
         case .meetings:
             MeetingsView(model: sections.meetings, actions: actions)
         case .dictations:

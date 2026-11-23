@@ -209,22 +209,24 @@ final class AppHost: ControllerHost {
         view.meeting = liveMeeting()
         view.call = callOffer.current
         view.downloaded = lookups.downloaded
-        view.microphones = lookups.microphones
+        view.meetingModels = lookups.meetingModels
         view.history = lookups.history
         view.accessibilityGranted = lookups.accessibilityGranted
         view.microphoneDenied = lookups.microphoneDenied
         view.meetingMissing = lookups.meetingMissing
+        view.recentMeetings = lookups.recentMeetings
         return view
     }
 
     /// The parts of the snapshot that need a device or disk lookup.
     struct Lookups {
         var downloaded: [EngineChoice] = []
-        var microphones: [String] = []
+        var meetingModels: [MeetingModel] = MeetingModel.allCases
         var history: [DictationStore.Entry] = []
         var accessibilityGranted = true
         var microphoneDenied = false
         var meetingMissing: String?
+        var recentMeetings: [MeetingStore.Meeting] = []
     }
 
     /// Enough history for Home and for the menu's Recent.
@@ -233,10 +235,11 @@ final class AppHost: ControllerHost {
     }
 
     func gatherLookups() {
-        lookups = Lookups(downloaded: ModelCatalog.downloadedChoices(), microphones: AudioRecorder.inputDevices().map(\.name),
+        lookups = Lookups(downloaded: ModelCatalog.downloadedChoices(), meetingModels: MeetingModel.allCases.filter { $0.isDownloaded() },
                           history: recentHistory,
                           accessibilityGranted: Permissions.accessibilityGranted, microphoneDenied: Permissions.microphoneDenied,
-                          meetingMissing: meetingMissing)
+                          meetingMissing: meetingMissing,
+                          recentMeetings: (try? meetingStore.meetings(limit: HomeModel.dictationCount)) ?? [])
     }
 
     private var hotkeyProblem: String? {
@@ -297,23 +300,15 @@ final class AppHost: ControllerHost {
 
     func perform(_ action: AppAction) {
         switch action {
-        case .setMode(let mode): update("mode", mode)
         case .setLanguage(let language): update("language", language)
-        case .setEngine(let choice):
-            var engines = settings.engines
-            engines[.dictation] = choice
-            update("engines", Dictionary(uniqueKeysWithValues: engines.map { ($0.key.rawValue, ["engine": $0.value.engine.rawValue, "model": $0.value.model]) }))
+        case .setMeetingLanguage(let language): update("meetingLanguage", language)
         case .addToDictionary: Task { await addToDictionary() }
         case .openWindow: showWindow()
         case .openSettings: showWindow(.settings)
+        case .openModels:
+            mainWindow.navigation.settingsSection = .engines
+            showWindow(.settings)
         case .reloadConfig: reloadConfig(announce: true)
-        case .reloadModels:
-            let engines = settings.engines
-            Task {
-                await self.models.setChoices([:])
-                await self.models.setChoices(engines)
-                await self.models.preload([.dictation, .preview])
-            }
         case .clearHistory: clearHistory()
         case .copyText(let text):
             NSPasteboard.general.clearContents()
