@@ -1,9 +1,9 @@
 import SwiftUI
 import ShepitCore
 
-/// Settings → Engines and models (`04-settings.md` §3, `02-engines.md` §3–5, settings review design §4): an engine and
-/// model per task, idle unload, and every model on this Mac, the meetings' voice and speaker detection included, each
-/// saying what it is for and what uses it.
+/// Settings → Engines and models (`04-settings.md` §3, `02-engines.md` §3–5, settings review design §4): the model of
+/// every job (speech recognition per task, the meetings' voice and speaker detection), idle unload, and every model on
+/// this Mac by its kind, each saying what it is for and what uses it.
 struct EnginesSection: View {
     let model: SettingsModel
     let actions: WindowActions
@@ -14,30 +14,41 @@ struct EnginesSection: View {
         (.meetings, "Meetings", "Meeting transcripts"),
     ]
 
+    /// The meetings' other jobs: one model each for now, shown as chosen all the same (the author, 2026-11-23).
+    private let detection: [(MeetingModel, String, String)] = [
+        (.vad, "Voice detection", "Where someone speaks in a meeting's audio"),
+        (.diarization, "Speaker detection", "Which voice in a call is whose"),
+    ]
+
     var body: some View {
         Section {
             ForEach(tasks, id: \.0) { task, title, hint in
                 TaskEngineRow(model: model, actions: actions, task: task, title: title, hint: hint)
             }
+            ForEach(detection, id: \.0) { meetingModel, title, hint in
+                DetectionRow(meetingModel: meetingModel, title: title, hint: hint, downloads: actions.downloads)
+            }
         } footer: {
             Text("The same engine and model can serve several tasks; it's loaded once.").font(.caption).foregroundStyle(.secondary)
         }
         Section {
-            Hinted(hint: "Free the models' memory after this many idle minutes; they load again on the next dictation. 0 = always keep loaded") {
-                Stepper(value: model.binding("idleUnloadMinutes", \.idleUnloadMinutes), in: 0...1440, step: 5) {
-                    Text(model.settings.idleUnloadMinutes == 0 ? "Unload when idle: never" : "Unload when idle: after \(model.settings.idleUnloadMinutes) min")
+            Hinted(hint: "Frees the speech models' memory; they load again on the next dictation") {
+                Picker("Unload models when idle", selection: model.binding("idleUnloadMinutes", \.idleUnloadMinutes)) {
+                    ForEach(SettingsModel.idleChoices(model.settings.idleUnloadMinutes), id: \.0) { Text($0.1).tag($0.0) }
                 }
             }
         }
-        Section("Models on this Mac") {
+        Section("Speech recognition models") {
             ForEach(allChoices, id: \.self) { choice in
                 let usedBy = tasks.filter { model.settings.engines[$0.0] == choice }.map(\.1)
                 ModelRow(item: .engine(choice), about: Self.about(choice),
                          use: usedBy.isEmpty ? nil : "Used for: \(usedBy.joined(separator: ", "))",
                          downloads: actions.downloads, language: model.settings.language)
             }
-            ForEach(MeetingModel.allCases, id: \.self) { meetingModel in
-                ModelRow(item: .meeting(meetingModel), about: Self.about(meetingModel), use: "Used for: Meetings",
+        }
+        ForEach(detection, id: \.0) { meetingModel, title, _ in
+            Section("\(title) models") {
+                ModelRow(item: .meeting(meetingModel), about: Self.about(meetingModel), use: "Used for: \(title)",
                          downloads: actions.downloads, language: model.settings.language)
             }
         }
@@ -60,8 +71,8 @@ struct EnginesSection: View {
 
     private static func about(_ meetingModel: MeetingModel) -> String {
         switch meetingModel {
-        case .vad: "Finds speech in a meeting's audio. Needed to start a meeting"
-        case .diarization: "Tells the call's voices apart. Without it every call voice stays “Співрозмовники”"
+        case .vad: "Small and fast, on Core ML. A meeting can't start without it"
+        case .diarization: "On Core ML. Without it every call voice stays “Співрозмовники”"
         }
     }
 }
@@ -76,27 +87,25 @@ private struct TaskEngineRow: View {
 
     var body: some View {
         let current = model.settings.engine(for: task)
-        Hinted(hint: languageNote ?? (ModelCatalog.isDownloaded(current) ? hint : "⚠ Not downloaded — \(hint.lowercased())")) {
-            LabeledContent {
-                HStack {
-                    Picker("Engine", selection: Binding(get: { current.engine }, set: { engine in
-                        let models = ModelCatalog.models(for: engine)
-                        let downloaded = models.first { ModelCatalog.isDownloaded(EngineChoice(engine: engine, model: $0)) }
-                        model.setEngine(task, EngineChoice(engine: engine, model: downloaded ?? models[0]))
-                    })) {
-                        ForEach(EngineID.allCases, id: \.self) { Text(engineName($0)).tag($0) }
+        LabeledContent {
+            HStack {
+                Picker("Engine", selection: Binding(get: { current.engine }, set: { engine in
+                    let models = ModelCatalog.models(for: engine)
+                    let downloaded = models.first { ModelCatalog.isDownloaded(EngineChoice(engine: engine, model: $0)) }
+                    model.setEngine(task, EngineChoice(engine: engine, model: downloaded ?? models[0]))
+                })) {
+                    ForEach(EngineID.allCases, id: \.self) { Text(engineName($0)).tag($0) }
+                }
+                .labelsHidden()
+                if ModelCatalog.models(for: current.engine).count > 1 {
+                    Picker("Model", selection: Binding(get: { current.model }, set: { model.setEngine(task, EngineChoice(engine: current.engine, model: $0)) })) {
+                        ForEach(ModelCatalog.models(for: current.engine), id: \.self) { Text($0).tag($0) }
                     }
                     .labelsHidden()
-                    if ModelCatalog.models(for: current.engine).count > 1 {
-                        Picker("Model", selection: Binding(get: { current.model }, set: { model.setEngine(task, EngineChoice(engine: current.engine, model: $0)) })) {
-                            ForEach(ModelCatalog.models(for: current.engine), id: \.self) { Text($0).tag($0) }
-                        }
-                        .labelsHidden()
-                    }
                 }
-            } label: {
-                TitleAndAbout(title: title, about: hint)
             }
+        } label: {
+            TitleAndAbout(title: title, about: languageNote ?? (ModelCatalog.isDownloaded(current) ? hint : "⚠ Not downloaded — \(hint.lowercased())"))
         }
         .task(id: "\(current.engine.rawValue)/\(current.model)/\(model.settings.language)") {
             languageNote = await actions.languageNote(current, model.settings.language)
@@ -109,6 +118,23 @@ private struct TaskEngineRow: View {
         case .whisperkit: "WhisperKit"
         case .parakeet: "Parakeet"
         case .apple: "Apple Speech"
+        }
+    }
+}
+
+/// A meeting job with its one model, and whether that model is on this Mac.
+private struct DetectionRow: View {
+    let meetingModel: MeetingModel
+    let title: String
+    let hint: String
+    let downloads: ModelDownloads
+
+    var body: some View {
+        let _ = downloads.revision // re-read the disk after a download or delete
+        LabeledContent {
+            Picker("Model", selection: .constant(meetingModel)) { Text(meetingModel.title).tag(meetingModel) }.labelsHidden()
+        } label: {
+            TitleAndAbout(title: title, about: meetingModel.isDownloaded() ? hint : "⚠ Not downloaded — \(hint.lowercased())")
         }
     }
 }
@@ -203,5 +229,16 @@ private struct ModelRow: View {
         guard case .engine(let choice) = item else { return "Downloaded" }
         let size = ModelCatalog.sizeOnDisk(choice).map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) }
         return "Downloaded" + (size.map { " · \($0)" } ?? "")
+    }
+}
+
+extension SettingsModel {
+    /// The choices of Unload models when idle, with the file's value among them if it is none of them.
+    static func idleChoices(_ current: Int) -> [(Int, String)] {
+        Set([0, 5, 15, 30, 60, 120, 240, 480, current]).sorted().map { minutes in
+            (minutes, minutes == 0 ? "Never"
+                : minutes % 60 != 0 ? "After \(minutes) minutes"
+                : minutes == 60 ? "After 1 hour" : "After \(minutes / 60) hours")
+        }
     }
 }

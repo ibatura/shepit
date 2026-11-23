@@ -78,8 +78,9 @@ Seven pages, in this order. Each starts with a line in secondary text. What move
   - Notes: Folder, File name, Ask for the meeting name, Open meetings folder.
   - Transcript: Your name, Language, Block dictation during a meeting (from its own part), Recognition, with "Voice and speaker detection: installed" or what is missing, and a link to Engines and models.
 - **Engines and models**: "Which engine does each job, and every model on this Mac."
-  - Jobs: Dictation, Live draft, Meetings, each with its engine, model and a line on what the job is; Unload when idle.
-  - Models on this Mac: every engine model and the voice and speaker detection models (from Meetings), each with what it is for (speed, accuracy, memory, languages, from "What each engine is for"), what uses it, "Not used: can be deleted" when nothing does, and Download, Cancel or Delete…, as today.
+  - Jobs: Dictation, Live draft, Meetings, each with its engine, model and a line on what the job is; then Voice detection and Speaker detection, each with its one model in a menu, so it shows as the chosen one (the author, 2026-11-23: a second model would go there). One line under each name, a warning in its place when the model is missing.
+  - Unload models when idle: a menu (Never, after 5, 15, 30 minutes, 1, 2, 4, 8 hours), not a stepper (the author, 2026-11-23).
+  - The models on this Mac, by kind: Speech recognition models, Voice detection models, Speaker detection models. Each says what it is for (speed, accuracy, memory, languages, from "What each engine is for"), what uses it, "Not used: can be deleted" when nothing does, and Download, Cancel or Delete…, as today.
 - **History and privacy**: "What Shepit keeps on this Mac, for how long, and how to clear it."
   - Dictations (today's History): Save history, Keep for, Recent menu items, Keep failed audio, Clear history….
   - Statistics: Collect statistics, Typing speed, Clear statistics….

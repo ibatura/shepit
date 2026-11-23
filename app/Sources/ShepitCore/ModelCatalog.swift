@@ -84,8 +84,8 @@ public enum MeetingModel: String, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .vad: "Voice detection (Silero)"
-        case .diarization: "Speaker detection (pyannote + WeSpeaker)"
+        case .vad: "Silero VAD"
+        case .diarization: "pyannote + WeSpeaker"
         }
     }
 

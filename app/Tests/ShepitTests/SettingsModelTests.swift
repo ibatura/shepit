@@ -191,6 +191,14 @@ struct SettingsModelTests {
         #expect(SettingsModel.offerSeconds(after: 7, up: false) == 5)
     }
 
+    @Test func theIdleUnloadMenuKeepsAValueFromTheFile() {
+        let choices = SettingsModel.idleChoices(15)
+        #expect(choices.map(\.0) == [0, 5, 15, 30, 60, 120, 240, 480])
+        #expect(choices.map(\.1).prefix(5) == ["Never", "After 5 minutes", "After 15 minutes", "After 30 minutes", "After 1 hour"])
+        #expect(choices.last?.1 == "After 8 hours")
+        #expect(SettingsModel.idleChoices(45).map(\.0) == [0, 5, 15, 30, 45, 60, 120, 240, 480])
+    }
+
     @Test func aCallAppSwitchWritesTheListInOrder() throws {
         #expect(SettingsModel.callApps(["Meet", "Teams"], .zoom, on: true) == ["Teams", "Zoom", "Meet"])
         #expect(SettingsModel.callApps(["Teams", "Zoom", "Meet"], .teams, on: false) == ["Zoom", "Meet"])
