@@ -14,18 +14,32 @@ final class CallPanel {
     func show(_ value: CallOffer.Panel, onMain: @escaping () -> Void, onOther: @escaping () -> Void) {
         model.show(value, onMain: onMain, onOther: onOther)
         let panel = ensurePanel()
+        // SwiftUI draws the new state now, so the panel is measured and shown finished: it came in pieces, the card
+        // flying in from the top left, when it was shown first and drawn on the next pass (the author, 2026-11-16).
+        panel.contentView?.layoutSubtreeIfNeeded()
+        if panel.isVisible {
+            // Only a new size moves it, so a slide that is still going lands where it was going.
+            if let frame = frame(), frame.size != panel.frame.size { panel.setFrame(frame, display: true) }
+            return
+        }
         // It stays on the screen it appeared on.
-        if !panel.isVisible { screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main }
-        place()
+        screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
+        guard let frame = frame() else { return }
+        // It slides in from the screen's right edge as it fades in; within the screen, so it never shows on the one beside it.
+        panel.setFrame(frame.offsetBy(dx: 16, dy: 0), display: true)
+        panel.alphaValue = 0
         panel.orderFrontRegardless()
-        // Again once SwiftUI has drawn the new state: its size can differ from the one before.
-        DispatchQueue.main.async { [self] in if panel.isVisible { place() } }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            panel.animator().setFrame(frame, display: true)
+            panel.animator().alphaValue = 1
+        }
     }
 
-    private func place() {
-        guard let panel, let visible = screen?.visibleFrame, let size = panel.contentView?.fittingSize else { return }
-        panel.setFrame(NSRect(x: visible.maxX - size.width - 16, y: visible.maxY - size.height - 16, width: size.width, height: size.height),
-                       display: true)
+    /// The top right of its screen.
+    private func frame() -> NSRect? {
+        guard let visible = screen?.visibleFrame, let size = panel?.contentView?.fittingSize else { return nil }
+        return NSRect(x: visible.maxX - size.width - 16, y: visible.maxY - size.height - 16, width: size.width, height: size.height)
     }
 
     func hide() {
@@ -74,12 +88,17 @@ private final class CallPanelModel: ObservableObject {
         }
         shown = panel
         total = max(sameState ? total : 0, new.seconds ?? 0)
-        if !sameState { fraction = 1 }
+        if !sameState {
+            // A new state's bar is full at once, not grown back by the bar's animation.
+            var now = Transaction()
+            now.disablesAnimations = true
+            withTransaction(now) { fraction = 1 }
+        }
         text = new
         if let seconds = new.seconds, total > 0 {
-            // The bar glides through the coming second instead of jumping at its end.
+            // The bar glides through the coming second instead of jumping at its end (its animation is on the bar).
             let target = Double(max(0, seconds - 1)) / Double(total)
-            DispatchQueue.main.async { withAnimation(.linear(duration: 1)) { self.fraction = target } }
+            DispatchQueue.main.async { self.fraction = target }
         }
         self.onMain = onMain
         self.onOther = onOther
@@ -102,6 +121,8 @@ private struct CallPanelView: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(.quaternary)
                             Capsule().fill(Color.accentColor).frame(width: bar.size.width * model.fraction)
+                                // The bar alone: an animation over the whole card drew it growing from the top left.
+                                .animation(.linear(duration: 1), value: model.fraction)
                         }
                     }
                     .frame(height: 4)
