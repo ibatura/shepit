@@ -166,8 +166,9 @@ struct DictationSection: View {
                 }
             }
             Hinted(hint: "Recording stops and is transcribed automatically after this long") {
-                NumberMenu(title: "Max recording length", values: [60, 120, 300, 600, 900, 1800, 3600],
-                           selection: model.binding("maxRecordingSeconds", \.maxRecordingSeconds), text: NumberMenu.seconds)
+                // In seconds, not minutes (the author, 2026-11-23).
+                NumberMenu(title: "Max recording length", values: [30, 60, 90, 120, 180, 300, 600, 900, 1800, 3600],
+                           selection: model.binding("maxRecordingSeconds", \.maxRecordingSeconds)) { NumberMenu.count($0, "second") }
             }
         }
         Section("Text") {
