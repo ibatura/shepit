@@ -194,3 +194,4 @@ app/Sources/Shepit/
 
 - **Task 1** (2026-11-23, 979bb03): only `serverPort` was read by nothing, and it is dropped; `model` and `previewModel` stay as fallbacks for old files.
 - **Task 2** (2026-11-23, 2293a1d): the author looked through the seven pages on the installed app: "all good" (R1, R2).
+- **Task 3** (2026-11-23, 3a4c862 and 16a7d70): the author read the model rows (R3) and asked for one line per job, a menu for Unload when idle, voice and speaker detection chosen with the jobs, and the models listed by kind; on 16a7d70: "all good".
