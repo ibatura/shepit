@@ -165,10 +165,9 @@ struct DictationSection: View {
                     ForEach(Microphones.choices(connected: actions.microphones(), configured: model.settings.microphone), id: \.self) { Text($0).tag($0) }
                 }
             }
-            Hinted(hint: "Recording stops and is transcribed automatically after this many seconds (5–3600)") {
-                Stepper(value: model.binding("maxRecordingSeconds", \.maxRecordingSeconds), in: 5...3600, step: 30) {
-                    Text("Max recording length: \(model.settings.maxRecordingSeconds) s")
-                }
+            Hinted(hint: "Recording stops and is transcribed automatically after this long") {
+                NumberMenu(title: "Max recording length", values: [60, 120, 300, 600, 900, 1800, 3600],
+                           selection: model.binding("maxRecordingSeconds", \.maxRecordingSeconds), text: NumberMenu.seconds)
             }
         }
         Section("Text") {
@@ -199,20 +198,17 @@ struct HistoryPrivacySection: View {
                 Hinted(hint: "Keep every dictation in history, with the app it went to. With this off nothing new is kept") {
                     Toggle("Save history", isOn: model.binding("saveHistory", \.saveHistory))
                 }
-                Hinted(hint: "Delete history entries older than this many days. 0 = keep forever") {
-                    Stepper(value: model.binding("historyDays", \.historyDays), in: 0...3650) {
-                        Text(model.settings.historyDays == 0 ? "Keep history: forever" : "Keep history: \(model.settings.historyDays) days")
-                    }
+                Hinted(hint: "History entries older than this are deleted") {
+                    NumberMenu(title: "Keep history", values: [0, 7, 30, 90, 180, 365, 730],
+                               selection: model.binding("historyDays", \.historyDays)) { $0 == 0 ? "Forever" : NumberMenu.days($0) }
                 }
-                Hinted(hint: "How many recent dictations the Recent submenu shows. 0 hides it") {
-                    Stepper(value: model.binding("historyMenuItems", \.historyMenuItems), in: 0...50) {
-                        Text("Recent menu items: \(model.settings.historyMenuItems)")
-                    }
+                Hinted(hint: "How many recent dictations the Recent dictations submenu shows") {
+                    NumberMenu(title: "Recent menu items", values: [0, 5, 10, 15, 20],
+                               selection: model.binding("historyMenuItems", \.historyMenuItems)) { $0 == 0 ? "None: the submenu is hidden" : "\($0)" }
                 }
-                Hinted(hint: "How long the audio of a failed transcription is kept so you can retry. 0 = delete it right away") {
-                    Stepper(value: model.binding("failedAudioHours", \.failedAudioHours), in: 0...720) {
-                        Text("Keep failed audio: \(model.settings.failedAudioHours) h")
-                    }
+                Hinted(hint: "How long the audio of a failed transcription is kept so you can retry") {
+                    NumberMenu(title: "Keep failed audio", values: [0, 1, 6, 24, 72, 168],
+                               selection: model.binding("failedAudioHours", \.failedAudioHours)) { $0 == 0 ? "Delete at once" : NumberMenu.hours($0) }
                 }
             }
             .disabled(model.isReadOnly)
@@ -223,10 +219,9 @@ struct HistoryPrivacySection: View {
                 Hinted(hint: "Record usage statistics on this Mac: numbers only, never what you dictated") {
                     Toggle("Collect statistics", isOn: model.binding("collectStats", \.collectStats))
                 }
-                Hinted(hint: "Your typing speed, for “time saved” in Statistics (10–200)") {
-                    Stepper(value: model.binding("typingSpeedWpm", \.typingSpeedWpm), in: 10...200, step: 5) {
-                        Text("Typing speed: \(model.settings.typingSpeedWpm) words per minute")
-                    }
+                Hinted(hint: "Your typing speed, for “time saved” in Statistics") {
+                    NumberMenu(title: "Typing speed", values: [20, 30, 40, 50, 60, 70, 80, 100],
+                               selection: model.binding("typingSpeedWpm", \.typingSpeedWpm)) { "\($0) words per minute" }
                 }
             }
             .disabled(model.isReadOnly)

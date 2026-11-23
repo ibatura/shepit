@@ -11,7 +11,7 @@ struct DictionarySection: View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
-                Button("Add word", action: actions.addWord).buttonStyle(.borderedProminent)
+                Button("Add word", action: actions.addWord)
             }
             .padding(8)
             Divider()

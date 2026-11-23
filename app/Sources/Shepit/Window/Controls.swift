@@ -14,6 +14,41 @@ struct ChoicePicker: View {
     }
 }
 
+/// A number setting as a pop-up menu of set values, not a − + stepper (the author, 2026-11-23); a value from the file
+/// that is none of them is among them too.
+struct NumberMenu: View {
+    let title: String
+    let values: [Int]
+    let selection: Binding<Int>
+    let text: (Int) -> String
+
+    var body: some View {
+        Picker(title, selection: selection) {
+            ForEach(Self.values(values, current: selection.wrappedValue), id: \.self) { Text(text($0)).tag($0) }
+        }
+    }
+
+    static func values(_ values: [Int], current: Int) -> [Int] { Set(values + [current]).sorted() }
+
+    /// "90 seconds", "5 minutes", "1 hour".
+    static func seconds(_ seconds: Int) -> String {
+        seconds > 0 && seconds % 3600 == 0 ? count(seconds / 3600, "hour")
+            : seconds > 0 && seconds % 60 == 0 ? count(seconds / 60, "minute") : count(seconds, "second")
+    }
+
+    /// "6 hours", "1 day", "1 week".
+    static func hours(_ hours: Int) -> String {
+        hours > 0 && hours % 168 == 0 ? count(hours / 168, "week") : hours > 0 && hours % 24 == 0 ? count(hours / 24, "day") : count(hours, "hour")
+    }
+
+    /// "30 days", "1 year".
+    static func days(_ days: Int) -> String {
+        days > 0 && days % 365 == 0 ? count(days / 365, "year") : count(days, "day")
+    }
+
+    static func count(_ number: Int, _ unit: String) -> String { number == 1 ? "1 \(unit)" : "\(number) \(unit)s" }
+}
+
 /// A control with the README's one-line hint under it.
 struct Hinted<Content: View>: View {
     let hint: String

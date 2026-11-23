@@ -1,6 +1,7 @@
 import Foundation
 
-/// Text for the "add to dictionary" dialog and parsing of its answer (port of addword.lua).
+/// Text for the Add to dictionary dialog, in English like the rest of the app (the author, 2026-11-23), and parsing of
+/// its answer (port of addword.lua).
 public enum AddWord {
     public static let maxWords = 6
     public static let maxShown = 40
@@ -19,18 +20,18 @@ public enum AddWord {
     public static func prompt(selected: String, existing: String?) -> Prompt {
         let message: String
         if selected.isEmpty {
-            message = "Як Whisper пише → як має бути (через «=»), або лише правильне слово"
+            message = "As heard = as it should be written (джира = Jira), or just the right spelling"
         } else {
             let shown = selected.count <= maxShown ? selected : String(selected.prefix(maxShown - 1)) + "…"
-            message = "«\(shown)» → як має бути?" + (existing.map { " (зараз: \($0))" } ?? "")
+            message = "“\(shown)” → how should it be written?" + (existing.map { " (now: \($0))" } ?? "")
         }
-        return Prompt(title: "Додати в словник", message: message, defaultValue: existing ?? "")
+        return Prompt(title: "Add to dictionary", message: message, defaultValue: existing ?? "")
     }
 
     public static func parse(selected: String, input: String) -> Answer {
         if !selected.isEmpty {
             if selected.split(whereSeparator: \.isWhitespace).count > maxWords {
-                return .error("Виділено забагато тексту — виділіть одне слово або коротку фразу")
+                return .error("Too much text is selected: select one word or a short phrase")
             }
             return .rule(wrong: selected, right: input.trimmed)
         }

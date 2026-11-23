@@ -62,22 +62,15 @@ struct CallsSection: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         Section("Delays") {
-            Stepper(value: model.binding("callAutoStartSeconds", \.callAutoStartSeconds), in: 3...60) {
-                Text("Auto: start after \(settings.callAutoStartSeconds) s")
+            NumberMenu(title: "Auto: start after", values: [3, 5, 10, 15, 30, 60],
+                       selection: model.binding("callAutoStartSeconds", \.callAutoStartSeconds), text: NumberMenu.seconds)
+            Hinted(hint: "Never keeps it until you press a button") {
+                NumberMenu(title: "Offer: hide the panel after", values: [0, 10, 15, 30, 60, 120],
+                           selection: model.binding("callOfferSeconds", \.callOfferSeconds)) { $0 == 0 ? "Never" : NumberMenu.seconds($0) }
             }
-            Hinted(hint: "Never keeps it until you press a button (0, or 5–120)") {
-                Stepper {
-                    Text(settings.callOfferSeconds == 0 ? "Offer: hide the panel after: never" : "Offer: hide the panel after \(settings.callOfferSeconds) s")
-                } onIncrement: {
-                    model.set("callOfferSeconds", SettingsModel.offerSeconds(after: settings.callOfferSeconds, up: true))
-                } onDecrement: {
-                    model.set("callOfferSeconds", SettingsModel.offerSeconds(after: settings.callOfferSeconds, up: false))
-                }
-            }
-            Hinted(hint: "A transcript of a call stops by itself unless you press Keep recording (3–120)") {
-                Stepper(value: model.binding("callAutoStopSeconds", \.callAutoStopSeconds), in: 3...120) {
-                    Text("When the call ends, stop after \(settings.callAutoStopSeconds) s")
-                }
+            Hinted(hint: "A transcript of a call stops by itself unless you press Keep recording") {
+                NumberMenu(title: "When the call ends, stop after", values: [5, 10, 15, 30, 60, 120],
+                           selection: model.binding("callAutoStopSeconds", \.callAutoStopSeconds), text: NumberMenu.seconds)
             }
         }
     }
@@ -157,12 +150,6 @@ private extension CallMode {
 }
 
 extension SettingsModel {
-    /// `callOfferSeconds` one step up or down: 0 (never hides), then 5–120 in steps of 5.
-    static func offerSeconds(after value: Int, up: Bool) -> Int {
-        if up { return value == 0 ? 5 : min(120, value + 5) }
-        return value <= 5 ? 0 : max(5, value - 5)
-    }
-
     /// One app's choice; writes every app's, so the first write turns the old keys into `callModes` (the store drops them).
     func setCallMode(_ app: CallApp, _ mode: CallMode) {
         set("callModes", Dictionary(uniqueKeysWithValues: CallApp.allCases.map {

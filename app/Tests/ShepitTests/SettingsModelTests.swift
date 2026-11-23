@@ -181,22 +181,13 @@ struct SettingsModelTests {
                                                          "overlay", "livePreview", "overlayStyle"])
     }
 
-    @Test func theOfferSecondsStepperSkipsOneToFour() {
-        #expect(SettingsModel.offerSeconds(after: 0, up: true) == 5)
-        #expect(SettingsModel.offerSeconds(after: 5, up: false) == 0)
-        #expect(SettingsModel.offerSeconds(after: 0, up: false) == 0)
-        #expect(SettingsModel.offerSeconds(after: 15, up: true) == 20)
-        #expect(SettingsModel.offerSeconds(after: 118, up: true) == 120)
-        #expect(SettingsModel.offerSeconds(after: 120, up: true) == 120)
-        #expect(SettingsModel.offerSeconds(after: 7, up: false) == 5)
-    }
-
-    @Test func theIdleUnloadMenuKeepsAValueFromTheFile() {
-        let choices = SettingsModel.idleChoices(15)
-        #expect(choices.map(\.0) == [0, 5, 15, 30, 60, 120, 240, 480])
-        #expect(choices.map(\.1).prefix(5) == ["Never", "After 5 minutes", "After 15 minutes", "After 30 minutes", "After 1 hour"])
-        #expect(choices.last?.1 == "After 8 hours")
-        #expect(SettingsModel.idleChoices(45).map(\.0) == [0, 5, 15, 30, 45, 60, 120, 240, 480])
+    @Test func aNumberMenuKeepsAValueFromTheFileAndNamesItsUnits() {
+        #expect(NumberMenu.values([0, 5, 15, 30], current: 15) == [0, 5, 15, 30])
+        #expect(NumberMenu.values([0, 5, 15, 30], current: 7) == [0, 5, 7, 15, 30])
+        #expect([1, 45, 60, 90, 300, 3600, 7200].map(NumberMenu.seconds)
+                == ["1 second", "45 seconds", "1 minute", "90 seconds", "5 minutes", "1 hour", "2 hours"])
+        #expect([1, 6, 24, 72, 168, 720].map(NumberMenu.hours) == ["1 hour", "6 hours", "1 day", "3 days", "1 week", "30 days"])
+        #expect([1, 30, 365, 730].map(NumberMenu.days) == ["1 day", "30 days", "1 year", "2 years"])
     }
 
     // Settings review design §7.2–7.3.

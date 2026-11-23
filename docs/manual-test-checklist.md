@@ -14,8 +14,8 @@ Date: 2026-10-24  Engine: whisper.cpp large-v3, then large-v3-turbo  Result lege
 | N8 | Ukrainian keyboard layout active | Hotkeys and paste still work || ✅ |
 | N9 | Record 2 s of silence | "Nothing recognized"; no «Дякую за перегляд!» pasted || ✅ |
 | N10 | First word of a dictation started right after ⌥Space | Not cut off || ✅ after recorder fix (first audio: built-in 0.17 s, MOMENTUM 4 0.52 s; was 1–3 s) |
-| N11 | ⌃⌥D with a word selected → type the right spelling → Додати | Rule in dictionary.json; next dictation uses it || ✅ |
-| N12 | Recent ▸ click an entry | Full text copied, "📋 Скопійовано" || ✅ |
+| N11 | ⌃⌥D with a word selected → type the right spelling → Add | Rule in dictionary.json; next dictation uses it || ✅ |
+| N12 | Recent ▸ click an entry | Full text copied, "📋 Copied" || ✅ |
 | N13 | Engine ▸ whisper.cpp large-v3-turbo (while idle) | settings.json gets "engines"; status "Ready — whisper.cpp large-v3-turbo" || ✅ |
 | N14 | Break settings.json (delete a comma), save, open the menu | ⚠ line names the error; dictation still works with the last good settings || ✅ |
 | N15 | Remove Shepit from Accessibility, dictate | Notice "Text copied — allow Accessibility…"; text on the clipboard; menu shows the Accessibility line || skipped (would need re-granting Accessibility) |
@@ -111,7 +111,7 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 | L11 | Name people on the "Transcript ready" panel; the recording card during a transcript | The window opens on that meeting; the card opens the running one || ✅ 2026-11-16
 | L12 | Quit Shepit during a transcript, start it again | The meeting is in the list; the note ends with "Запис перервано" || ✅ 2026-11-16
 | L13 | Open the 🎙 menu | No Copy last meeting transcript, Rename speakers or Open meetings folder; Start / Stop meeting transcript is there ||
-| L14 | Reveal in Finder and Copy path from a meeting's right-click menu and its ⋯ menu; the same on a meeting whose note is not found | Finder shows the note's folder with the file selected; the path is on the clipboard with 📋 Скопійовано; Reveal in Finder is off for a note not found ||
+| L14 | Reveal in Finder and Copy path from a meeting's right-click menu and its ⋯ menu; the same on a meeting whose note is not found | Finder shows the note's folder with the file selected; the path is on the clipboard with 📋 Copied; Reveal in Finder is off for a note not found ||
 | L15 | In a finished meeting, click two people (initials, share or an empty spot), then Only highlighted people; click one of them again | Both people's lines are highlighted, each in their colour; the checkbox leaves only their lines; a second click turns one off; the name field still edits on a click ||
 | L16 | Click a line → Delete line; in a person's ⋯ → Delete all their lines…, Cancel, then Delete | The line leaves the note at once (Open note); the question says how many lines; after Delete the person leaves People and their lines leave the note; the other lines of the same second can still be given ||
 

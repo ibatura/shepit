@@ -282,19 +282,32 @@ final class AppHost: ControllerHost {
     }
 
     private func clearStatistics() {
-        NSApp.activate()
+        askToClear("Clear statistics?", "Deletes all recorded usage statistics on this Mac. This cannot be undone.") { [unowned self] in
+            do {
+                try stats.clear()
+                panel.message("🗑 Statistics cleared")
+            } catch {
+                showAlert(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Clear history… and Clear statistics… are pressed in the window, so they ask in a sheet on it, as every Delete…
+    /// there does (the author, 2026-11-23); a dialog of its own if no window is in front.
+    private func askToClear(_ title: String, _ message: String, clear: @escaping @MainActor () -> Void) {
         let alert = NSAlert()
-        alert.messageText = "Clear statistics?"
-        alert.informativeText = "Deletes all recorded usage statistics on this Mac. This cannot be undone."
+        alert.messageText = title
+        alert.informativeText = message
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Clear")
         alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        do {
-            try stats.clear()
-            panel.message("🗑 Statistics cleared")
-        } catch {
-            showAlert(error.localizedDescription)
+        guard let window = NSApp.keyWindow else {
+            NSApp.activate()
+            if alert.runModal() == .alertFirstButtonReturn { clear() }
+            return
+        }
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn { MainActor.assumeIsolated { clear() } }
         }
     }
 
@@ -313,7 +326,7 @@ final class AppHost: ControllerHost {
         case .copyText(let text):
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
-            panel.message("📋 Скопійовано")
+            panel.message("📋 Copied")
         case .grantAccessibility: Permissions.requestAccessibility()
         case .grantMicrophone: Permissions.requestMicrophone()
         case .startMeeting: Task { await startMeeting() }
@@ -340,21 +353,15 @@ final class AppHost: ControllerHost {
     }
 
     private func clearHistory() {
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = "Clear dictation history?"
-        alert.informativeText = "Deletes every kept dictation and the kept audio of failed attempts. This cannot be undone."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Clear")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        do {
-            try dictations.clear()
-        } catch {
-            return panel.message("Could not clear history: \(error.localizedDescription)")
+        askToClear("Clear dictation history?", "Deletes every kept dictation and the kept audio of failed attempts. This cannot be undone.") { [unowned self] in
+            do {
+                try dictations.clear()
+            } catch {
+                return panel.message("Could not clear history: \(error.localizedDescription)")
+            }
+            FailedAudio.cleanup(Paths.failedDir, olderThanHours: 0, now: Date().addingTimeInterval(1))
+            panel.message("🗑 History cleared")
         }
-        FailedAudio.cleanup(Paths.failedDir, olderThanHours: 0, now: Date().addingTimeInterval(1))
-        panel.message("🗑 History cleared")
     }
 
     /// Selected text (or nothing) → dialog → rule in dictionary.json. The window's Add word reads no selection: ⌘C
@@ -370,8 +377,8 @@ final class AppHost: ControllerHost {
         field.frame = NSRect(x: 0, y: 0, width: 300, height: 24)
         alert.accessoryView = field
         alert.window.initialFirstResponder = field
-        alert.addButton(withTitle: "Додати")
-        alert.addButton(withTitle: "Скасувати")
+        alert.addButton(withTitle: "Add")
+        alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         switch AddWord.parse(selected: selected, input: field.stringValue) {
         case .error(let message):

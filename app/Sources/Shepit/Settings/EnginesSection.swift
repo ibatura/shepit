@@ -33,9 +33,8 @@ struct EnginesSection: View {
         }
         Section {
             Hinted(hint: "Frees the speech models' memory; they load again on the next dictation") {
-                Picker("Unload models when idle", selection: model.binding("idleUnloadMinutes", \.idleUnloadMinutes)) {
-                    ForEach(SettingsModel.idleChoices(model.settings.idleUnloadMinutes), id: \.0) { Text($0.1).tag($0.0) }
-                }
+                NumberMenu(title: "Unload models when idle", values: [0, 5, 15, 30, 60, 120, 240, 480],
+                           selection: model.binding("idleUnloadMinutes", \.idleUnloadMinutes)) { $0 == 0 ? "Never" : "After " + NumberMenu.seconds($0 * 60) }
             }
         }
         Section("Speech recognition models") {
@@ -227,16 +226,5 @@ private struct ModelRow: View {
         guard case .engine(let choice) = item else { return "Downloaded" }
         let size = ModelCatalog.sizeOnDisk(choice).map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) }
         return "Downloaded" + (size.map { " · \($0)" } ?? "")
-    }
-}
-
-extension SettingsModel {
-    /// The choices of Unload models when idle, with the file's value among them if it is none of them.
-    static func idleChoices(_ current: Int) -> [(Int, String)] {
-        Set([0, 5, 15, 30, 60, 120, 240, 480, current]).sorted().map { minutes in
-            (minutes, minutes == 0 ? "Never"
-                : minutes % 60 != 0 ? "After \(minutes) minutes"
-                : minutes == 60 ? "After 1 hour" : "After \(minutes / 60) hours")
-        }
     }
 }

@@ -102,7 +102,7 @@ While a meeting transcript runs, a card at the top of the sidebar shows its time
 
 ### Dictations in the window
 
-- **Show** at the top picks how far back the list goes: Today, Last 7 days, Last month (the default), Last 3, 6 or 9 months, Last year, All history. The list loads more as you scroll.
+- **The period menu** at the top right picks the days the list shows: Today, Last 7 days, Last month (the default), Last 3, 6 or 9 months, Last year, All history, or **Custom…**, as in Statistics. The list loads more as you scroll.
 - A long dictation shows two lines; a click opens the whole text, another closes it. **Copy** always takes the whole text.
 - Right-click → **Delete…** removes one dictation (after a question) from Dictations, Home and Recent.
 - The bar at the bottom says how long history is kept (a click opens Settings → History and privacy) and has **Clear history…**.
@@ -112,7 +112,7 @@ While a meeting transcript runs, a card at the top of the sidebar shows its time
 
 Shepit window → **Statistics** counts what `stats.sqlite` keeps while **Collect statistics** is on. At the top: **Overview · Dictation · Meetings**, and the period menu at the right. Shepit remembers both.
 
-- **The period:** Today, Last 7 days, Last month (the default), Last 3, 6 or 9 months, Last year, All history, as in Dictations; and **Custom…**: pick the first and the last day in two calendars and press **Show** (both days count).
+- **The period:** Today, Last 7 days, Last month (the default), Last 3, 6 or 9 months, Last year, All history; and **Custom…**: pick the first and the last day in two calendars and press **Show** (both days count).
 - **▲ / ▼ under a number** compares with as many days right before the period, up to the same time: Today against yesterday until now, Last 7 days against the 7 days before. None for All history.
 - **Overview:** dictations, words, meetings and hours, and time saved (at your typing speed; **at 40 wpm** opens the setting); words per hour, day, week or month, dictation and meetings stacked (hover a bar for its numbers).
 - **Dictation:** speed by engine and model, and over time (the 4 engines used most; a point needs 3 dictations of an engine); the apps text went to; when you dictate (weekday × hour); languages; dictionary fixes; cancelled, failed and nothing recognized.
@@ -158,7 +158,7 @@ Shepit window → **People** lists everyone you named in meetings: you first, th
 - **Merge into:** every meeting of this person goes to the person you pick, and the notes get that name (one person named twice, say "Olena" and "Olena K."). The merged person leaves People.
 - **Voice:** "Saved from 6 meetings" with **Delete voice…**, or "No voice saved".
 - **May also be in 2 meetings:** recent meetings with a `Person N` whose voice is like this person's. **Show…** lists them, all checked; **Name them** names the checked ones, as the Meetings section does; the unchecked ones are not suggested again.
-- **Who talked how much** in the period picked beside it (the periods of Dictations, Last month by default): meetings, talk time, words, and their share of all the words of those meetings.
+- **Who talked how much** in the period picked beside it (the same menu as Dictations and Statistics, Custom… too; Last month by default): meetings, talk time, words, and their share of all the words of those meetings.
 - **Meetings** in that period: each with its date and their talk time and words; a click opens it in Meetings.
 
 Talk time is known for meetings recorded from this version on; older meetings and notes added with Add notes… show "–". The words of meetings listed before this version are counted from their notes the first time People opens.
@@ -356,7 +356,7 @@ Settings → Meetings shows a live example as you type.
 | Meeting note has only your voice | System Settings → Privacy & Security → Screen & System Audio Recording → turn on Shepit (Shepit says so after 2 min of your speech with a silent call) |
 | "Start meeting transcript (download the model in Settings)" | Settings → Meetings → Download voice detection, and the meetings engine in Engines and models |
 | Speakers stay `[Співрозмовники]` | Settings → Meetings → Download speaker detection; it applies to the next meeting |
-| Lost text | Everything is in the window's **Dictations** section (with **Show** → All history for older ones). Audio of failed attempts is kept for 24 h in `~/.local/share/dictation/failed/` |
+| Lost text | Everything is in the window's **Dictations** section (with the period menu → All history for older ones). Audio of failed attempts is kept for 24 h in `~/.local/share/dictation/failed/` |
 
 ## Update
 
