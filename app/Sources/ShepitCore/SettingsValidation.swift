@@ -140,6 +140,14 @@ private let settingChecks: [(String, @Sendable (Any) -> String?)] = [
         }
         return nil
     }),
+    ("callModes", { value in
+        Settings.callModes(file: value) == nil ? "must be an object from an app (\(Settings.callAppNames.joined(separator: ", "))) to auto, offer or off" : nil
+    }),
+    ("callRules", { value in
+        Settings.callRules(file: value) == nil
+            ? "must be a list of rules, each with app (\(Settings.callAppNames.joined(separator: ", "))), match (contains, is), text and then (auto, offer, off)"
+            : nil
+    }),
     ("theme", enumCheck(Settings.themes.map(\.value))),
     ("accentColor", enumCheck(AccentColor.allCases.map(\.rawValue))),
     ("rememberVoices", kindCheck("boolean")),
@@ -346,6 +354,8 @@ private func assign(_ value: Any, to key: String, settings: inout Settings) {
     case "callAutoStartSeconds": settings.callAutoStartSeconds = integerValue(value)!
     case "callAutoStopSeconds": settings.callAutoStopSeconds = integerValue(value)!
     case "callApps": settings.callApps = value as! [String]
+    case "callModes": settings.callModes = Settings.callModes(file: value)!
+    case "callRules": settings.callRules = Settings.callRules(file: value)!
     case "theme": settings.theme = value as! String
     case "accentColor": settings.accentColor = AccentColor(rawValue: value as! String)!
     case "rememberVoices": settings.rememberVoices = value as! Bool

@@ -58,7 +58,7 @@ final class SettingsModel {
             case .hotkeys: ["mode", "hotkey", "cancelKey", "addWordHotkey", "meetingHotkey"]
             case .dictation: ["language", "microphone", "maxRecordingSeconds", "stylePrompt", "refocusOriginalApp", "restoreClipboard",
                               "overlay", "livePreview", "overlayStyle"]
-            case .meetings: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps",
+            case .meetings: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps", "callModes", "callRules",
                              "meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"]
             case .engines: ["engines", "idleUnloadMinutes"]
             case .historyPrivacy: ["saveHistory", "historyDays", "historyMenuItems", "failedAudioHours", "collectStats", "typingSpeedWpm", "databasesFolder"]

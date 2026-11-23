@@ -125,7 +125,7 @@ Today the panel shows first and the name fills in when found. With rules the cho
 
 - `callModes`: an object from app to choice, `{"Teams": "offer", "Zoom": "off", "Meet": "auto"}`. The app keys are `CallApp` raw values. An app missing from it is Off.
 - `callRules`: a list of `{"app": "Teams", "match": "contains", "text": "Daily scrum", "then": "auto"}`, in order. `match` is `contains` or `is`; `then` is `auto`, `offer` or `off`. An empty text matches nothing.
-- While `callModes` is missing, it is read from the old keys: an app in `callApps` gets `auto` with `callAutoStart`, else `offer` with `callOffer`, else `off`; an app not in `callApps` gets `off`. The first change on the Calls part writes `callModes` and removes the three old keys.
+- While `callModes` is missing, it is read from the old keys as today's offer reads them: an app in `callApps` gets `off` with `callOffer` off, else `auto` with `callAutoStart`, else `offer`; an app not in `callApps` gets `off`. The first change on the Calls part writes `callModes` and removes the three old keys.
 - Validation, as for every key: an unknown app, choice or match is an error shown in the window, and the controls go read-only until the file is fixed.
 
 ### 7.3 The controls

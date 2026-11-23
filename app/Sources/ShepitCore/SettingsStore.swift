@@ -62,10 +62,9 @@ public final class SettingsStore {
     public func update(_ key: String, _ value: Any) throws {
         try write { raw in
             raw[key] = value
-            if key == "engines" {
-                raw.removeValue(forKey: "model")
-                raw.removeValue(forKey: "previewModel")
-            }
+            // The keys a new one replaces (settings review design §7.2 for the calls).
+            let replaced = ["engines": ["model", "previewModel"], "callModes": ["callOffer", "callAutoStart", "callApps"]]
+            for old in replaced[key] ?? [] { raw.removeValue(forKey: old) }
         }
     }
 

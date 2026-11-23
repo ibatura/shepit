@@ -181,8 +181,13 @@ public struct Settings: Equatable, Sendable {
     public var callAutoStart: Bool
     public var callAutoStartSeconds: Int
     public var callAutoStopSeconds: Int
-    /// Apps that get an offer: any of `Settings.callAppNames`.
+    /// Apps that get an offer: any of `Settings.callAppNames`. With `callOffer` and `callAutoStart`, read only while
+    /// the file has no `callModes` (settings review design §7.2).
     public var callApps: [String]
+    /// Each app's choice; nil while the file has none (`callMode(for:)`).
+    public var callModes: [CallApp: CallMode]?
+    /// Rules by meeting name, in order (`callChoice(app:name:)`).
+    public var callRules: [CallRule]
     /// Light or dark for the window, the call panels and the dialogs: "system", "light", "dark".
     public var theme: String
     public var accentColor: AccentColor
@@ -240,6 +245,8 @@ public struct Settings: Equatable, Sendable {
         callAutoStartSeconds: Int = 5,
         callAutoStopSeconds: Int = 10,
         callApps: [String] = Settings.callAppNames,
+        callModes: [CallApp: CallMode]? = nil,
+        callRules: [CallRule] = [],
         theme: String = "system",
         accentColor: AccentColor = .system,
         rememberVoices: Bool = false,
@@ -283,6 +290,8 @@ public struct Settings: Equatable, Sendable {
         self.callAutoStartSeconds = callAutoStartSeconds
         self.callAutoStopSeconds = callAutoStopSeconds
         self.callApps = callApps
+        self.callModes = callModes
+        self.callRules = callRules
         self.theme = theme
         self.accentColor = accentColor
         self.rememberVoices = rememberVoices

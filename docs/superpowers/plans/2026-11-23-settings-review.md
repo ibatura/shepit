@@ -139,6 +139,7 @@ app/Sources/Shepit/
   - the existing tests keep passing with `callModes` built from today's defaults.
 - [ ] **`CallOffer`:** `callApps` replaced by `callMode(for:) != .off`; a `naming(since:)` phase between the hold and the offer; the choice from `CallRules` on `.named`; `callAutoStart` replaced by the choice in `advance` and `currentPanel`.
 - [ ] **`AppHost+Calls`:** the name lookup as today; nothing else should need to change. Check `HomeModel`'s call hint ("Call offers are off") against the new modes.
+- [ ] From Task 5's review: writing `callModes` removes `callOffer`, `callAutoStart` and `callApps`, so nothing may read them any more except `callMode(for:)`'s fallback: CallOffer and HomeModel here, the Calls part in Task 7.
 - [ ] `/code-review` on the task's diff.
 - [ ] Commit `Shepit: each call app's choice and the rules decide the offer`.
 

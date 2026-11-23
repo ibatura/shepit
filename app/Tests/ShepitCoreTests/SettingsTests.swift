@@ -307,6 +307,33 @@ struct SettingsTests {
         ])
     }
 
+    // Settings review design §7.2.
+    @Test func callModesAndRulesAreRead() {
+        let (settings, errors) = validateSettings([
+            "callModes": ["Teams": "offer", "Zoom": "off", "Meet": "auto"],
+            "callRules": [["app": "Teams", "match": "contains", "text": "Daily scrum", "then": "auto"],
+                          ["app": "Meet", "match": "is", "text": "", "then": "off"]],
+        ])
+        #expect(errors.isEmpty)
+        #expect(settings?.callModes == [.teams: .offer, .zoom: .off, .meet: .auto])
+        #expect(settings?.callRules == [CallRule(app: .teams, match: .contains, text: "Daily scrum", then: .auto),
+                                        CallRule(app: .meet, match: .is, text: "", then: .off)])
+        #expect(validateSettings([:]).0?.callModes == nil)
+        #expect(validateSettings([:]).0?.callRules == [])
+        #expect(validateSettings(["callModes": [String: String]()]).0?.callModes == [:])
+    }
+
+    @Test func callModesAndRulesAreRejected() {
+        let modes = #"settings.json: "callModes" must be an object from an app (Teams, Zoom, Meet) to auto, offer or off"#
+        let badModes: [Any] = [["Slack": "auto"], ["Teams": "start"], ["Teams": 1], ["Teams", "auto"], "auto"]
+        for bad in badModes { #expect(validateSettings(["callModes": bad]).1 == [modes]) }
+        let rules = #"settings.json: "callRules" must be a list of rules, each with app (Teams, Zoom, Meet), match (contains, is), text and then (auto, offer, off)"#
+        let rule: [String: Any] = ["app": "Teams", "match": "contains", "text": "Daily", "then": "auto"]
+        let badRules: [Any] = [rule, [rule.merging(["app": "Slack"]) { $1 }], [rule.merging(["match": "starts"]) { $1 }],
+                               [rule.merging(["then": "start"]) { $1 }], [rule.merging(["text": 1]) { $1 }], [rule.filter { $0.key != "text" }], ["Teams"]]
+        for bad in badRules { #expect(validateSettings(["callRules": bad]).1 == [rules]) }
+    }
+
     @Test func aHotkeyClashIgnoresModifierOrderAndCaseAndCountsTheCancelKey() {
         var settings = Settings.defaults
         settings.cancelKey = "f5"

@@ -172,7 +172,7 @@ struct SettingsModelTests {
     }
 
     @Test func callAndMeetingKeysAreInTheMeetingsSection() {
-        #expect(SettingsModel.Section.meetings.keys == ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps",
+        #expect(SettingsModel.Section.meetings.keys == ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps", "callModes", "callRules",
                                                         "meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"])
     }
 
