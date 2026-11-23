@@ -161,10 +161,10 @@ app/Sources/Shepit/
 
 ### Task 9: GATE: the Google Meet panel in Chrome (spec §8, with the author)
 
-- [ ] With the author on a Meet call in Chrome: `Shepit call-watch` in a terminal, and Shepit's log (`log show --predicate 'process == "Shepit"'`) while the offer should show. Note where the panel is (screen, Space), whether it is drawn, and what `stats.sqlite` records.
-- [ ] Fix what is found; check again on a call (R10).
-- [ ] If the cause is outside Shepit, write it under "Call offer: left open".
-- [ ] Commit `Shepit: <what was found> for the Meet panel` (or `Docs: …` if nothing changes in code).
+- [x] With the author on a Meet call in Chrome: `Shepit call-watch` in a terminal, and Shepit's log (`log show --predicate 'process == "Shepit"'`) while the offer should show. Note where the panel is (screen, Space), whether it is drawn, and what `stats.sqlite` records.
+- [x] Fix what is found; check again on a call (R10).
+- [x] If the cause is outside Shepit, write it under "Call offer: left open".
+- [x] Commit `Shepit: <what was found> for the Meet panel` (or `Docs: …` if nothing changes in code).
 
 ### Task 10: Docs, version and the author's reviews
 
@@ -202,3 +202,4 @@ app/Sources/Shepit/
 - **Task 7** (2026-11-23, f57db32, 4fb7b42 and 16df6d9): the Calls part. Dragging rules doesn't work in a grouped `Form`, so each rule has ↑ ↓. After the author's look: Auto · Offer · Off on the right; every text setting a bordered `SettingField` saved with Save or Enter (Esc puts it back), the style prompt too; Recognition and Voice and speaker detection show text with an arrow icon to Engines and models. On 16df6d9: "all good". R6 and R7 wait for real calls, R8 for the end of the branch.
 - **Task 8** (2026-11-23, 442b497, bdbb71c and the next commit): one `PeriodMenu` (its own file, not `Controls.swift`) on the right in Dictations, Statistics and People (in People beside Who talked how much, as the period is the chosen person's); Dictations and People gained Custom…, so the dictation and presence queries take a range with an end. The controls check found four differences and the author picked all four fixes: number settings as menus (`NumberMenu`, Font size and Bars stay steppers; Max recording length in seconds), the Add word dialog in English, Clear history… and Clear statistics… as sheets, Dictionary's Add word a plain button. R9: "all good" apart from Max recording length, then in seconds.
 - **Task 10, the docs** (2026-11-23): README (the menu, Home, Settings' pages, Auto · Offer · Off and rules, the new keys and what an old file does), `examples/settings.json` (`meetingHotkey`, `callModes`, `callRules`, checked by a test), the checklist R1–R11, `future-ideas.md`, `CLAUDE.md`; version 0.4.0, agreed with the author, and `docs/releases/0.4.0.md`. Three spec lines corrected to what was built (§2 Transcript ready, §7.3 Add rule, §9 People). Left: Task 9 on a Meet call, then the reviews and the pull request.
+- **Task 9** (2026-11-23, 7577aac): On 2026-11-23, on a Meet call in Chrome with the author: Chrome's helper (`com.google.Chrome.helper`) took the microphone, the offer came with the call's name and Start worked; Chrome kept the microphone while the author was muted. Two things were found and fixed (7577aac): the first panel was drawn in pieces, the card growing from the top left (the countdown bar's animation took in the card's first layout, drawn after the panel was on screen), which may be why the offers went unseen; and Chrome now puts its tab strip at depth 7, below the depth-6 limit of the look for tab titles, so a Meet tab behind another tab was not found. Nothing was outside Shepit. Left: the reviews and the pull request.

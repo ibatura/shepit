@@ -142,6 +142,8 @@ On 2026-11-17 the author saw no offer during a Meet call in Chrome. `stats.sqlit
 
 A task of the plan, with the author on a real Meet call in Chrome: `Shepit call-watch` and Shepit's log while the offer should show; then the fix; then the check again on a call. If the cause is outside Shepit, the finding goes to "Call offer: left open".
 
+On 2026-11-23, on a Meet call in Chrome with the author: Chrome's helper (`com.google.Chrome.helper`) took the microphone, the offer came with the call's name and Start worked; Chrome kept the microphone while the author was muted. Two things were found and fixed (7577aac): the first panel was drawn in pieces, the card growing from the top left (the countdown bar's animation took in the card's first layout, drawn after the panel was on screen), which may be why the offers went unseen; and Chrome now puts its tab strip at depth 7, below the depth-6 limit of the look for tab titles, so a Meet tab behind another tab was not found.
+
 ## 9. The period menu
 
 Today Dictations has "Show: Last month" on the left of its top bar, Statistics an unlabelled menu with Custom… on the right, and People its own on the right. All three get Statistics' menu, on the right of the top bar: the period's name as its title, the presets, Custom…. In People it stays beside Who talked how much, as the period is the chosen person's and People's top bar is Remember voices. Dictations and People gain Custom…, which `StatsPeriod` already covers. Each section still remembers its own period.

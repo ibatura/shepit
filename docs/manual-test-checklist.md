@@ -229,7 +229,7 @@ Design: `docs/superpowers/specs/2026-11-23-settings-review-design.md`. R6–R8 c
 | R7 | Zoom set to Off, a Zoom call; Start by hand, then end the call | No panel; the transcript doesn't stop when the call ends and ends with Transcript ready | |
 | R8 | A copy of a 0.3.0 `settings.json` with `callOffer`, `callAutoStart` and `callApps` in a test folder, read by a test build | Calls shows the same behaviour as before; nothing is written until a change in Calls, which writes `callModes` and removes the three keys | |
 | R9 | The period menu in Dictations, Statistics and People: a preset, then Custom…; reopen the window | Same menu on the right in each; Custom… shows only those days; each section keeps its own period | ✅ 2026-11-23 |
-| R10 | Google Meet in Chrome, Meet on Offer, a real call | The offer panel with the call's name (Task 9) | |
+| R10 | Google Meet in Chrome, Meet on Offer, a real call | The offer panel with the call's name (Task 9) | ✅ 2026-11-23: the offer came, Start worked, no stop while muted; the panel now comes in finished (7577aac) |
 | R11 | Settings controls: change a text field (Your name, a folder, a rule) with Save, Enter and Esc; the number menus; rules' ↑ ↓; the → icons on Recognition and Voice and speaker detection; Clear history… and Clear statistics…; Add word | Bordered fields saved only with Save or Enter, Esc puts the text back; menus instead of − +; Max recording length in seconds; the arrows reorder rules; each → opens Engines and models; both Clear… ask in a sheet; the Add word dialog in English | ✅ 2026-11-23 |
 
 ## Version
