@@ -115,7 +115,7 @@ Mode ▸ and Dictation engine ▸ leave. While a job runs, its language is greye
 
 ### 7.1 What happens when a call starts
 
-1. An app holds the microphone for 3 s (as today). An app set to Off is not watched: its call counts for nothing, as an app with its switch off today. A transcript started by hand during it is an ordinary transcript, with no "Call ended" countdown and no "Transcript ready" panel.
+1. An app holds the microphone for 3 s (as today). An app set to Off is not watched: its call counts for nothing, as an app with its switch off today. A transcript started by hand during it is an ordinary transcript: no "Call ended" countdown, and it ends with the "Transcript ready" panel, as every transcript started by hand does (the author, 2026-11-23).
 2. For Auto or Offer, Shepit looks for the call's name (as today), and decides when the answer comes: the first rule of that app that matches the name; if none, the app's choice.
 3. Auto shows the panel with its countdown and starts on its own; Offer shows the offer panel; a rule's Off shows nothing. Home still shows the call with Start, as it does today when offers are off.
 
