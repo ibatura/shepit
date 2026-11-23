@@ -3,11 +3,12 @@ import SwiftUI
 import ShepitCore
 
 /// Settings → Meetings (spec §5.9, `04-settings.md`; settings review design §4): when calls start a transcript, where
-/// notes go and how they're named, the meeting name dialog, the microphone label and language, and the voice/speaker
-/// detection models.
+/// notes go and how they're named, the meeting name dialog, the microphone label and language, and whether the models
+/// a meeting needs are on this Mac (they are in Engines and models).
 struct MeetingsSection: View {
     let model: SettingsModel
     let actions: WindowActions
+    let openEngines: () -> Void
 
     var body: some View {
         CallsSection(model: model)
@@ -30,21 +31,17 @@ struct MeetingsSection: View {
             Hinted(hint: "When on, the dictation hotkey does nothing while a meeting is recording. When off, you can dictate during a meeting; that audio is left out of the transcript") {
                 Toggle("Block dictation during a meeting", isOn: model.binding("meetingBlocksDictation", \.meetingBlocksDictation))
             }
+            let _ = actions.downloads.revision // re-read the disk after a download or delete
             let engine = model.settings.engine(for: .meetings)
             LabeledContent("Recognition") {
                 Text(engine.title + (ModelCatalog.isDownloaded(engine) ? "" : " — not downloaded"))
             }
-            Text("Choose the engine in Engines and models.").font(.caption).foregroundStyle(.secondary)
-        }
-        Section {
-            ForEach(MeetingModel.allCases, id: \.self) { meetingModel in
-                MeetingModelRow(meetingModel: meetingModel, downloads: actions.downloads)
+            let missing = MeetingModel.allCases.filter { !$0.isDownloaded() }.map { $0 == .vad ? "voice detection" : "speaker detection" }
+            LabeledContent("Voice and speaker detection") {
+                Text(missing.isEmpty ? "Installed" : "Not downloaded: \(missing.joined(separator: ", "))")
             }
-        } header: {
-            Text("Models")
-        } footer: {
-            Text("Voice detection is needed to start a meeting. Without speaker detection all call voices stay “Співрозмовники”.")
-                .font(.caption).foregroundStyle(.secondary)
+            Button("Choose the engine and download models in Engines and models", action: openEngines)
+                .buttonStyle(.link)
         }
     }
 }
@@ -115,38 +112,4 @@ private struct FileNameRow: View {
 
     /// A fixed moment so the example doesn't tick: Monday 26 Oct 2026, 14:05.
     private static let exampleDate = Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 26, hour: 14, minute: 5)) ?? Date()
-}
-
-private struct MeetingModelRow: View {
-    let meetingModel: MeetingModel
-    let downloads: ModelDownloads
-    @State private var confirmDelete = false
-
-    var body: some View {
-        let _ = downloads.revision // re-read the disk after a download or delete
-        let item = DownloadItem.meeting(meetingModel)
-        LabeledContent(meetingModel.title) {
-            HStack(spacing: 10) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(meetingModel.isDownloaded() ? "Downloaded" : "Not downloaded")
-                    if let error = downloads.errors[item] { Text("⚠ \(error)").font(.caption).foregroundStyle(.orange) }
-                }
-                if let progress = downloads.progress[item] {
-                    ProgressView(value: max(progress, 0)).frame(width: 90)
-                    Button("Cancel") { downloads.cancel(item) }
-                } else if meetingModel.isDownloaded() {
-                    Button("Delete…") { confirmDelete = true }.help("Remove this model from disk")
-                } else {
-                    Button("Download") { downloads.download(item) }
-                        .disabled(!downloads.canDownload || downloads.running != nil)
-                        .help(downloads.running == nil ? "Download and verify this model" : "One download at a time")
-                }
-            }
-        }
-        .confirmationDialog("Delete \(meetingModel.title)?", isPresented: $confirmDelete) {
-            Button("Delete", role: .destructive) { downloads.delete(item, inUse: false) }
-        } message: {
-            Text("It can be downloaded again later.")
-        }
-    }
 }

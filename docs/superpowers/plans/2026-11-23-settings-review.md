@@ -189,3 +189,8 @@ app/Sources/Shepit/
 - **Task 6:** a transcript started by hand during a call of an app set to Off ends with the dictation panel's short "Transcript ready" notice, as every transcript started by hand does today; the spec says no "Transcript ready" panel for such an app. Ask the author whether that notice stays.
 - **Task 7:** if `.onMove` in a grouped `Form` looks wrong, show the author ↑ ↓ buttons in each row instead.
 - **Task 8:** if Custom… doesn't fit Dictations' list (a day-by-day list), ask before adding it there.
+
+## Progress
+
+- **Task 1** (2026-11-23, 979bb03): only `serverPort` was read by nothing, and it is dropped; `model` and `previewModel` stay as fallbacks for old files.
+- **Task 2** (2026-11-23, 2293a1d): the author looked through the seven pages on the installed app: "all good" (R1, R2).

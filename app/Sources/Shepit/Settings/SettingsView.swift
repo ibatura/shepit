@@ -22,7 +22,7 @@ struct SettingsView: View {
                 case .general: GeneralSection(model: model, actions: actions)
                 case .hotkeys: HotkeysSection(model: model, actions: actions)
                 case .dictation: DictationSection(model: model, actions: actions)
-                case .meetings: MeetingsSection(model: model, actions: actions)
+                case .meetings: MeetingsSection(model: model, actions: actions) { section = .engines }
                 case .engines: EnginesSection(model: model, actions: actions)
                 case .historyPrivacy: HistoryPrivacySection(model: model, actions: actions)
                 case .appearance: AppearanceSection(model: model)
