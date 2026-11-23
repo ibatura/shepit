@@ -20,7 +20,7 @@ struct StatisticsView: View {
                 .labelsHidden()
                 .fixedSize()
                 Spacer()
-                PeriodMenu(model: model)
+                PeriodMenu(period: $model.period)
             }
             .padding(8)
             Divider()
@@ -49,61 +49,6 @@ struct StatisticsView: View {
                 Spacer()
                 Button("Open History and privacy", action: openSettings)
             }
-        }
-    }
-}
-
-/// The period's title as a menu: Dictations' periods and, below a separator, Custom… with its popover.
-private struct PeriodMenu: View {
-    @Bindable var model: StatisticsModel
-    @State private var custom = false
-
-    var body: some View {
-        Menu(model.period.title()) {
-            Picker("Period", selection: Binding<Period?>(
-                get: { if case .preset(let period) = model.period { period } else { nil } },
-                set: { $0.map { model.period = .preset($0) } })) {
-                ForEach(Period.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
-            }
-            .pickerStyle(.inline)
-            .labelsHidden()
-            Divider()
-            Button("Custom…") { custom = true }
-        }
-        .fixedSize()
-        .popover(isPresented: $custom, arrowEdge: .bottom) {
-            CustomRange(from: model.customDays.from, through: model.customDays.through) { from, through in
-                model.period = .custom(from: from, through: through)
-                custom = false
-            }
-        }
-    }
-}
-
-/// Whole days, both included: the start in one calendar and the end in another, as macOS has no range picker (spec
-/// §11). The end can't be before the start or after today.
-private struct CustomRange: View {
-    @State var from: Date
-    @State var through: Date
-    let show: (Date, Date) -> Void
-
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 12) {
-            HStack(alignment: .top, spacing: 20) {
-                calendar("From", $from, in: Date.distantPast...through)
-                calendar("To", $through, in: from...max(from, Date()))
-            }
-            Button("Show") { show(from, through) }.keyboardShortcut(.defaultAction)
-        }
-        .padding(16)
-    }
-
-    private func calendar(_ title: String, _ date: Binding<Date>, in range: ClosedRange<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.headline)
-            DatePicker(title, selection: date, in: range, displayedComponents: .date)
-                .datePickerStyle(.graphical)
-                .labelsHidden()
         }
     }
 }

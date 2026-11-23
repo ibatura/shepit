@@ -46,18 +46,18 @@ public final class DictationStore {
         text.split(whereSeparator: \.isWhitespace).count
     }
 
-    /// Up to `limit` entries older than `before` (the newest when nil) and not older than `since`, newest first. Ordered
-    /// by time, then id, so entries of one second neither repeat nor go missing from one page to the next.
-    public func page(before: Entry? = nil, since: Date? = nil, limit: Int) throws -> [Entry] {
+    /// Up to `limit` entries older than `before` (the newest when nil) and in `range` (any time when nil), newest first.
+    /// Ordered by time, then id, so entries of one second neither repeat nor go missing from one page to the next.
+    public func page(before: Entry? = nil, in range: DateInterval? = nil, limit: Int) throws -> [Entry] {
         var conditions: [String] = []
         var values: [Any?] = []
         if let before {
             conditions.append("(time, id) < (?, ?)")
             values += [before.time.timeIntervalSince1970, before.id]
         }
-        if let since {
-            conditions.append("time >= ?")
-            values.append(since.timeIntervalSince1970)
+        if let range {
+            conditions.append("time >= ? AND time < ?")
+            values += [range.start.timeIntervalSince1970, range.end.timeIntervalSince1970]
         }
         return try sqlite.rows("""
             SELECT id, time, app_name, app_bundle_id, text, words FROM dictations

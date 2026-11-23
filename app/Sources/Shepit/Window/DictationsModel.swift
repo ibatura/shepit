@@ -14,11 +14,11 @@ final class DictationsModel {
         didSet { lines = DictationPage.lines(entries, now: Date()) }
     }
     private(set) var lines: [DictationPage.Line] = []
-    /// How far back the list goes; remembered in the app's preferences, like the window's section.
-    var period: Period {
+    /// The days the list shows; remembered in the app's preferences, like the window's section.
+    var period: StatsPeriod {
         didSet {
             guard period != oldValue else { return }
-            defaults.set(period.rawValue, forKey: "dictationsPeriod")
+            defaults.set(period, section: "dictations")
             entries = []
             reload()
         }
@@ -39,7 +39,7 @@ final class DictationsModel {
     init(store: DictationStore, defaults: UserDefaults = .standard) {
         self.store = store
         self.defaults = defaults
-        period = defaults.string(forKey: "dictationsPeriod").flatMap(Period.init) ?? .month
+        period = defaults.period(section: "dictations")
     }
 
     /// The newest entries again, as many as are loaded (at least a page): when the section appears, after a dictation
@@ -47,7 +47,7 @@ final class DictationsModel {
     func reload() {
         let limit = max(Self.pageSize, entries.count)
         read {
-            let page = try store.page(since: period.since(Date()), limit: limit)
+            let page = try store.page(in: period.range(now: Date()), limit: limit)
             end = page.count < limit
             entries = page
         }
@@ -58,7 +58,7 @@ final class DictationsModel {
     func appeared(_ id: Int) {
         guard !end, let last = entries.last, entries.suffix(20).contains(where: { $0.id == id }) else { return }
         read {
-            let page = try store.page(before: last, since: period.since(Date()), limit: Self.pageSize)
+            let page = try store.page(before: last, in: period.range(now: Date()), limit: Self.pageSize)
             end = page.count < Self.pageSize
             entries += page
         }

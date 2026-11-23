@@ -25,10 +25,10 @@ final class PeopleModel {
             suggest()
         }
     }
-    /// The period of Who talked how much and the person's meetings (Dictations' periods), remembered.
-    var period: Period {
+    /// The period of Who talked how much and the person's meetings, remembered.
+    var period: StatsPeriod {
         didSet {
-            defaults.set(period.rawValue, forKey: "peoplePeriod")
+            defaults.set(period, section: "people")
             tally()
         }
     }
@@ -73,7 +73,7 @@ final class PeopleModel {
         self.defaults = defaults
         let remembered = defaults.integer(forKey: "peopleSelection")
         selection = remembered == 0 ? nil : remembered
-        period = defaults.string(forKey: "peoplePeriod").flatMap(Period.init) ?? .month
+        period = defaults.period(section: "people")
     }
 
     func reload() {
@@ -111,7 +111,7 @@ final class PeopleModel {
         var presences: [MeetingStore.Presence]?
         if let person = chosen {
             do {
-                presences = try store.presences(of: person.id, since: period.since(Date()))
+                presences = try store.presences(of: person.id, in: period.range(now: Date()))
             } catch {
                 NSLog("Shepit people: %@", String(describing: error))
             }

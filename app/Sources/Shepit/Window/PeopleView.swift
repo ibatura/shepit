@@ -129,10 +129,7 @@ struct PeopleView: View {
                     HStack {
                         Caption("Who talked how much")
                         Spacer()
-                        Picker("Period", selection: $model.period) {
-                            ForEach(Period.allCases, id: \.self) { Text($0.title).tag($0) }
-                        }
-                        .pickerStyle(.menu).labelsHidden().fixedSize()
+                        PeriodMenu(period: $model.period)
                     }
                     StatTiles(tiles: model.talk).padding(12).boxed()
                     Caption("Meetings")

@@ -33,14 +33,12 @@ final class StatisticsModel {
     var period: StatsPeriod {
         didSet {
             guard period != oldValue else { return }
-            save(period)
+            defaults.set(period, section: "statistics")
             reload()
         }
     }
     /// Empty until the section is shown.
     private(set) var pages: Pages
-    /// When the rows were read: "now" for the period's range.
-    private(set) var readAt = Date()
 
     @ObservationIgnored private let stats: StatsDatabase
     /// Settings → History and privacy, for Time saved.
@@ -52,16 +50,9 @@ final class StatisticsModel {
         self.typingSpeed = typingSpeed
         self.defaults = defaults
         tab = defaults.string(forKey: "statisticsView").flatMap(Tab.init) ?? .overview
-        let period = Self.load(defaults)
+        let period = defaults.period(section: "statistics")
         self.period = period
         pages = Pages(Stats.Rows(), previous: nil, unit: period.bucket(now: Date()), wpm: typingSpeed())
-    }
-
-    /// The days Custom… opens with: the custom range, or the shown period's first day to its last (today for All
-    /// history).
-    var customDays: (from: Date, through: Date) {
-        if case .custom(let from, let through) = period { return (from, through) }
-        return (period.range(now: readAt)?.start ?? Calendar.current.startOfDay(for: readAt), readAt)
     }
 
     func reload() {
@@ -69,7 +60,6 @@ final class StatisticsModel {
         do {
             let rows = try read(period.range(now: now))
             let previous = try period.previous(now: now).map(read)
-            readAt = now
             pages = Pages(rows, previous: previous, unit: period.bucket(now: now), wpm: typingSpeed())
         } catch {
             NSLog("Shepit statistics: %@", String(describing: error))
@@ -78,26 +68,5 @@ final class StatisticsModel {
 
     private func read(_ range: DateInterval?) throws -> Stats.Rows {
         Stats.Rows(dictations: try stats.dictations(in: range), meetings: try stats.meetings(in: range), offers: try stats.offers(in: range))
-    }
-
-    private func save(_ period: StatsPeriod) {
-        switch period {
-        case .preset(let preset):
-            defaults.set(preset.rawValue, forKey: "statisticsPeriod")
-        case .custom(let from, let through):
-            defaults.set("custom", forKey: "statisticsPeriod")
-            defaults.set(from, forKey: "statisticsFrom")
-            defaults.set(through, forKey: "statisticsThrough")
-        }
-    }
-
-    /// Last month by default, as in Dictations.
-    private static func load(_ defaults: UserDefaults) -> StatsPeriod {
-        let saved = defaults.string(forKey: "statisticsPeriod")
-        if saved == "custom", let from = defaults.object(forKey: "statisticsFrom") as? Date,
-           let through = defaults.object(forKey: "statisticsThrough") as? Date {
-            return .custom(from: from, through: through)
-        }
-        return .preset(saved.flatMap(Period.init) ?? .month)
     }
 }

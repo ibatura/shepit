@@ -14,16 +14,16 @@ extension MeetingStore {
         public var meetingWords: Int? = nil
     }
 
-    /// `person`'s meetings started `since` (all of them for nil) where they have lines now, once each.
-    public func presences(of person: Int, since: Date? = nil) throws -> [Presence] {
+    /// `person`'s meetings started in `range` (all of them for nil) where they have lines now, once each.
+    public func presences(of person: Int, in range: DateInterval? = nil) throws -> [Presence] {
         try sqlite.rows("""
             SELECT people.meeting, sum(lines.words), sum(lines.seconds),
               (SELECT sum(words) FROM lines AS everyone WHERE everyone.meeting = people.meeting)
             FROM people JOIN meetings ON meetings.id = people.meeting
             JOIN lines ON lines.meeting = people.meeting AND lines.current = people.key
-            WHERE people.person = ? AND meetings.start >= ?
+            WHERE people.person = ? AND meetings.start >= ? AND meetings.start < ?
             GROUP BY people.meeting
-            """, [person, (since ?? .distantPast).timeIntervalSince1970]) { row in
+            """, [person, (range?.start ?? .distantPast).timeIntervalSince1970, (range?.end ?? .distantFuture).timeIntervalSince1970]) { row in
             Presence(meeting: row.int(0), words: row.isNull(1) ? nil : row.int(1), seconds: row.isNull(2) ? nil : row.double(2),
                      meetingWords: row.isNull(3) ? nil : row.int(3))
         }

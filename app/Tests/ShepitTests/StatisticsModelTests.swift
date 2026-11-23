@@ -68,18 +68,4 @@ struct StatisticsModelTests {
         again.period = .preset(.week)
         #expect(statistics(stats, defaults).period == .preset(.week))
     }
-
-    @Test func customOpensWithTheShownDays() throws {
-        let (stats, defaults, dir) = try rig()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let model = statistics(stats, defaults)
-        model.period = .preset(.week)
-        // The days as read, so a test across midnight doesn't fail.
-        #expect(model.customDays.from == Period.week.since(model.readAt) && model.customDays.through == model.readAt)
-        model.period = .preset(.all)
-        #expect(model.customDays.from == Calendar.current.startOfDay(for: model.readAt))
-        let from = now.addingTimeInterval(-9 * 86_400), through = now.addingTimeInterval(-2 * 86_400)
-        model.period = .custom(from: from, through: through)
-        #expect(model.customDays.from == from && model.customDays.through == through)
-    }
 }
