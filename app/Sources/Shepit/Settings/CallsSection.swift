@@ -34,7 +34,7 @@ struct CallsSection: View {
         Section {
             let rules = settings.callRules
             ForEach(Array(rules.enumerated()), id: \.offset) { index, rule in
-                RuleRow(rule: rule, ignored: settings.callMode(for: rule.app) == .off,
+                RuleRow(rule: rule, keep: "callRules \(index) \(rule)", ignored: settings.callMode(for: rule.app) == .off,
                         first: index == 0, last: index == rules.count - 1) { changed in
                     // The rules as they are now, not as this row was drawn.
                     var rules = model.settings.callRules
@@ -47,6 +47,8 @@ struct CallsSection: View {
                     rules.swapAt(index, index + by)
                     model.setCallRules(rules)
                 }
+                // A row is kept by its place: when another rule comes to it (one above removed, or moved), its drafts must go.
+                .id(rule)
             }
             Button {
                 let app = CallApp.allCases.first { settings.callMode(for: $0) != .off } ?? .teams
@@ -87,6 +89,8 @@ struct CallsSection: View {
 /// A rule: app, contains or is, the text (saved with Save or Enter), the choice, and the arrows that move it.
 private struct RuleRow: View {
     let rule: CallRule
+    /// Where its text's draft is kept while the page is not shown.
+    let keep: String
     /// Its app is set to Off.
     let ignored: Bool
     let first: Bool
@@ -104,7 +108,7 @@ private struct RuleRow: View {
                 .labelsHidden().fixedSize()
             Picker("Match", selection: field(\.match)) { ForEach(CallRule.Match.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
                 .labelsHidden().fixedSize()
-            SettingField(saved: rule.text, prompt: "Meeting name", edited: { draft = $0 }) {
+            SettingField(saved: rule.text, keep: keep, prompt: "Meeting name", edited: { draft = $0 }) {
                 var changed = rule
                 changed.text = $0
                 change(changed)

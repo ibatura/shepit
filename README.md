@@ -91,7 +91,7 @@ Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open 
 
 | Section | What is there |
 |---|---|
-| Home | **Needs attention**, only when something is wrong (the hotkey, Accessibility, microphone access, a model a job needs that isn't downloaded), each with its button; the dictation status; the meeting transcript with Start and Stop; your last 10 dictations with Copy; your last 10 meetings, a click opens one in Meetings |
+| Home | **Needs attention**, only when something is wrong (the hotkey, Accessibility, microphone access, a model a job needs that isn't downloaded, Apple Speech chosen on a macOS before 26), each with its button; the dictation status; the meeting transcript with Start and Stop; your last 10 dictations with Copy; your last 10 meetings, a click opens one in Meetings |
 | Meetings | Every meeting transcript: name the meeting and its people, merge people, give a line to another person (see [Meetings in the window](#meetings-in-the-window)) |
 | Dictations | Your kept dictations by day, newest first, with the app each went to and Copy (see [Dictations in the window](#dictations-in-the-window)) |
 | Dictionary | Terms, replace rules and drop phrases, and **Add word** (see [Dictionary](#dictionary)) |
@@ -359,7 +359,7 @@ Settings → Meetings shows a live example as you type.
 | `brew: command not found` during install | Install [Homebrew](https://brew.sh), or install cmake another way, then run `scripts/install.sh` again |
 | Text isn't pasted, "Text copied — allow Accessibility" | System Settings → Privacy & Security → Accessibility → turn on Shepit. If it's on but doesn't work: remove Shepit with **−**, add it again with **+** from `~/Applications`. The text is on the clipboard and in history meanwhile |
 | "no microphone access" | System Settings → Privacy & Security → Microphone → turn on Shepit |
-| 🎙⚠ in the menu bar | Open the menu to read the error. Try **Reload model** on the window's Home. "Not downloaded" → Settings → Engines and models → Download |
+| 🎙⚠ in the menu bar | Open the menu to read the error. "Not downloaded" → Settings → Engines and models → Download; otherwise quit Shepit and open it again |
 | No draft text in the panel | The draft engine isn't downloaded (Settings → Engines and models), or Settings → Dictation → Live draft is off |
 | English words come out in Cyrillic | Add them to `terms` and a `replace` rule (see Dictionary) |
 | First words cut off / worse recognition with Bluetooth headphones | Using their microphone switches Bluetooth to a low-quality headset mode, which also takes ~0.5 s to start. Choose MacBook Pro Microphone on Home (🎙 → Open Shepit) or in Settings → Dictation; your music stays in high quality |

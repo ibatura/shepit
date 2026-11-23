@@ -51,6 +51,11 @@ struct HomeModelTests {
                                           button: .init(title: "Download…", action: .openModels))])
         #expect(home { $0.downloaded = [] }.warnings.map(\.text) == ["Not downloaded: whisper.cpp large-v3-turbo (Dictation, Live draft, Meetings)"])
         #expect(home { $0.meetingModels = [.vad] }.warnings.map(\.text) == ["Not downloaded: pyannote + WeSpeaker (Speaker detection)"])
+        // The live draft's model only while the live draft is on.
+        #expect(home { $0.settings.engines[.preview] = kit; $0.settings.livePreview = false }.warnings.isEmpty)
+        // Apple Speech has nothing to download: on a macOS without it, choose another engine.
+        let apple = home { $0.settings.engines[.dictation] = EngineChoice(engine: .apple, model: "") }.warnings
+        #expect(apple == [Home.Warning(text: "Apple Speech needs macOS 26 (Dictation)", button: .init(title: "Choose another…", action: .openModels))])
     }
 
     @Test func recentMeetingsWithTheirNameAppAndLength() {
@@ -72,6 +77,10 @@ struct HomeModelTests {
         #expect(home { $0.settings.callModes = [:] }.meeting.hint == "Call offers are off")
         #expect(home { $0.settings.callModes = [.meet: .auto] }.meeting.hint == "Shepit starts a transcript when a call starts")
         #expect(home { $0.settings.callModes = [.meet: .auto, .zoom: .offer] }.meeting.hint == "Shepit offers a transcript when a call starts")
+        let rule = CallRule(app: .teams, match: .contains, text: "Daily", then: .auto)
+        #expect(home { $0.settings.callRules = [rule] }.meeting.hint == "Shepit offers a transcript when a call starts, or as a rule by its name says")
+        #expect(home { $0.settings.callRules = [rule]; $0.settings.callModes = [.zoom: .offer] }.meeting.hint
+            == "Shepit offers a transcript when a call starts") // Teams is Off: its rules are ignored
         #expect(home { $0.meeting = .init(state: .done(speakers: 2)) }.meeting.button?.action == .startMeeting)
     }
 

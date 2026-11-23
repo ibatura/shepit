@@ -24,7 +24,7 @@ struct MeetingsSection: View {
         Section("Transcript") {
             Hinted(hint: "Label for what your microphone hears. Empty = your macOS account name (\(model.settings.myName()))") {
                 LabeledContent("Your name") {
-                    SettingField(saved: model.settings.meetingMyName, prompt: model.settings.myName()) { model.set("meetingMyName", $0) }
+                    SettingField(saved: model.settings.meetingMyName, keep: "meetingMyName", prompt: model.settings.myName()) { model.set("meetingMyName", $0) }
                 }
             }
             Hinted(hint: "Language of the meeting. Auto-detect handles calls that switch between Ukrainian and English") {
@@ -70,7 +70,7 @@ struct FolderRow: View {
         Hinted(hint: hint) {
             LabeledContent("Folder") {
                 HStack {
-                    SettingField(saved: model.settings[keyPath: path]) { model.set(key, $0) }
+                    SettingField(saved: model.settings[keyPath: path], keep: key) { model.set(key, $0) }
                     Button("Choose…", action: choose)
                 }
             }
@@ -101,7 +101,7 @@ private struct FileNameRow: View {
         let error = MeetingFileName.validate(draft)
         VStack(alignment: .leading, spacing: 4) {
             LabeledContent("File name") {
-                SettingField(saved: model.settings.meetingFileName, canSave: { MeetingFileName.validate($0) == nil },
+                SettingField(saved: model.settings.meetingFileName, keep: "meetingFileName", canSave: { MeetingFileName.validate($0) == nil },
                              edited: { draft = $0 }) { model.set("meetingFileName", $0) }
             }
             Group {

@@ -12,6 +12,8 @@ final class CallPanel {
     /// The card, at the panel's left at its own size, so the panel can open out around it.
     private lazy var card = FirstClickHostingView(rootView: CallPanelView(model: model))
     private var screen: NSScreen?
+    /// Counts the slides, so the end of one cut short by a hide does not settle the next.
+    private var slides = 0
 
     func show(_ value: CallOffer.Panel, onMain: @escaping () -> Void, onOther: @escaping () -> Void) {
         model.show(value, onMain: onMain, onOther: onOther)
@@ -31,6 +33,8 @@ final class CallPanel {
         // It slides in whole from beyond the screen's edge (the author, 2026-11-24): the panel opens out leftwards from
         // that edge with the card at its left, so the card never shows on a screen beside this one.
         let edge = frame.maxX + 16
+        slides += 1
+        let slide = slides
         panel.setFrame(NSRect(x: edge, y: frame.minY, width: 0, height: frame.height), display: true)
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { context in
@@ -38,7 +42,7 @@ final class CallPanel {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().setFrame(NSRect(x: frame.minX, y: frame.minY, width: edge - frame.minX, height: frame.height), display: true)
         } completionHandler: { [weak self] in
-            self?.settle()
+            if let self, slide == slides { settle() }
         }
     }
 

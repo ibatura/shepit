@@ -64,9 +64,11 @@ struct Hinted<Content: View>: View {
 
 /// A text setting that looks editable and is saved on purpose (the author, 2026-11-23): a bordered field, with Save
 /// while the text differs from the saved one. Enter saves too, Esc puts the saved text back; clicking elsewhere keeps
-/// the draft and saves nothing.
+/// the draft and saves nothing, and so does leaving the page (`SettingDrafts`).
 struct SettingField: View {
     let saved: String
+    /// Where its draft is kept while the page is not shown.
+    let keep: String
     var prompt = ""
     /// A draft it refuses keeps Save greyed.
     var canSave: (String) -> Bool = { _ in true }
@@ -86,13 +88,30 @@ struct SettingField: View {
                 Button("Save", action: commit).disabled(!canSave(draft))
             }
         }
-        .onAppear { draft = saved }
+        .onAppear { draft = SettingDrafts.draft(keep, saved: saved) ?? saved }
         .onChange(of: saved) { draft = $1 }
-        .onChange(of: draft) { edited($1) }
+        .onChange(of: draft) {
+            SettingDrafts.keep(keep, saved: saved, draft: $1)
+            edited($1)
+        }
     }
 
     private func commit() {
         if draft != saved, canSave(draft) { save(draft) }
+    }
+}
+
+/// Unsaved drafts of text settings while Shepit runs: a page left and opened again shows them with Save, as a draft is
+/// saved only on purpose. One comes back only while the text it was typed over is still the saved one.
+@MainActor enum SettingDrafts {
+    private static var drafts: [String: (saved: String, draft: String)] = [:]
+
+    static func draft(_ key: String, saved: String) -> String? {
+        drafts[key].flatMap { $0.saved == saved ? $0.draft : nil }
+    }
+
+    static func keep(_ key: String, saved: String, draft: String) {
+        drafts[key] = draft == saved ? nil : (saved, draft)
     }
 }
 

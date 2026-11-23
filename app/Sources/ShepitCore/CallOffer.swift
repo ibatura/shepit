@@ -49,6 +49,9 @@ public struct CallOffer: Sendable {
         case took(CallSource, pid: Int32), released(pid: Int32)
         /// Answers to `.lookForMeet` and `.lookForName`.
         case meetFound(Bool), named(String?)
+        /// Last time's name of a repeating meeting, for an app with rules: it decides only if the app shows no name
+        /// within the wait, as the lookup for the app's own name can outlast it.
+        case remembered(String)
         /// The panel's main and second button.
         case pressedMain, pressedOther
         /// Home's Start for the call that runs now (`current`), with its offer on screen or not.
@@ -108,6 +111,7 @@ public struct CallOffer: Sendable {
         var since: Date
         var releasedAt: Date?
         var name: String?
+        var remembered: String?
         var phase = Phase.pending
     }
 
@@ -184,6 +188,8 @@ public struct CallOffer: Sendable {
         case .named(let name):
             call?.name = name
             if case .naming = call?.phase { decide(now, settings) }
+        case .remembered(let name):
+            call?.remembered = name
         case .pressedMain:
             // The buttons act on the panel that was on screen.
             switch panel {
@@ -314,6 +320,7 @@ public struct CallOffer: Sendable {
                 call?.phase = .checkingMeet(next: nil)
                 effects.append(.lookForMeet)
             case .naming(let since) where now.timeIntervalSince(since) >= Self.namingWait:
+                call?.name = current.name ?? current.remembered
                 decide(now, settings)
             case .offered(let since, let auto):
                 guard let app = current.app else { break }

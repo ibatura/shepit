@@ -75,32 +75,49 @@ public enum HomeModel {
         if view.microphoneDenied {
             warnings.append(Home.Warning(text: "Microphone access denied", button: Home.Button(title: "Open System Settings", action: .grantMicrophone)))
         }
-        if let missing = missingModels(view) {
-            warnings.append(Home.Warning(text: "Not downloaded: \(missing)", button: Home.Button(title: "Download…", action: .openModels)))
+        let missing = missingModels(view)
+        if !missing.models.isEmpty {
+            warnings.append(Home.Warning(text: "Not downloaded: \(missing.models.joined(separator: ", "))",
+                                         button: Home.Button(title: "Download…", action: .openModels)))
+        }
+        if !missing.apple.isEmpty {
+            warnings.append(Home.Warning(text: "Apple Speech needs macOS 26 (\(missing.apple.joined(separator: ", ")))",
+                                         button: Home.Button(title: "Choose another…", action: .openModels)))
         }
         return warnings
     }
 
-    /// "whisper.cpp large-v3 (Dictation, Live draft), Silero VAD (Voice detection)": each missing model once, with its jobs.
-    private static func missingModels(_ view: AppSnapshot) -> String? {
+    /// Each missing model once with its jobs ("whisper.cpp large-v3 (Dictation, Live draft)", "Silero VAD (Voice detection)"),
+    /// and the jobs given to Apple Speech on a macOS without it, which has nothing to download. The live draft's model
+    /// counts only while the live draft is on.
+    private static func missingModels(_ view: AppSnapshot) -> (models: [String], apple: [String]) {
         var engines: [(EngineChoice, [String])] = []
-        for task in EngineTask.allCases {
+        var apple: [String] = []
+        for task in EngineTask.allCases where task != .preview || view.settings.livePreview {
             let choice = view.settings.engine(for: task)
             guard !view.downloaded.contains(choice) else { continue }
-            if let at = engines.firstIndex(where: { $0.0 == choice }) { engines[at].1.append(task.title) } else { engines.append((choice, [task.title])) }
+            if choice.engine == .apple {
+                apple.append(task.title)
+            } else if let at = engines.firstIndex(where: { $0.0 == choice }) {
+                engines[at].1.append(task.title)
+            } else {
+                engines.append((choice, [task.title]))
+            }
         }
-        let missing = engines.map { "\($0.0.title) (\($0.1.joined(separator: ", ")))" }
+        let models = engines.map { "\($0.0.title) (\($0.1.joined(separator: ", ")))" }
             + MeetingModel.allCases.filter { !view.meetingModels.contains($0) }.map { "\($0.title) (\($0.job))" }
-        return missing.isEmpty ? nil : missing.joined(separator: ", ")
+        return (models, apple)
     }
 
-    /// What happens when a call starts, by the apps' choices.
+    /// What happens when a call starts, by the apps' choices; rules by name can change it for some calls.
     private static func callHint(_ settings: Settings) -> String {
-        switch Set(CallApp.allCases.map(settings.callMode)).subtracting([.off]) {
+        let hint = switch Set(CallApp.allCases.map(settings.callMode)).subtracting([.off]) {
         case []: "Call offers are off"
         case [.auto]: "Shepit starts a transcript when a call starts"
         default: "Shepit offers a transcript when a call starts"
         }
+        let rules = CallApp.allCases.contains { settings.callMode(for: $0) != .off && settings.hasCallRules(for: $0) }
+        return rules ? hint + ", or as a rule by its name says" : hint
     }
 
     private static func card(_ view: AppSnapshot) -> Home.Card? {

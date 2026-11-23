@@ -239,7 +239,8 @@ struct HistoryPrivacySection: View {
     }
 }
 
-/// The style prompt in a bordered box, saved with Save; Cancel puts the saved text back.
+/// The style prompt in a bordered box, saved with Save; Cancel puts the saved text back. Its draft outlives the page, as
+/// a `SettingField`'s does.
 private struct StylePromptEditor: View {
     let model: SettingsModel
     @State private var draft = ""
@@ -258,7 +259,8 @@ private struct StylePromptEditor: View {
                 }
             }
         }
-        .onAppear { draft = saved }
+        .onAppear { draft = SettingDrafts.draft("stylePrompt", saved: saved) ?? saved }
         .onChange(of: saved) { draft = $1 }
+        .onChange(of: draft) { SettingDrafts.keep("stylePrompt", saved: saved, draft: $1) }
     }
 }

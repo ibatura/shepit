@@ -548,6 +548,25 @@ struct CallOfferTests {
         #expect(m.panel == .offer(title: "Daily scrum", app: .teams, hidesIn: 14))
     }
 
+    @Test func aRememberedNameDecidesWhenTheAppShowsNoneInTime() {
+        var m = Machine()
+        m.settings.callRules = [CallRule(app: .zoom, match: .contains, text: "Daily", then: .auto)]
+        m.send(.took(.app(.zoom), pid: 1), at: 0)
+        m.send(.tick, at: 3)
+        m.send(.remembered("Daily scrum"), at: 3)
+        m.send(.tick, at: 7)
+        #expect(m.panel == nil) // the app's own name may still come
+        m.send(.tick, at: 8)
+        #expect(m.panel == .autoStart(title: "Daily scrum", app: .zoom, startsIn: 5))
+
+        var t = Machine()
+        t.settings.callRules = [CallRule(app: .teams, match: .contains, text: "Daily", then: .auto)]
+        t.teamsCall()
+        t.send(.remembered("Daily scrum"), at: 3)
+        t.send(.named("Planning"), at: 4) // the app's name wins
+        #expect(t.panel == .offer(title: "Planning", app: .teams, hidesIn: 15))
+    }
+
     @Test func rulesOfAnotherAppOrWithNoTextDontHoldTheOfferUp() {
         var m = Machine()
         m.settings.callRules = [CallRule(app: .zoom, match: .contains, text: "Daily", then: .off),

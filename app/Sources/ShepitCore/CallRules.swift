@@ -7,7 +7,7 @@ public enum CallMode: String, CaseIterable, Sendable {
 }
 
 /// A rule by meeting name: the first of an app's rules that matches the call's name decides instead of the app's choice.
-public struct CallRule: Equatable, Sendable {
+public struct CallRule: Hashable, Sendable {
     public enum Match: String, CaseIterable, Sendable {
         case contains, `is`
     }
