@@ -31,6 +31,6 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 
 ## Now (2026-11-24)
 
-- Branch `settings-review` (version 0.4.0) is built and its end-of-branch reviews are fixed; next is asking the author about the pull request. Its manual checks R6–R8 are open.
-- After it: "Next" in `docs/future-ideas.md`.
+- The settings review is merged into `main` (2026-11-24, release `v0.4.0`); its manual checks R6–R8 are open. Branch `process-docs` holds the new process docs.
+- What comes next: "Next" in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy on GitLab (`local-dictation-tool`) is no longer updated.

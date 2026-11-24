@@ -39,7 +39,7 @@ A SwiftPM package in `app/`:
 | Voices and People | 2026-11-20 | | `2026-11-17-voices` |
 | Import names, version and About | 2026-11-21 | v0.2.0 | `2026-11-20-import-names` |
 | Back and forward | 2026-11-22 | v0.3.0 | `2026-11-22-back-forward` |
-| Settings review | branch `settings-review` | 0.4.0 | `2026-11-23-settings-review` |
+| Settings review | 2026-11-24 | v0.4.0 | `2026-11-23-settings-review` |
 
 ### Meeting transcripts and names
 
