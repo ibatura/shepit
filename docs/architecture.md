@@ -15,7 +15,8 @@ A SwiftPM package in `app/`:
 ## Data
 
 - `settings.json` in `~/.config/dictation/`; every output has a path setting with a local default under `~/.local/share/dictation/`.
-- The SQLite databases share one setting, `databasesFolder`, read at launch: `stats.sqlite` (version 2), `meetings.sqlite` (version 2), `dictations.sqlite`. `SQLiteFile` creates a missing file only on a write and runs numbered upgrades in one transaction.
+- The SQLite databases share one setting, `databasesFolder`, read at launch: `stats.sqlite` (version 2), `meetings.sqlite` (version 3), `dictations.sqlite`. `SQLiteFile` creates a missing file only on a write and runs numbered upgrades in one transaction. A transaction takes the write lock first (`BEGIN IMMEDIATE`), so it waits for another connection's write instead of failing.
+- Every query reads part of a table through an index, or reads it all on purpose and says so (query plans design, 2026-11-24). A new or changed query gets `EXPLAIN QUERY PLAN` in its task's review.
 - `dictionary.json`, `meeting-names.json` (remembered names of repeating meetings), the meeting notes in their folder.
 - `CallApp.rawValue` is what files keep; `CallApp.title` is the name on screen ("Google Meet").
 
@@ -88,6 +89,9 @@ A SwiftPM package in `app/`:
 - The temporary view `line_voices`, made on every open, is each sample with its line's person now; every voice read goes through it.
 - `Voices` (ShepitCore) makes prints, recognises and suggests; `PeoplePage` builds the section's list, a person, their talk and meetings.
 - Prints are read off the main thread with a connection of their own (`MeetingStore.prints(in:)`): at Stop, and by `PeopleModel`, which keeps them until the store's `version` changes.
+- So are the two other reads of every sample:
+  - May also be in (`suggestedVoices(in:for:)`), one read at a time. A read that ends after the choice, the store or Remember voices changed reads again.
+  - Forgetting old unnamed voices (`forgetUnnamedVoices(in:before:)`), at launch and after each meeting is listed. It deletes only samples that belong to nobody named, so the prints don't change.
 - In the app, `PeopleModel` / `PeopleView`; `EditableTitle` (Controls) is a person's and a meeting's name, saved with Save or Enter.
 - **Settled:** the microphone's 10 minutes and recognition (mean, 0.7, margin 0.1; your voice only from the microphone) with `Shepit voices-check`. On 2026-11-20 it gave 11 recognised, 0 wrong, 2 missed at 0.7, so 0.7 stays until more people are in several meetings. A Teams `.vtt` of one call agreed with Shepit's speakers on 79–98% of each one's time. These numbers stay fixed, not settings (settings review, 2026-11-23).
 

@@ -27,10 +27,11 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 ## Code
 
 - SwiftPM package in `app/`: `ShepitCore` (pure logic with tests), `ShepitEngines` (the speech engines), `Shepit` (the app). Details in `docs/architecture.md`.
-- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (676 Swift tests on 2026-11-24).
+- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (677 Swift tests on 2026-11-24).
 
 ## Now (2026-11-24)
 
-- The settings review is merged into `main` (2026-11-24, release `v0.4.0`); its manual checks R6–R8 are open. Branch `process-docs` holds the new process docs.
+- The settings review is merged into `main` (2026-11-24, release `v0.4.0`); its manual checks R6–R8 are open.
+- Branch `query-plans` (2026-11-24) puts every query of `meetings.sqlite` on an index (version 3). It also reads May also be in and the forgetting of old voices off the main thread, and makes a transaction take the write lock first. It waits for the author's checks Q1–Q3 and the end-of-branch reviews.
 - What comes next: "Next" in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy on GitLab (`local-dictation-tool`) is no longer updated.

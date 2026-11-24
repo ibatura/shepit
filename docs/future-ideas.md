@@ -8,7 +8,8 @@ In this order unless the author says otherwise (written 2026-11-20; back and for
 
 1. The open checks of import names with the author: I4, I5, and I6 once the 29 Oct meeting has names (the author, 2026-11-23: on a day with calls, after the settings review has started). I3 and I7, with Zoom's files, are put off for long (the author, 2026-11-22). Teams `.docx` and the Meet `.txt` format are later parts.
 2. Left from the small fixes: look at L3 again with the author (Cancel on the merge question).
-3. Check every query of the three databases with `EXPLAIN QUERY PLAN` and every index for use (the author, 2026-11-17); `stats.sqlite` is done. Details under "New ideas".
+
+The query plans of every database are checked on branch `query-plans` (2026-11-24): item 13 below.
 
 The app icon and the check of the name are under "New ideas" (2026-11-22, not ordered).
 
@@ -28,7 +29,15 @@ Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-1
 10. **Every setting reviewed** with the author, with automatic start per app, rules by meeting name, what each engine is for and the voice numbers: see "Every setting reviewed" under "New ideas". Built on branch `settings-review` (2026-11-23), version 0.4.0: seven Settings pages, Home as a status page, the 🎙 menu in groups, Auto · Offer · Off per call app with rules by meeting name, every model in Engines and models, one period menu, and the same controls everywhere. Spec `docs/features/specs/2026-11-23-settings-review-design.md`, plan `docs/features/plans/2026-11-23-settings-review.md`. Merged into `main` on 2026-11-24 as release `v0.4.0`. Left: the list under "Settings review: left open" below.
 11. **L3 again** with the author (Cancel on the merge question): see "Meetings: left open".
 12. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open". Task 9 of the settings review, on a real Meet call with the author. Done on branch `settings-review` (2026-11-23).
-13. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
+13. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas".
+    - `stats.sqlite` was checked in the Statistics part.
+    - `meetings.sqlite` and `dictations.sqlite` are checked on branch `query-plans` (2026-11-24). Spec `docs/features/specs/2026-11-24-query-plans-design.md`, plan `docs/features/plans/2026-11-24-query-plans.md`.
+      - `meetings.sqlite` version 3 adds indexes on `meetings (start)` and `people (person)`.
+      - The fill of old meetings' words goes, with its scan of every line.
+      - May also be in and the forgetting of old voices are read off the main thread.
+      - A transaction takes the write lock first.
+      - `dictations.sqlite` needed nothing, and no index was unused.
+    - Left: the list under "Query plans: left open" below.
 14. **Back and forward in the window** (the author, 2026-11-20; on 2026-11-22: now, before items 10–13), with a sidebar that collapses to its icons (asked on 2026-11-22 while trying it). Built on branch `back-forward` (2026-11-22), version 0.3.0. Merged into `main` on 2026-11-22 as release `v0.3.0`. The spec is `docs/features/specs/2026-11-22-back-forward-design.md`. Left: the list under "Back and forward: left open" below.
 
 Each gets its own spec and plan.
@@ -146,6 +155,17 @@ Found by the reviews of the branch and not changed: the author had all five poin
 - **Font size and Bars** stay − + steppers: small ranges tuned by eye (the author's pick, 2026-11-23). Every other number is a menu; a value from the file that isn't in the menu is listed too.
 - **Text fields outside Settings** (the Dictionary's replace rules, a meeting's people) still save on Enter or when the field is left, not with Save; the author's rule was for Settings. To look at with the author.
 - **The Add word dialog** is English now; its hint keeps a Cyrillic example ("джира = Jira"), since the mishearing is Ukrainian.
+
+### Query plans: left open (2026-11-24)
+
+- **`keys(of:in:)`** now picks `people_person`. For You, it reads one row per meeting instead of the meeting's few. That is under 1 ms after a year (spec §10).
+- **People's list (`summaries`, 33 ms after a year)** and one meeting's reads stay on the main thread.
+- **No index on `lines (meeting, current)`** (the author, 2026-11-24). It would take People's list from 32 to 26 ms after a year, and May also be in from 69 to 46 ms.
+- **A main-thread write still waits for a long read on another connection** (the prints, May also be in): the file keeps the rollback journal, where a commit waits for every reader. It happens only when the two meet, where before the read itself ran on the main thread.
+- **Tests:**
+  - The plan tests copy the SQL of `meetings(limit:)` and `meetings(of:)`; a changed query is checked in its task's review.
+  - May also be in's `store.version` check has no test: in a test the read starts only after the test's own write.
+- **May also be in appears a moment after a person is chosen** (about 70 ms after a year), where it used to show at once when the prints were read. Assigning the same person again (back and forward) reads it again.
 
 ### New ideas (the author, 2026-11-15; not ordered yet)
 

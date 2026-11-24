@@ -235,6 +235,18 @@ Design: `docs/features/specs/2026-11-23-settings-review-design.md`. R6–R8 chan
 | R10 | Google Meet in Chrome, Meet on Offer, a real call | The offer panel with the call's name (Task 9) | ✅ 2026-11-23: the offer came, Start worked, no stop while muted; the panel now comes in finished (7577aac) |
 | R11 | Settings controls: change a text field (Your name, a folder, a rule) with Save, Enter and Esc; the number menus; rules' ↑ ↓; the → icons on Recognition and Voice and speaker detection; Clear history… and Clear statistics…; Add word | Bordered fields saved only with Save or Enter, Esc puts the text back; menus instead of − +; Max recording length in seconds; the arrows reorder rules; each → opens Engines and models; both Clear… ask in a sheet; the Add word dialog in English | ✅ 2026-11-23 |
 
+## Query plans
+
+Date: 2026-11-24
+
+Design: `docs/features/specs/2026-11-24-query-plans-design.md`. Q1 reads the author's `meetings.sqlite` with `sqlite3 -readonly`, and only its version and index names.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| Q1 | Install; launch Shepit; read `meetings.sqlite`'s version and indexes | Version 3; `meetings_start` and `people_person` beside the five key indexes | |
+| Q2 | Home's recent meetings; Meetings; People: a person, Who talked how much, Delete voice… on someone | Everything as before | |
+| Q3 | With Remember voices on, choose a person with unnamed voices like theirs in People; after the next meeting is listed, dictate by hotkey at once | May also be in shows a moment after the choice; the dictation starts at once | |
+
 ## Version
 
 Date: 2026-11-21

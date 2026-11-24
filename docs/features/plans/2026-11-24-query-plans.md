@@ -240,3 +240,7 @@ docs/process.md               the task reviewer's line (Task 1)
     - The `store.version` check: in a test the read starts only after the test's own write, so it sees the new data either way. Testing it would need a hook inside the read.
     - Emptying on a switch from one named person to another: the test has only one named person besides You.
   - Assigning the same person again (as back and forward may) empties the row and reads it again. Left as it is.
+- 2026-11-24, **Task 4** done (a3b4fc6). `make test`: 677 tests.
+  - The task review found no bug: the two connections wait for each other, the flag can't stay set, and nothing cached by `version` goes stale.
+  - On its one finding, the test now checks that the bytes are gone right after the forget, before the main connection removes a meeting.
+  - `forgettingVoices` is an internal `var`, since `AppHost+Meetings.swift` uses it.
