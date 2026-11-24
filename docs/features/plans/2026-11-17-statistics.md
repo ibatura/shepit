@@ -4,7 +4,7 @@
 
 **Architecture:** Everything that counts is in `ShepitCore` and unit-tested: a shared `Period` (the presets of Dictations' Show menu) and a `StatsPeriod` (a preset or a custom range) with the range, the previous range and the bucket unit; new pure `Stats` functions over plain rows; `StatsDatabase` with the app column, added through numbered upgrades in `SQLiteFile`. The app gets a `StatisticsModel` that reads the period's rows once per change, and a `StatisticsView` with one view per tab, replacing `StatisticsSection`.
 
-**Spec:** `docs/superpowers/specs/2026-11-17-statistics-design.md` ("the spec"; section numbers refer to it). Look: `docs/superpowers/specs/2026-11-11-visual-style/` (`visual-style.md` §5.6; `mockups.html` screen 7).
+**Spec:** `docs/features/specs/2026-11-17-statistics-design.md` ("the spec"; section numbers refer to it). Look: `docs/features/specs/2026-11-11-visual-style/` (`visual-style.md` §5.6; `mockups.html` screen 7).
 
 **Branch:** `statistics`, cut from `main`. When it is ready: push it and open a pull request with a description, merged as one squashed commit; while `gh` is not logged in, merge it into `main` locally. Ask the author before merging either way.
 
@@ -62,26 +62,26 @@ app/Sources/Shepit/
 
 ### Task 1: The shared period
 
-- [ ] Tests first, with a fixed calendar (Europe/Kyiv) and now:
+- Tests first, with a fixed calendar (Europe/Kyiv) and now:
   - `Period` keeps Dictations' titles, raw values and `since` (DictationPageTests' period test moves to a `PeriodTests`).
   - `StatsPeriod.preset(_)` and `.custom(from:through:)`: `range(now:)` from the start of the first day to now (custom: from the start of `from` to the end of `through`); nil for All history.
   - `previous(now:)`: the same span right before, up to the same moment: Today against yesterday until this time; Last 7 days against the 7 days before; Last month against the month before; a custom range against as many days before it; across a DST change and a month end; nil for All history.
   - `bucket(now:)`: hour for Today or a one-day custom range, day up to 31 days, week up to 26 weeks, month beyond (All history: month).
   - `title`: the preset's title; a custom range "12 Nov – 16 Nov 2026", "16 Nov 2026" for one day, the years when they differ.
-- [ ] `DictationPage.Period` moves to `Period.swift`; Dictations' model and view use it, with no change on screen. `StatsPeriod` of today (day, week, month, year, all), `Stats.range`, `Stats.previous` and `Stats.bucketUnit` go; `Stats.wordsPerBucket` takes the bucket unit. The old section keeps working on the new period until Task 4 replaces it.
-- [ ] Commit `Shepit: one period for Dictations and Statistics`.
+- `DictationPage.Period` moves to `Period.swift`; Dictations' model and view use it, with no change on screen. `StatsPeriod` of today (day, week, month, year, all), `Stats.range`, `Stats.previous` and `Stats.bucketUnit` go; `Stats.wordsPerBucket` takes the bucket unit. The old section keeps working on the new period until Task 4 replaces it.
+- Commit `Shepit: one period for Dictations and Statistics`.
 
 ### Task 2: stats.sqlite keeps the meeting's app
 
-- [ ] Tests first for `SQLiteFile` upgrades: a file at version 1 runs upgrade 2 once and is at 2; a new file runs the schema and every upgrade; an upgrade that fails rolls back, leaves the version, and the next open tries again; reopening runs nothing.
-- [ ] `SQLiteFile(file:schema:upgrades:)`: after the schema, each upgrade above `schema_version` runs in one transaction with the version bump.
-- [ ] `StatsDatabase`: upgrade 2 adds `meetings.app TEXT`; `CREATE INDEX IF NOT EXISTS offers_time ON offers (time)` in the schema. `MeetingRecord.app: CallApp?`, written and read back (an unknown value reads as nil). Tests: a version-1 file with two meetings keeps them, with no app; a new meeting keeps its app.
-- [ ] `MeetingSession` passes `config.app` into the record; `MeetingSessionTests` check it.
-- [ ] Commit `Shepit: stats.sqlite keeps each meeting's app`.
+- Tests first for `SQLiteFile` upgrades: a file at version 1 runs upgrade 2 once and is at 2; a new file runs the schema and every upgrade; an upgrade that fails rolls back, leaves the version, and the next open tries again; reopening runs nothing.
+- `SQLiteFile(file:schema:upgrades:)`: after the schema, each upgrade above `schema_version` runs in one transaction with the version bump.
+- `StatsDatabase`: upgrade 2 adds `meetings.app TEXT`; `CREATE INDEX IF NOT EXISTS offers_time ON offers (time)` in the schema. `MeetingRecord.app: CallApp?`, written and read back (an unknown value reads as nil). Tests: a version-1 file with two meetings keeps them, with no app; a new meeting keeps its app.
+- `MeetingSession` passes `config.app` into the record; `MeetingSessionTests` check it.
+- Commit `Shepit: stats.sqlite keeps each meeting's app`.
 
 ### Task 3: The new numbers
 
-- [ ] Tests first for each new `Stats` function, with small hand-made rows:
+- Tests first for each new `Stats` function, with small hand-made rows:
   - `languages(_:)`: dictations per detected language, most used first, with names ("uk+en" as "Ukrainian + English"). No mismatch: with a language chosen the engines report the chosen one, so it would always be 0% (spec §5.2).
   - `speedOverTime(_:unit:)`: per engine and model, per bucket, the median wait per 10 s of audio; buckets with fewer than 3 dictations of that engine left out; audio of 0 s ignored.
   - `meetingsByApp(_:)`: count and hours per app, nil app as Unknown, in a fixed order (Teams, Zoom, Google Meet, Unknown) with empty apps left out.
@@ -91,43 +91,43 @@ app/Sources/Shepit/
   - `speakerDetection(_:)`: meetings where it ran, its median seconds, failed chunks in total and in how many meetings.
   - `offers(_:)`: counts per outcome, in total and per app.
   - The failures of `quality` get counts next to the shares.
-- [ ] Commit `Shepit: statistics for languages, speed over time, meetings and offers`.
+- Commit `Shepit: statistics for languages, speed over time, meetings and offers`.
 
 ### Task 4: GATE — Overview and the period (with the author)
 
-- [ ] `StatisticsModel` (`@Observable`, `@MainActor`): the view (Overview, Dictation, Meetings) and the period, both remembered (`statisticsView`, `statisticsPeriod`, a custom range as two dates); the rows of dictations, meetings and offers for the period and for the previous one, read from `StatsDatabase` on appear and on every change of period, not in `body`. Tests in `ShepitTests` with a temporary database: a period change reads again; the choice survives a new model; a custom range is kept.
-- [ ] `StatisticsView`: the title row (Statistics, the segmented view switch, the period menu with Custom… under a separator), the Custom… popover (start and end in graphical calendars, Show; the end not before the start or after today), the `collectStats`-off note with its button to Settings → History and privacy, and the empty texts (spec §5.4).
-- [ ] Overview (spec §5.1): the four tiles with their changes and "at N wpm" linking to the typing-speed setting; Words per day by the period's bucket, with today's stacked bars, colours and hover tooltip; the time-saved line.
-- [ ] `StatisticsSection` goes; `WindowActions.statistics` and `.meetingStatistics` go; `AppHost` gives the model `stats` and `settings`, wired through `MainWindow` and `MainView` like `DictationsModel`.
-- [ ] Settle spec §11's questions on the custom popover and on one fetch for all views; write the answers in the commit message.
-- [ ] Install; show the author Overview next to mockup 7 and the period menu with Custom…; change what the author asks before going on.
-- [ ] Commit `Shepit: Statistics overview and period`.
+- `StatisticsModel` (`@Observable`, `@MainActor`): the view (Overview, Dictation, Meetings) and the period, both remembered (`statisticsView`, `statisticsPeriod`, a custom range as two dates); the rows of dictations, meetings and offers for the period and for the previous one, read from `StatsDatabase` on appear and on every change of period, not in `body`. Tests in `ShepitTests` with a temporary database: a period change reads again; the choice survives a new model; a custom range is kept.
+- `StatisticsView`: the title row (Statistics, the segmented view switch, the period menu with Custom… under a separator), the Custom… popover (start and end in graphical calendars, Show; the end not before the start or after today), the `collectStats`-off note with its button to Settings → History and privacy, and the empty texts (spec §5.4).
+- Overview (spec §5.1): the four tiles with their changes and "at N wpm" linking to the typing-speed setting; Words per day by the period's bucket, with today's stacked bars, colours and hover tooltip; the time-saved line.
+- `StatisticsSection` goes; `WindowActions.statistics` and `.meetingStatistics` go; `AppHost` gives the model `stats` and `settings`, wired through `MainWindow` and `MainView` like `DictationsModel`.
+- Settle spec §11's questions on the custom popover and on one fetch for all views; write the answers in the commit message.
+- Install; show the author Overview next to mockup 7 and the period menu with Custom…; change what the author asks before going on.
+- Commit `Shepit: Statistics overview and period`.
 
 ### Task 5: The Dictation view
 
-- [ ] Spec §5.2: the speed table of today and Speed over time (a line per engine and model, by the period's bucket, with a legend); Pasted into, When you dictate, Dictionary and Failures moved from today's section in the new style; Languages (shares).
-- [ ] Settle spec §11's question on many speed lines (all, or the most used 4); write the answer in the commit message.
-- [ ] Commit `Shepit: Statistics dictation view`.
+- Spec §5.2: the speed table of today and Speed over time (a line per engine and model, by the period's bucket, with a legend); Pasted into, When you dictate, Dictionary and Failures moved from today's section in the new style; Languages (shares).
+- Settle spec §11's question on many speed lines (all, or the most used 4); write the answer in the commit message.
+- Commit `Shepit: Statistics dictation view`.
 
 ### Task 6: GATE — the Meetings view (with the author)
 
-- [ ] Spec §5.3: the tiles (Meetings, Hours, Your share of words, People per meeting) with their changes; By app (bars with count and hours); Length; Speaker detection; Call offers (outcomes in total and per app).
-- [ ] Install; show the author the Dictation and Meetings views next to the mockup's style; change what the author asks before going on.
-- [ ] Commit `Shepit: Statistics meetings view`.
+- Spec §5.3: the tiles (Meetings, Hours, Your share of words, People per meeting) with their changes; By app (bars with count and hours); Length; Speaker detection; Call offers (outcomes in total and per app).
+- Install; show the author the Dictation and Meetings views next to the mockup's style; change what the author asks before going on.
+- Commit `Shepit: Statistics meetings view`.
 
 ### Task 7: Docs
 
-- [ ] README: the Statistics section (Overview, Dictation, Meetings; the period menu and Custom…), and under privacy that a meeting's row in `stats.sqlite` now keeps its app.
-- [ ] `docs/manual-test-checklist.md`: S1–S8 from spec §9.
-- [ ] `05-statistics.md` gets one line pointing to the spec for its §2; the shell spec's Statistics row too.
-- [ ] Commit `Docs: Statistics`.
+- README: the Statistics section (Overview, Dictation, Meetings; the period menu and Custom…), and under privacy that a meeting's row in `stats.sqlite` now keeps its app.
+- `docs/manual-test-checklist.md`: S1–S8 from spec §9.
+- `05-statistics.md` gets one line pointing to the spec for its §2; the shell spec's Statistics row too.
+- Commit `Docs: Statistics`.
 
 ### Task 8: GATE — the author's checks and reviews
 
-- [ ] S1–S8 with the author on the installed app.
-- [ ] The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks.
-- [ ] Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`.
-- [ ] Push the branch and open the pull request with a description (or, while `gh` is not logged in, merge locally); ask the author before merging into `main`.
+- S1–S8 with the author on the installed app.
+- The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks.
+- Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`.
+- Push the branch and open the pull request with a description (or, while `gh` is not logged in, merge locally); ask the author before merging into `main`.
 
 ---
 

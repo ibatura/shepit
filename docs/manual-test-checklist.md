@@ -94,7 +94,7 @@ Date: ____
 
 Date: 2026-11-16
 
-Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above tested menu items that this part replaced.
+Design: `docs/features/specs/2026-11-14-meetings-design.md`. M10–M12 above tested menu items that this part replaced.
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
@@ -121,7 +121,7 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 
 Date: 2026-11-16
 
-Design: `docs/superpowers/specs/2026-11-16-dictations-dictionary-design.md`.
+Design: `docs/features/specs/2026-11-16-dictations-dictionary-design.md`.
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
@@ -139,7 +139,7 @@ Design: `docs/superpowers/specs/2026-11-16-dictations-dictionary-design.md`.
 
 Date: 2026-11-17
 
-Design: `docs/superpowers/specs/2026-11-17-statistics-design.md`.
+Design: `docs/features/specs/2026-11-17-statistics-design.md`.
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
@@ -156,7 +156,7 @@ Design: `docs/superpowers/specs/2026-11-17-statistics-design.md`.
 
 Date: 2026-11-18
 
-Design: `docs/superpowers/specs/2026-11-17-voices-design.md`. On real calls; samples are counted read-only (`sqlite3 -readonly ~/.local/share/dictation/meetings.sqlite "SELECT count(*) FROM samples WHERE meeting = …"`), and only counts are reported.
+Design: `docs/features/specs/2026-11-17-voices-design.md`. On real calls; samples are counted read-only (`sqlite3 -readonly ~/.local/share/dictation/meetings.sqlite "SELECT count(*) FROM samples WHERE meeting = …"`), and only counts are reported.
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
@@ -175,7 +175,7 @@ Design: `docs/superpowers/specs/2026-11-17-voices-design.md`. On real calls; sam
 
 Date: 2026-11-20
 
-Design: `docs/superpowers/specs/2026-11-20-import-names-design.md`. With the `.vtt` files Teams or Zoom saved of real calls; on the author's meetings only counts are reported.
+Design: `docs/features/specs/2026-11-20-import-names-design.md`. With the `.vtt` files Teams or Zoom saved of real calls; on the author's meetings only counts are reported.
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
@@ -194,7 +194,7 @@ I3 and I7, with Zoom's files, are put off: see "Need to test later" at the botto
 
 Date: 2026-11-22
 
-Design: `docs/superpowers/specs/2026-11-22-back-forward-design.md`.
+Design: `docs/features/specs/2026-11-22-back-forward-design.md`.
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
@@ -216,7 +216,7 @@ Design: `docs/superpowers/specs/2026-11-22-back-forward-design.md`.
 
 Date: 2026-11-23
 
-Design: `docs/superpowers/specs/2026-11-23-settings-review-design.md`. R6–R8 change no file of the author's: R6 and R7 are real calls with the Calls part set in the window, R8 reads a copy of an old `settings.json` in a test folder.
+Design: `docs/features/specs/2026-11-23-settings-review-design.md`. R6–R8 change no file of the author's: R6 and R7 are real calls with the Calls part set in the window, R8 reads a copy of an old `settings.json` in a test folder.
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
