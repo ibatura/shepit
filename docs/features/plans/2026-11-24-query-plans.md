@@ -244,3 +244,7 @@ docs/process.md               the task reviewer's line (Task 1)
   - The task review found no bug: the two connections wait for each other, the flag can't stay set, and nothing cached by `version` goes stale.
   - On its one finding, the test now checks that the bytes are gone right after the forget, before the main connection removes a meeting.
   - `forgettingVoices` is an internal `var`, since `AppHost+Meetings.swift` uses it.
+- 2026-11-24, **Task 5** done (cb9910f). Version 0.4.1, agreed with the author.
+- 2026-11-24, **Task 6**: 0.4.1 (cb9910f) installed.
+  - Q1 passed: version 3, both indexes, and the same row counts as before the install.
+  - The author checked Q2 and Q3: "everything is ok".
