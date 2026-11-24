@@ -107,6 +107,12 @@ extension MeetingStore {
             """, [date.timeIntervalSince1970])
     }
 
+    /// `forgetUnnamedVoices(before:)` on a connection of its own, off the main thread: it checks every old sample (query
+    /// plans design §7.5). Only samples of nobody named go, so prints and People's counts don't change.
+    public static func forgetUnnamedVoices(in file: URL, before date: Date) async throws {
+        try await Task.detached { try MeetingStore(file: file).forgetUnnamedVoices(before: date) }.value
+    }
+
     /// Delete voice…: the samples of the lines that are `person`'s now. The person and their names stay.
     public func deleteVoice(_ person: Int) throws {
         try sqlite.runIfExists("""

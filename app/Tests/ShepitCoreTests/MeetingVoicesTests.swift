@@ -165,7 +165,7 @@ struct MeetingVoicesTests {
 
     /// Biometric data: every way out overwrites the sample, not only unlinks it (macOS's default `secure_delete = FAST`
     /// leaves freed pages as they were).
-    @Test func deletedVoicesLeaveNoTraceInTheFile() throws {
+    @Test func deletedVoicesLeaveNoTraceInTheFile() async throws {
         let (store, dir) = setUp()
         defer { try? FileManager.default.removeItem(at: dir) }
         let named = try meeting(store, dir, "a", start: start, labels: ["Person 1"], voices: ["Person 1": 1])
@@ -177,7 +177,9 @@ struct MeetingVoicesTests {
         func inFile(_ axis: Int) throws -> Bool { try Data(contentsOf: dir.appending(path: "meetings.sqlite")).range(of: voice(axis, 100).blob) != nil }
         #expect(try inFile(1) && inFile(2) && inFile(3) && inFile(4))
         try store.deleteVoice(try #require(try store.people(named.id)[0].person))
-        try store.forgetUnnamedVoices(before: start + 30 * 86_400)
+        // As the app forgets them: on a connection of its own (query plans design §7.5).
+        try await MeetingStore.forgetUnnamedVoices(in: dir.appending(path: "meetings.sqlite"), before: start + 30 * 86_400)
+        #expect(try !inFile(2) && !inFile(3)) // overwritten by that connection, before anything else runs on this one
         try store.remove(removed.id)
         #expect(try !inFile(1) && !inFile(2) && !inFile(3))
         #expect(try inFile(4))
