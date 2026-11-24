@@ -41,7 +41,7 @@ final class WindowNavigation {
         self.people = people
         self.defaults = defaults
         section = defaults.string(forKey: "windowSection").flatMap(WindowSection.init) ?? .home
-        settingsSection = defaults.string(forKey: "settingsSection").flatMap(SettingsModel.Section.init) ?? .general
+        settingsSection = defaults.string(forKey: "settingsSection").flatMap(SettingsModel.Section.init(stored:)) ?? .general
         sidebarCollapsed = defaults.bool(forKey: "sidebarCollapsed")
         history.visit(place)
         recordChanges()
@@ -50,6 +50,12 @@ final class WindowNavigation {
     func openSettings(_ section: SettingsModel.Section) {
         settingsSection = section
         self.section = .settings
+    }
+
+    /// A meeting in Meetings: one step, as both change in one go.
+    func openMeeting(_ id: Int) {
+        meetings.selection = .meeting(id)
+        section = .meetings
     }
 
     /// What the window shows now: only the choice of the section shown counts.

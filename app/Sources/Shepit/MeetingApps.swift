@@ -158,7 +158,8 @@ enum MeetingApps {
                 titles += children(element).map { string($0, kAXTitleAttribute) }.filter { !$0.isEmpty }
                 continue
             }
-            if depth < 6 { queue += children(element).map { ($0, depth + 1) } }
+            // Chrome's tab strip is at depth 7 (2026-11-23; above 6 before), so a Meet tab behind another was not seen.
+            if depth < 8 { queue += children(element).map { ($0, depth + 1) } }
         }
         return titles
     }

@@ -169,13 +169,13 @@ struct PeopleModelTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         #expect(model.talk.isEmpty && model.meetingRows.isEmpty) // nobody chosen
         model.selection = model.people[1].id
-        model.period = .all
+        model.period = .preset(.all)
         #expect(model.talk.map(\.value) == ["1", "–", "1", "33%"])
         #expect(model.meetingRows.map(\.talk) == ["– · 1 words"])
-        model.period = .today
+        model.period = .preset(.today)
         #expect(model.talk.map(\.value) == ["0", "–", "–", "–"])
         #expect(model.meetingRows.isEmpty)
-        #expect(PeopleModel(store: store, settings: { .defaults }, defaults: defaults).period == .today)
+        #expect(PeopleModel(store: store, settings: { .defaults }, defaults: defaults).period == .preset(.today))
     }
 
     @Test func wordsOfOlderMeetingsAreFilledOnce() async throws {
@@ -184,7 +184,7 @@ struct PeopleModelTests {
         try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
         model.reload()
         model.selection = model.people[1].id
-        model.period = .all
+        model.period = .preset(.all)
         #expect(model.talk.map(\.value) == ["1", "–", "–", "–"])
         await model.fillWords()
         #expect(model.talk.map(\.value) == ["1", "–", "1", "33%"])

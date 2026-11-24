@@ -35,7 +35,8 @@ public enum Period: String, CaseIterable, Sendable {
     }
 }
 
-/// What Statistics counts (statistics design §4): one of the menu's periods, or whole days picked in Custom….
+/// What Statistics counts, Dictations lists and People tallies (statistics design §4, settings review design §9): one of
+/// the menu's periods, or whole days picked in Custom….
 public enum StatsPeriod: Hashable, Sendable {
     case preset(Period)
     /// Both days included; any time within a day stands for the whole day.
@@ -62,6 +63,12 @@ public enum StatsPeriod: Hashable, Sendable {
         guard let (start, _, lastDay) = bounds(now: now, calendar: calendar) else { return .month }
         func monthsBack(_ months: Int) -> Date { calendar.date(byAdding: .month, value: -months, to: lastDay) ?? lastDay }
         return start >= lastDay ? .hour : start >= monthsBack(1) ? .day : start >= monthsBack(6) ? .weekOfYear : .month
+    }
+
+    /// The days Custom… opens with: the custom range, or the period's first day to now (today alone for All history).
+    public func days(now: Date, calendar: Calendar = .current) -> (from: Date, through: Date) {
+        if case .custom(let from, let through) = self { return (from, through) }
+        return (range(now: now, calendar: calendar)?.start ?? calendar.startOfDay(for: now), now)
     }
 
     /// The menu's text: the period's title, or "12 Nov – 16 Nov 2026" ("16 Nov 2026" for one day).

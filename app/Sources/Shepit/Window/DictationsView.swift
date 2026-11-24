@@ -13,12 +13,8 @@ struct DictationsView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Picker("Show", selection: $model.period) {
-                    ForEach(Period.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.menu)
-                .fixedSize()
                 Spacer()
+                PeriodMenu(period: $model.period)
             }
             .padding(8)
             Divider()
@@ -55,7 +51,7 @@ struct DictationsView: View {
             } actions: {
                 Button("Open History and privacy", action: openSettings)
             }
-        } else if model.period != .all {
+        } else if model.period != .preset(.all) {
             ContentUnavailableView("No dictations in this period", systemImage: WindowSection.dictations.symbol,
                                    description: Text("Older ones are under a longer period above."))
         } else {

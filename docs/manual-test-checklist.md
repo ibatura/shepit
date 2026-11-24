@@ -14,8 +14,8 @@ Date: 2026-10-24  Engine: whisper.cpp large-v3, then large-v3-turbo  Result lege
 | N8 | Ukrainian keyboard layout active | Hotkeys and paste still work || ✅ |
 | N9 | Record 2 s of silence | "Nothing recognized"; no «Дякую за перегляд!» pasted || ✅ |
 | N10 | First word of a dictation started right after ⌥Space | Not cut off || ✅ after recorder fix (first audio: built-in 0.17 s, MOMENTUM 4 0.52 s; was 1–3 s) |
-| N11 | ⌃⌥D with a word selected → type the right spelling → Додати | Rule in dictionary.json; next dictation uses it || ✅ |
-| N12 | Recent ▸ click an entry | Full text copied, "📋 Скопійовано" || ✅ |
+| N11 | ⌃⌥D with a word selected → type the right spelling → Add | Rule in dictionary.json; next dictation uses it || ✅ |
+| N12 | Recent ▸ click an entry | Full text copied, "📋 Copied" || ✅ |
 | N13 | Engine ▸ whisper.cpp large-v3-turbo (while idle) | settings.json gets "engines"; status "Ready — whisper.cpp large-v3-turbo" || ✅ |
 | N14 | Break settings.json (delete a comma), save, open the menu | ⚠ line names the error; dictation still works with the last good settings || ✅ |
 | N15 | Remove Shepit from Accessibility, dictate | Notice "Text copied — allow Accessibility…"; text on the clipboard; menu shows the Accessibility line || skipped (would need re-granting Accessibility) |
@@ -111,7 +111,7 @@ Design: `docs/superpowers/specs/2026-11-14-meetings-design.md`. M10–M12 above 
 | L11 | Name people on the "Transcript ready" panel; the recording card during a transcript | The window opens on that meeting; the card opens the running one || ✅ 2026-11-16
 | L12 | Quit Shepit during a transcript, start it again | The meeting is in the list; the note ends with "Запис перервано" || ✅ 2026-11-16
 | L13 | Open the 🎙 menu | No Copy last meeting transcript, Rename speakers or Open meetings folder; Start / Stop meeting transcript is there ||
-| L14 | Reveal in Finder and Copy path from a meeting's right-click menu and its ⋯ menu; the same on a meeting whose note is not found | Finder shows the note's folder with the file selected; the path is on the clipboard with 📋 Скопійовано; Reveal in Finder is off for a note not found ||
+| L14 | Reveal in Finder and Copy path from a meeting's right-click menu and its ⋯ menu; the same on a meeting whose note is not found | Finder shows the note's folder with the file selected; the path is on the clipboard with 📋 Copied; Reveal in Finder is off for a note not found ||
 | L15 | In a finished meeting, click two people (initials, share or an empty spot), then Only highlighted people; click one of them again | Both people's lines are highlighted, each in their colour; the checkbox leaves only their lines; a second click turns one off; the name field still edits on a click ||
 | L16 | Click a line → Delete line; in a person's ⋯ → Delete all their lines…, Cancel, then Delete | The line leaves the note at once (Open note); the question says how many lines; after Delete the person leaves People and their lines leave the note; the other lines of the same second can still be given ||
 
@@ -181,14 +181,14 @@ Design: `docs/superpowers/specs/2026-11-20-import-names-design.md`. With the `.v
 |---|---|---|---|
 | I1 | Meetings → a meeting with its Teams `.vtt` → Import names… → the file → Apply names | The suggested names are who spoke (check a few lines); the note's headers get them | ✅ 2026-11-20: "everything works", the author on the installed app |
 | I2 | Import names… with a `.vtt` of another meeting, of the same team too | "This transcript doesn't line up with this meeting." | ✅ 2026-11-21 |
-| I3 | Import names… with a `.vtt` that has no names (Zoom's `.cc.vtt`) | "This transcript has no speaker names." | 2026-11-21: "doesn't line up" came, most likely from Zoom's `.transcript.vtt` of the same recording (it has names); both `.cc.vtt` files give "no speaker names" in the parser. Try again with the `.cc` one |
 | I4 | A meeting where speaker detection split one voice into two `Person N` | The merge is offered, ticked, and done | |
 | I5 | A person named differently from the file | Unticked; tick it, Apply names: the name changes | |
 | I6 | A name someone already has from another meeting | People shows one person with both meetings | 2026-11-21, read-only: no name is held by two people in People (16 names); the 29 Oct meeting has no names applied yet, so the check waits for that |
-| I7 | A Zoom `.vtt` of a Zoom call | As I1 | Waits for a Zoom call: the store has no Zoom meeting with its file |
 | I8 | After an import | The file's path and text are in no database, setting or log | ✅ 2026-11-21, read-only: no `.vtt` name and no `Downloads/` path in the three databases, `meeting-names.json`, `dictionary.json`, `settings.json`, Shepit's preferences, the 60 meeting notes or Shepit's log of the last 2 days |
 | I9 | Type a name in the sheet and click Apply names at once | The name is saved | ✅ 2026-11-20 |
 | I10 | Hover over Import names… (Shepit's window active) | A hint says what it is for, after a quarter of a second | ✅ 2026-11-21, after hints were made to show at 0.25 s (macOS's delay was too slow) |
+
+I3 and I7, with Zoom's files, are put off: see "Need to test later" at the bottom.
 
 ## Main window: Back and forward
 
@@ -212,6 +212,26 @@ Design: `docs/superpowers/specs/2026-11-22-back-forward-design.md`.
 | B12 | During a recording, collapsed | A red dot; its hint has the time and name; a click opens the running transcript | |
 | B13 | The arrows next to the sidebar button, left of the section's name | The author keeps the place | ✅ 2026-11-22 |
 
+## Main window: Settings review
+
+Date: 2026-11-23
+
+Design: `docs/superpowers/specs/2026-11-23-settings-review-design.md`. R6–R8 change no file of the author's: R6 and R7 are real calls with the Calls part set in the window, R8 reads a copy of an old `settings.json` in a test folder.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| R1 | Go through the seven Settings pages | Each starts with its line; every setting of the old pages is on one of them | ✅ 2026-11-23 |
+| R2 | Quit with the old Overlay or Calls page chosen (from 0.3.0), open Settings | Dictation or Meetings opens | ✅ 2026-11-23 |
+| R3 | Engines and models | One line per job; Voice and Speaker detection chosen with the jobs; the models by kind, each with what it is for, "Used for: …" or "Not used: can be deleted"; Unload when idle is a menu | ✅ 2026-11-23, after the author's remarks (16a7d70) |
+| R4 | Home with a model a job needs deleted, and with recent meetings; click one | Needs attention names the model, Download… opens Engines and models; Recent meetings lists 10 with app and length, a click opens the meeting | ✅ 2026-11-23 |
+| R5 | The 🎙 menu, with and without a meeting; both language submenus | Groups for problems, Meeting, Dictation and Shepit; each language submenu changes only its own language, greyed while its recording runs | ✅ 2026-11-23 |
+| R6 | A Teams call with Teams on Offer; then a rule "contains <its name>, then Off"; then the rule's Off changed to Auto | The offer panel with the name; then no panel, Home still shows the call with Start; then the countdown and a transcript | |
+| R7 | Zoom set to Off, a Zoom call; Start by hand, then end the call | No panel; the transcript doesn't stop when the call ends and ends with Transcript ready | |
+| R8 | A copy of a 0.3.0 `settings.json` with `callOffer`, `callAutoStart` and `callApps` in a test folder, read by a test build | Calls shows the same behaviour as before; nothing is written until a change in Calls, which writes `callModes` and removes the three keys | |
+| R9 | The period menu in Dictations, Statistics and People: a preset, then Custom…; reopen the window | Same menu on the right in each; Custom… shows only those days; each section keeps its own period | ✅ 2026-11-23 |
+| R10 | Google Meet in Chrome, Meet on Offer, a real call | The offer panel with the call's name (Task 9) | ✅ 2026-11-23: the offer came, Start worked, no stop while muted; the panel now comes in finished (7577aac) |
+| R11 | Settings controls: change a text field (Your name, a folder, a rule) with Save, Enter and Esc; the number menus; rules' ↑ ↓; the → icons on Recognition and Voice and speaker detection; Clear history… and Clear statistics…; Add word | Bordered fields saved only with Save or Enter, Esc puts the text back; menus instead of − +; Max recording length in seconds; the arrows reorder rules; each → opens Engines and models; both Clear… ask in a sheet; the Add word dialog in English | ✅ 2026-11-23 |
+
 ## Version
 
 Date: 2026-11-21
@@ -220,3 +240,17 @@ Date: 2026-11-21
 |---|---|---|---|
 | A1 | Install; 🎙 → About Shepit (and Shepit → About Shepit while the window is open) | macOS's About panel: Shepit, "Version 0.2.0 (…)" with the commit `git rev-parse --short HEAD` gives | ✅ 2026-11-21: "Version 0.2.0 (7ea3925)", the installed Info.plist says the same |
 | A2 | The same after version 0.3.0 is installed | "Version 0.3.0 (…)" | |
+| A3 | The same after version 0.4.0 is installed | "Version 0.4.0 (…)" | |
+
+## Need to test later
+
+Checks the author put off for a long time. Each keeps its number from its section above.
+
+### Import names with Zoom (put off on 2026-11-22)
+
+The author, 2026-11-22: Zoom will be used to check importing names some day, but not now.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| I3 | Import names… with a `.vtt` that has no names (Zoom's `.cc.vtt`) | "This transcript has no speaker names." | 2026-11-21: "doesn't line up" came, most likely from Zoom's `.transcript.vtt` of the same recording (it has names); both `.cc.vtt` files give "no speaker names" in the parser. Try again with the `.cc` one |
+| I7 | A Zoom `.vtt` of a Zoom call | As I1 | Waits for a Zoom call: the store has no Zoom meeting with its file |

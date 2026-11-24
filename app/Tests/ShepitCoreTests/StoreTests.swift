@@ -137,6 +137,20 @@ struct StoreTests {
         #expect(written["previewModel"] == nil)
     }
 
+    @Test func writingCallModesRemovesTheKeysTheyReplace() throws {
+        let (directory, file) = try makeSettingsFile(#"{"callOffer":true,"callAutoStart":false,"callApps":["Teams"],"callOfferSeconds":20}"#)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = SettingsStore(file: file)
+        #expect(store.load())
+
+        try store.update("callModes", ["Teams": "offer", "Zoom": "off", "Meet": "off"])
+
+        let written = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        #expect(written["callModes"] as? [String: String] == ["Teams": "offer", "Zoom": "off", "Meet": "off"])
+        for gone in ["callOffer", "callAutoStart", "callApps"] { #expect(written[gone] == nil, "\(gone)") }
+        #expect(written["callOfferSeconds"] as? Int == 20)
+    }
+
     @Test func updateFailureDoesNotChangeInMemorySettingsOrOriginalFile() throws {
         let directory = try makeTemporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

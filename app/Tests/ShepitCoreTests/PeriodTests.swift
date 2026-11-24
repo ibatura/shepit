@@ -77,6 +77,13 @@ struct PeriodTests {
         #expect(bucket(.preset(.months9)) == .month && bucket(.preset(.year)) == .month && bucket(.preset(.all)) == .month)
     }
 
+    @Test func customOpensWithTheShownDays() {
+        let now = at(11, 16, 18, 30)
+        #expect(StatsPeriod.preset(.week).days(now: now, calendar: calendar) == (at(11, 10, 0), now))
+        #expect(StatsPeriod.preset(.all).days(now: now, calendar: calendar) == (at(11, 16, 0), now))
+        #expect(StatsPeriod.custom(from: at(11, 3), through: at(11, 9)).days(now: now, calendar: calendar) == (at(11, 3), at(11, 9)))
+    }
+
     @Test func theMenuTitle() {
         #expect(StatsPeriod.preset(.month).title(calendar: calendar) == "Last month")
         #expect(StatsPeriod.custom(from: at(11, 12), through: at(11, 16)).title(calendar: calendar) == "12 Nov – 16 Nov 2026")

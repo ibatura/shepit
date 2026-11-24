@@ -171,42 +171,48 @@ struct SettingsModelTests {
         ])
     }
 
-    @Test func meetingKeysAreInTheMeetingsSection() {
-        #expect(SettingsModel.Section.meetings.keys == ["meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"])
+    @Test func callAndMeetingKeysAreInTheMeetingsSection() {
+        #expect(SettingsModel.Section.meetings.keys == ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps", "callModes", "callRules",
+                                                        "meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"])
     }
 
-    @Test func callKeysAreInTheCallsSection() {
-        #expect(SettingsModel.Section.calls.keys == ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"])
+    @Test func theDictationLanguageAndThePanelAreInTheDictationSection() {
+        #expect(SettingsModel.Section.dictation.keys == ["language", "microphone", "maxRecordingSeconds", "stylePrompt", "refocusOriginalApp", "restoreClipboard",
+                                                         "overlay", "livePreview", "overlayStyle"])
     }
 
-    @Test func theOfferSecondsStepperSkipsOneToFour() {
-        #expect(SettingsModel.offerSeconds(after: 0, up: true) == 5)
-        #expect(SettingsModel.offerSeconds(after: 5, up: false) == 0)
-        #expect(SettingsModel.offerSeconds(after: 0, up: false) == 0)
-        #expect(SettingsModel.offerSeconds(after: 15, up: true) == 20)
-        #expect(SettingsModel.offerSeconds(after: 118, up: true) == 120)
-        #expect(SettingsModel.offerSeconds(after: 120, up: true) == 120)
-        #expect(SettingsModel.offerSeconds(after: 7, up: false) == 5)
+    @Test func aNumberMenuKeepsAValueFromTheFile() {
+        #expect(NumberMenu.values([0, 5, 15, 30], current: 15) == [0, 5, 15, 30])
+        #expect(NumberMenu.values([0, 5, 15, 30], current: 7) == [0, 5, 7, 15, 30])
     }
 
-    @Test func aCallAppSwitchWritesTheListInOrder() throws {
-        #expect(SettingsModel.callApps(["Meet", "Teams"], .zoom, on: true) == ["Teams", "Zoom", "Meet"])
-        #expect(SettingsModel.callApps(["Teams", "Zoom", "Meet"], .teams, on: false) == ["Zoom", "Meet"])
-        let file = try makeFile("{}")
+    // Settings review design §7.2–7.3.
+    @Test func theFirstChoiceWritesEveryAppsChoiceAndDropsTheOldKeys() throws {
+        let file = try makeFile(#"{"callApps":["Teams","Zoom"],"callAutoStart":true,"callOfferSeconds":20}"#)
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
         let store = SettingsStore(file: file)
         store.load()
         let model = SettingsModel(store: store, dictionaryStore: DictionaryStore(file: file.deletingLastPathComponent().appending(path: "dictionary.json")))
-        model.set("callApps", SettingsModel.callApps(model.settings.callApps, .meet, on: false))
-        #expect(model.lastError == nil && model.settings.callApps == ["Teams", "Zoom"])
+        model.setCallMode(.zoom, .offer)
+        #expect(model.lastError == nil)
+        #expect(model.settings.callModes == [.teams: .auto, .zoom: .offer, .meet: .off])
+        let written = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        #expect(written["callApps"] == nil && written["callAutoStart"] == nil && written["callOfferSeconds"] as? Int == 20)
+
+        let rules = [CallRule(app: .teams, match: .is, text: "Daily scrum", then: .off), CallRule(app: .meet, match: .contains, text: "", then: .auto)]
+        model.setCallRules(rules)
+        #expect(model.lastError == nil && model.settings.callRules == rules)
     }
 
-    @Test func settingsSectionsInTheWindowsOrderAndNoKeyInTwoOfThem() {
+    @Test func settingsSectionsInTheWindowsOrderAndEveryKeyOnExactlyOne() {
         #expect(SettingsModel.Section.allCases.map(\.rawValue) == [
-            "General", "Hotkeys", "Engines and models", "Dictation", "Overlay", "Meetings", "Calls", "History and privacy", "Appearance",
+            "General", "Hotkeys", "Dictation", "Meetings", "Engines and models", "History and privacy", "Appearance",
         ])
+        #expect(SettingsModel.Section.allCases.allSatisfy { !$0.line.isEmpty })
         let keys = SettingsModel.Section.allCases.flatMap(\.keys)
         #expect(Set(keys).count == keys.count)
+        // model and previewModel only fill in engines for an old file; Remember voices is in People.
+        #expect(Set(keys) == Set(ShepitCore.Settings.fileKeys).subtracting(["model", "previewModel", "rememberVoices"]))
     }
 
     @Test func theWindowRemembersItsSections() throws {
@@ -222,10 +228,15 @@ struct SettingsModelTests {
         #expect(navigation().settingsSection == .general)
         #expect(!navigation().sidebarCollapsed)
 
-        navigation().openSettings(.calls)
+        navigation().openSettings(.meetings)
         navigation().sidebarCollapsed = true
         let again = navigation()
-        #expect(again.section == .settings && again.settingsSection == .calls && again.sidebarCollapsed)
+        #expect(again.section == .settings && again.settingsSection == .meetings && again.sidebarCollapsed)
+
+        defaults.set("Overlay", forKey: "settingsSection") // pages the settings review merged into others
+        #expect(navigation().settingsSection == .dictation)
+        defaults.set("Calls", forKey: "settingsSection")
+        #expect(navigation().settingsSection == .meetings)
 
         defaults.set("Gone", forKey: "windowSection") // a section a later version dropped
         defaults.set("Statistics", forKey: "settingsSection")
@@ -251,9 +262,5 @@ struct SettingsModelTests {
         model.remove("meetingHotkey")
         #expect(model.lastError == nil && model.settings.meetingHotkey == nil)
         #expect(try json(file).keys.sorted() == ["sounds"])
-    }
-
-    @Test func serverPortIsShownNowhere() {
-        #expect(!SettingsModel.Section.allCases.flatMap(\.keys).contains("serverPort"))
     }
 }

@@ -84,8 +84,16 @@ public enum MeetingModel: String, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .vad: "Voice detection (Silero)"
-        case .diarization: "Speaker detection (pyannote + WeSpeaker)"
+        case .vad: "Silero VAD"
+        case .diarization: "pyannote + WeSpeaker"
+        }
+    }
+
+    /// The meeting job the model does, in Engines and models and on Home.
+    public var job: String {
+        switch self {
+        case .vad: "Voice detection"
+        case .diarization: "Speaker detection"
         }
     }
 

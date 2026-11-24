@@ -14,6 +14,23 @@ struct ChoicePicker: View {
     }
 }
 
+/// A number setting as a pop-up menu of set values, not a − + stepper (the author, 2026-11-23); a value from the file
+/// that is none of them is among them too.
+struct NumberMenu: View {
+    let title: String
+    let values: [Int]
+    let selection: Binding<Int>
+    let text: (Int) -> String
+
+    var body: some View {
+        Picker(title, selection: selection) {
+            ForEach(Self.values(values, current: selection.wrappedValue), id: \.self) { Text(text($0)).tag($0) }
+        }
+    }
+
+    static func values(_ values: [Int], current: Int) -> [Int] { Set(values + [current]).sorted() }
+}
+
 /// A control with the README's one-line hint under it.
 struct Hinted<Content: View>: View {
     let hint: String
@@ -24,6 +41,63 @@ struct Hinted<Content: View>: View {
             content
             Text(hint).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// A text setting that looks editable and is saved on purpose (the author, 2026-11-23): a bordered field, with Save
+/// while the text differs from the saved one. Enter saves too, Esc puts the saved text back; clicking elsewhere keeps
+/// the draft and saves nothing, and so does leaving the page (`SettingDrafts`).
+struct SettingField: View {
+    let saved: String
+    let drafts: SettingDrafts
+    /// Where its draft is kept while the page is not shown.
+    let keep: String
+    var prompt = ""
+    /// `.vertical` grows to a few lines, for a paragraph.
+    var axis = Axis.horizontal
+    /// A draft it refuses keeps Save greyed.
+    var canSave: (String) -> Bool = { _ in true }
+    /// Each edit, for a caller that shows something from the draft.
+    var edited: (String) -> Void = { _ in }
+    let save: (String) -> Void
+    @State private var draft = ""
+
+    var body: some View {
+        HStack {
+            TextField(prompt, text: $draft, prompt: Text(prompt), axis: axis)
+                .lineLimit(axis == .vertical ? 3...8 : 1...1)
+                .textFieldStyle(.roundedBorder)
+                .labelsHidden()
+                .onSubmit(commit)
+                .onExitCommand { draft = saved }
+            if draft != saved {
+                Button("Save", action: commit).disabled(!canSave(draft))
+            }
+        }
+        .onAppear { draft = drafts.draft(keep, saved: saved) ?? saved }
+        .onChange(of: saved) { draft = $1 }
+        .onChange(of: draft) {
+            drafts.keep(keep, saved: saved, draft: $1)
+            edited($1)
+        }
+    }
+
+    private func commit() {
+        if draft != saved, canSave(draft) { save(draft) }
+    }
+}
+
+/// Unsaved drafts of text settings while Shepit runs (`SettingsModel.drafts`): a page left and opened again shows them
+/// with Save, as a draft is saved only on purpose. One comes back only while the text it was typed over is still saved.
+@MainActor final class SettingDrafts {
+    private var drafts: [String: (saved: String, draft: String)] = [:]
+
+    func draft(_ key: String, saved: String) -> String? {
+        drafts[key].flatMap { $0.saved == saved ? $0.draft : nil }
+    }
+
+    func keep(_ key: String, saved: String, draft: String) {
+        drafts[key] = draft == saved ? nil : (saved, draft)
     }
 }
 

@@ -18,13 +18,12 @@ struct GeneralSection: View {
             Hinted(hint: "Start / done / error sounds") {
                 Toggle("Sounds", isOn: model.binding("sounds", \.sounds))
             }
-            Hinted(hint: "Keep Ukrainian for Ukrainian with English terms. Auto-detect may translate your speech into one language") {
-                ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("language", \.language))
-            }
         }
         Section("Files") {
             HStack {
                 Button("Open settings file", action: actions.openSettingsFile)
+                Button("Reload settings") { actions.perform(.reloadConfig) }
+                    .help("Reads settings.json again after you edit it by hand")
                 Button("Open data folder", action: actions.openDataFolder)
             }
         }
@@ -156,17 +155,29 @@ struct DictationSection: View {
     let actions: WindowActions
 
     var body: some View {
-        Section {
+        Section("Dictation") {
+            Hinted(hint: "Keep Ukrainian for Ukrainian with English terms. Auto-detect may translate your speech into one language") {
+                ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("language", \.language))
+            }
             Hinted(hint: "System default follows the macOS input. If the chosen device isn't connected, the default is used and the panel says so") {
                 Picker("Microphone", selection: Binding(get: { model.settings.microphone }, set: { model.set("microphone", $0) })) {
                     Text("System default").tag("")
                     ForEach(Microphones.choices(connected: actions.microphones(), configured: model.settings.microphone), id: \.self) { Text($0).tag($0) }
                 }
             }
+            Hinted(hint: "Recording stops and is transcribed automatically after this long") {
+                // In seconds, not minutes (the author, 2026-11-23).
+                NumberMenu(title: "Max recording length", values: [30, 60, 90, 120, 180, 300, 600, 900, 1800, 3600],
+                           selection: model.binding("maxRecordingSeconds", \.maxRecordingSeconds)) { StatusText.count($0, "second") }
+            }
+        }
+        Section("Text") {
             Hinted(hint: "Example text the engine imitates. Keep English terms in Latin script here — this is what makes it write pull request instead of «пул реквест»") {
                 VStack(alignment: .leading) {
                     Text("Style prompt")
-                    StylePromptEditor(model: model)
+                    SettingField(saved: model.settings.stylePrompt, drafts: model.drafts, keep: "stylePrompt", axis: .vertical) {
+                        model.set("stylePrompt", $0)
+                    }
                 }
             }
             Hinted(hint: "Paste into the app you started in, even if you switched apps while speaking") {
@@ -175,12 +186,8 @@ struct DictationSection: View {
             Hinted(hint: "Put your previous clipboard back after pasting") {
                 Toggle("Restore clipboard", isOn: model.binding("restoreClipboard", \.restoreClipboard))
             }
-            Hinted(hint: "Recording stops and is transcribed automatically after this many seconds (5–3600)") {
-                Stepper(value: model.binding("maxRecordingSeconds", \.maxRecordingSeconds), in: 5...3600, step: 30) {
-                    Text("Max recording length: \(model.settings.maxRecordingSeconds) s")
-                }
-            }
         }
+        DictationPanelSections(model: model, actions: actions)
     }
 }
 
@@ -189,25 +196,22 @@ struct HistoryPrivacySection: View {
     let actions: WindowActions
 
     var body: some View {
-        Section("History") {
+        Section("Dictations") {
             Group {
                 Hinted(hint: "Keep every dictation in history, with the app it went to. With this off nothing new is kept") {
                     Toggle("Save history", isOn: model.binding("saveHistory", \.saveHistory))
                 }
-                Hinted(hint: "Delete history entries older than this many days. 0 = keep forever") {
-                    Stepper(value: model.binding("historyDays", \.historyDays), in: 0...3650) {
-                        Text(model.settings.historyDays == 0 ? "Keep history: forever" : "Keep history: \(model.settings.historyDays) days")
-                    }
+                Hinted(hint: "History entries older than this are deleted") {
+                    NumberMenu(title: "Keep history", values: [0, 7, 30, 90, 180, 365, 730],
+                               selection: model.binding("historyDays", \.historyDays)) { $0 == 0 ? "Forever" : StatusText.days($0) }
                 }
-                Hinted(hint: "How many recent dictations the Recent submenu shows. 0 hides it") {
-                    Stepper(value: model.binding("historyMenuItems", \.historyMenuItems), in: 0...50) {
-                        Text("Recent menu items: \(model.settings.historyMenuItems)")
-                    }
+                Hinted(hint: "How many recent dictations the Recent dictations submenu shows") {
+                    NumberMenu(title: "Recent menu items", values: [0, 5, 10, 15, 20],
+                               selection: model.binding("historyMenuItems", \.historyMenuItems)) { $0 == 0 ? "None: the submenu is hidden" : "\($0)" }
                 }
-                Hinted(hint: "How long the audio of a failed transcription is kept so you can retry. 0 = delete it right away") {
-                    Stepper(value: model.binding("failedAudioHours", \.failedAudioHours), in: 0...720) {
-                        Text("Keep failed audio: \(model.settings.failedAudioHours) h")
-                    }
+                Hinted(hint: "How long the audio of a failed transcription is kept so you can retry") {
+                    NumberMenu(title: "Keep failed audio", values: [0, 1, 6, 24, 72, 168],
+                               selection: model.binding("failedAudioHours", \.failedAudioHours)) { $0 == 0 ? "Delete at once" : StatusText.hours($0) }
                 }
             }
             .disabled(model.isReadOnly)
@@ -218,10 +222,9 @@ struct HistoryPrivacySection: View {
                 Hinted(hint: "Record usage statistics on this Mac: numbers only, never what you dictated") {
                     Toggle("Collect statistics", isOn: model.binding("collectStats", \.collectStats))
                 }
-                Hinted(hint: "Your typing speed, for “time saved” in Statistics (10–200)") {
-                    Stepper(value: model.binding("typingSpeedWpm", \.typingSpeedWpm), in: 10...200, step: 5) {
-                        Text("Typing speed: \(model.settings.typingSpeedWpm) words per minute")
-                    }
+                Hinted(hint: "Your typing speed, for “time saved” in Statistics") {
+                    NumberMenu(title: "Typing speed", values: [20, 30, 40, 50, 60, 70, 80, 100],
+                               selection: model.binding("typingSpeedWpm", \.typingSpeedWpm)) { "\($0) words per minute" }
                 }
             }
             .disabled(model.isReadOnly)
@@ -234,32 +237,6 @@ struct HistoryPrivacySection: View {
             FolderRow(model: model, key: "databasesFolder", path: \.databasesFolder, url: { $0.databasesFolderURL(home: Paths.home) },
                       hint: "Where dictations, meetings and statistics are kept. Used from the next start of Shepit; files already there are not moved. A synced folder (iCloud) uploads them")
                 .disabled(model.isReadOnly)
-        }
-    }
-}
-
-/// Saves the style prompt after a short pause in typing, not on every keystroke.
-private struct StylePromptEditor: View {
-    let model: SettingsModel
-    @State private var text: String?
-    @State private var pending: Task<Void, Never>?
-
-    var body: some View {
-        TextEditor(text: Binding(get: { text ?? model.settings.stylePrompt }, set: { value in
-            text = value
-            pending?.cancel()
-            pending = Task {
-                try? await Task.sleep(for: .milliseconds(800))
-                guard !Task.isCancelled else { return }
-                model.set("stylePrompt", value)
-                text = nil
-            }
-        }))
-        .font(.body)
-        .frame(minHeight: 70)
-        .onDisappear {
-            if let text, pending != nil { model.set("stylePrompt", text) }
-            pending?.cancel()
         }
     }
 }

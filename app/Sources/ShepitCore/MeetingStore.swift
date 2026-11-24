@@ -128,6 +128,11 @@ public final class MeetingStore {
         try meetings("ORDER BY start DESC, id DESC")
     }
 
+    /// The newest `limit` meetings, newest first, as Home lists them.
+    public func meetings(limit: Int) throws -> [Meeting] {
+        try meetings("ORDER BY start DESC, id DESC LIMIT ?", [limit])
+    }
+
     public func meeting(_ id: Int) throws -> Meeting? {
         try meetings("WHERE id = ?", [id]).first
     }

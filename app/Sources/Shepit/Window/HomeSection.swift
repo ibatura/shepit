@@ -1,9 +1,9 @@
 import SwiftUI
 import ShepitCore
 
-/// The window's Home section (window shell design §5): status and quick controls, drawn from `Home`.
+/// The window's Home section (window shell design §5, settings review design §5): a status page, drawn from `Home`;
+/// the settings are in Settings and the menu.
 struct HomeSection: View {
-    let model: SettingsModel
     let actions: WindowActions
     /// Read in `body`, so the meeting clock redraws Home and not the window around it.
     let live: WindowModel
@@ -13,45 +13,22 @@ struct HomeSection: View {
 
     var body: some View {
         Form {
-            Section("Dictation") {
-                LabeledContent("Status", value: home.status)
-                ForEach(home.warnings, id: \.text) { warning in
-                    HStack {
-                        Label(warning.text, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
-                        Spacer()
-                        if let button = warning.button { self.button(button) }
-                    }
-                }
-                Group {
-                    ChoicePicker(title: "Mode", choices: ShepitCore.Settings.modes, selection: model.binding("mode", \.mode))
-                    ChoicePicker(title: "Language", choices: ShepitCore.Settings.languages, selection: model.binding("language", \.language))
-                }
-                .disabled(home.dictating || model.isReadOnly)
-                Picker("Microphone", selection: model.binding("microphone", \.microphone)) {
-                    Text("System default").tag("")
-                    ForEach(home.microphones, id: \.self) { Text($0).tag($0) }
-                }
-                .disabled(!home.microphoneEnabled || model.isReadOnly)
-                HStack {
-                    Text("Changes apply at once").foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Reload settings") { actions.perform(.reloadConfig) }
-                    Button("Reload model") { actions.perform(.reloadModels) }.disabled(home.dictating)
-                }
-            }
-            Section("Engines: which model does which job") {
-                ForEach(home.engines) { row in
-                    Hinted(hint: row.hint) {
-                        Picker(row.title, selection: Binding(get: { row.current }, set: { model.setEngine(row.task, $0) })) {
-                            ForEach(row.choices, id: \.choice) { Text($0.title).tag($0.choice) }
+            if !home.warnings.isEmpty {
+                Section("Needs attention") {
+                    ForEach(home.warnings, id: \.text) { warning in
+                        HStack {
+                            Label(warning.text, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                            Spacer()
+                            if let button = warning.button { self.button(button) }
                         }
                     }
-                    .disabled(!row.enabled || model.isReadOnly)
                 }
-                Button("Download models…") { navigation.openSettings(.engines) }.buttonStyle(.link)
+            }
+            Section("Dictation") {
+                LabeledContent("Status", value: home.status)
             }
             Section("Meeting") { meeting }
-            Section("Last dictations") {
+            Section("Recent dictations") {
                 if home.dictations.isEmpty { Text(home.noDictations).foregroundStyle(.secondary) }
                 ForEach(Array(home.dictations.enumerated()), id: \.offset) { _, dictation in
                     HStack {
@@ -62,9 +39,29 @@ struct HomeSection: View {
                     }
                 }
                 HStack {
-                    Text("The last \(HomeModel.dictationCount) are shown here").foregroundStyle(.secondary)
+                    Text("The last \(HomeModel.recentCount) are shown here").foregroundStyle(.secondary)
                     Spacer()
                     Button("All dictations") { navigation.section = .dictations }
+                }
+            }
+            if !home.meetings.isEmpty {
+                Section("Recent meetings") {
+                    ForEach(home.meetings) { meeting in
+                        Button { navigation.openMeeting(meeting.id) } label: {
+                            HStack {
+                                Text(meeting.title).lineLimit(1)
+                                Spacer()
+                                Text(meeting.detail).foregroundStyle(.secondary).monospacedDigit()
+                                Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    HStack {
+                        Spacer()
+                        Button("All meetings") { navigation.section = .meetings }
+                    }
                 }
             }
         }

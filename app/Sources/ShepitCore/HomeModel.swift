@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the window's Home section shows (window shell design §5), as data.
+/// What the window's Home section shows (window shell design §5, settings review design §5), as data: a status page.
 public struct Home: Equatable, Sendable {
     public struct Button: Equatable, Sendable {
         public var title: String
@@ -12,22 +12,6 @@ public struct Home: Equatable, Sendable {
         public var text: String
         /// nil: nothing to press.
         public var button: Button?
-    }
-
-    public struct EngineRow: Equatable, Sendable, Identifiable {
-        public struct Choice: Equatable, Sendable {
-            public var choice: EngineChoice
-            public var title: String
-        }
-
-        public var task: EngineTask
-        public var title, hint: String
-        /// The downloaded pairs, and the configured one when it is not downloaded.
-        public var choices: [Choice]
-        public var current: EngineChoice
-        /// Off while this job runs.
-        public var enabled: Bool
-        public var id: EngineTask { task }
     }
 
     public struct MeetingRow: Equatable, Sendable {
@@ -48,34 +32,39 @@ public struct Home: Equatable, Sendable {
         public var text, detail: String
     }
 
+    /// A listed meeting; a click opens it in Meetings.
+    public struct Meeting: Equatable, Sendable, Identifiable {
+        public var id: Int
+        /// "Teams · 45 min".
+        public var title, detail: String
+    }
+
     public var status: String
-    /// A dictation runs: Mode, Language and Reload model wait for it, as in the menu.
-    public var dictating: Bool
-    /// The connected microphones, and the configured one when it is not connected.
-    public var microphones: [String]
-    /// Off while a dictation or a transcript uses the microphone.
-    public var microphoneEnabled: Bool
+    /// Needs attention: shown only while something is wrong.
     public var warnings: [Warning]
-    public var engines: [EngineRow]
     public var meeting: MeetingRow
     public var card: Card?
     public var dictations: [Dictation]
     /// Shown in place of the list when it is empty.
     public var noDictations: String
+    /// Empty: no Recent meetings at all.
+    public var meetings: [Meeting]
 }
 
 public enum HomeModel {
-    /// How many of the last dictations Home lists.
-    public static let dictationCount = 10
+    /// How many of the last dictations, and of the last meetings, Home lists.
+    public static let recentCount = 10
 
     public static func build(_ view: AppSnapshot) -> Home {
-        Home(status: view.statusLine, dictating: view.state != .idle,
-             microphones: Microphones.choices(connected: view.microphones, configured: view.settings.microphone),
-             microphoneEnabled: view.state == .idle && view.meeting?.state.isActive != true, warnings: warnings(view), engines: engines(view), meeting: meeting(view), card: card(view),
-             dictations: view.history.prefix(dictationCount).map {
+        Home(status: view.statusLine, warnings: warnings(view), meeting: meeting(view), card: card(view),
+             dictations: view.history.prefix(recentCount).map {
                  Home.Dictation(text: $0.text, detail: [DictationPage.when($0.time, now: view.now), $0.appName].compactMap { $0 }.joined(separator: " · "))
              },
-             noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)")
+             noDictations: view.settings.saveHistory ? "No dictations yet" : "History is off (Settings → History and privacy)",
+             meetings: view.recentMeetings.prefix(recentCount).map {
+                 Home.Meeting(id: $0.id, title: MeetingPage.title($0.title, $0.app),
+                              detail: [$0.app.map(CallApp.title(of:)), MeetingPage.minutes($0.duration)].compactMap { $0 }.joined(separator: " · "))
+             })
     }
 
     private static func warnings(_ view: AppSnapshot) -> [Home.Warning] {
@@ -86,24 +75,49 @@ public enum HomeModel {
         if view.microphoneDenied {
             warnings.append(Home.Warning(text: "Microphone access denied", button: Home.Button(title: "Open System Settings", action: .grantMicrophone)))
         }
+        let missing = missingModels(view)
+        if !missing.models.isEmpty {
+            warnings.append(Home.Warning(text: "Not downloaded: \(missing.models.joined(separator: ", "))",
+                                         button: Home.Button(title: "Download…", action: .openModels)))
+        }
+        if !missing.apple.isEmpty {
+            warnings.append(Home.Warning(text: "Apple Speech needs macOS 26 (\(missing.apple.joined(separator: ", ")))",
+                                         button: Home.Button(title: "Choose another…", action: .openModels)))
+        }
         return warnings
     }
 
-    private static func engines(_ view: AppSnapshot) -> [Home.EngineRow] {
-        let dictating = view.state != .idle
-        let rows: [(EngineTask, String, String, Bool)] = [
-            (.dictation, "Dictation", "The text that gets pasted", !dictating),
-            (.preview, "Live draft", "The preview in the panel while you speak", !dictating),
-            (.meetings, "Meetings", "Meeting transcripts", view.meeting?.state.isActive != true),
-        ]
-        return rows.map { task, title, hint, enabled in
-            let current = view.settings.engine(for: task)
-            var choices = view.downloaded.map { Home.EngineRow.Choice(choice: $0, title: $0.pairTitle) }
-            if !view.downloaded.contains(current) {
-                choices.append(Home.EngineRow.Choice(choice: current, title: "\(current.pairTitle) (not downloaded)"))
+    /// Each missing model once with its jobs ("whisper.cpp large-v3 (Dictation, Live draft)", "Silero VAD (Voice detection)"),
+    /// and the jobs given to Apple Speech on a macOS without it, which has nothing to download. The live draft's model
+    /// counts only while the live draft is on.
+    private static func missingModels(_ view: AppSnapshot) -> (models: [String], apple: [String]) {
+        var engines: [(EngineChoice, [String])] = []
+        var apple: [String] = []
+        for task in EngineTask.allCases where task != .preview || view.settings.livePreview {
+            let choice = view.settings.engine(for: task)
+            guard !view.downloaded.contains(choice) else { continue }
+            if choice.engine == .apple {
+                apple.append(task.title)
+            } else if let at = engines.firstIndex(where: { $0.0 == choice }) {
+                engines[at].1.append(task.title)
+            } else {
+                engines.append((choice, [task.title]))
             }
-            return Home.EngineRow(task: task, title: title, hint: hint, choices: choices, current: current, enabled: enabled)
         }
+        let models = engines.map { "\($0.0.title) (\($0.1.joined(separator: ", ")))" }
+            + MeetingModel.allCases.filter { !view.meetingModels.contains($0) }.map { "\($0.title) (\($0.job))" }
+        return (models, apple)
+    }
+
+    /// What happens when a call starts, by the apps' choices; rules by name can change it for some calls.
+    private static func callHint(_ settings: Settings) -> String {
+        let hint = switch Set(CallApp.allCases.map(settings.callMode)).subtracting([.off]) {
+        case []: "Call offers are off"
+        case [.auto]: "Shepit starts a transcript when a call starts"
+        default: "Shepit offers a transcript when a call starts"
+        }
+        let rules = CallApp.allCases.contains { settings.callMode(for: $0) != .off && settings.hasCallRules(for: $0) }
+        return rules ? hint + ", or as a rule by its name says" : hint
     }
 
     private static func card(_ view: AppSnapshot) -> Home.Card? {
@@ -135,7 +149,7 @@ public enum HomeModel {
                                    button: Home.Button(title: "Start transcript", action: missing == nil ? .startCall : nil))
         }
         return Home.MeetingRow(title: "No call right now",
-                               hint: missing ?? (view.settings.callOffer ? "Shepit offers a transcript when a call starts" : "Call offers are off"),
+                               hint: missing ?? callHint(view.settings),
                                button: Home.Button(title: "Start transcript", action: missing == nil ? .startMeeting : nil))
     }
 }

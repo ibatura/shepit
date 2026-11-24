@@ -1,6 +1,6 @@
 import Foundation
 
-/// Apps whose calls get an offer; the raw values are the names in `Settings.callApps`.
+/// Apps whose calls get an offer; the raw values are the keys of `Settings.callModes` and what notes and databases keep.
 public enum CallApp: String, Sendable, CaseIterable {
     case teams = "Teams", zoom = "Zoom", meet = "Meet"
 
@@ -48,7 +48,10 @@ public struct CallOffer: Sendable {
         /// A process took or released the microphone (`CallWatch`).
         case took(CallSource, pid: Int32), released(pid: Int32)
         /// Answers to `.lookForMeet` and `.lookForName`.
-        case meetFound(Bool), named(String?)
+        case meetFound(Bool), named(String)
+        /// Last time's name of a repeating meeting, shown until the app shows one. With rules it decides only if the app
+        /// shows none within the wait: the app's own name goes first (settings review design §7.1).
+        case remembered(String)
         /// The panel's main and second button.
         case pressedMain, pressedOther
         /// Home's Start for the call that runs now (`current`), with its offer on screen or not.
@@ -84,6 +87,8 @@ public struct CallOffer: Sendable {
     /// Seconds an app must hold the microphone to count as a call, and must have released it to count as the end.
     static let hold: TimeInterval = 3
     static let meetRetry: TimeInterval = 10
+    /// How long the choice waits for the call's name when the app has rules (settings review design §7.1).
+    static let namingWait: TimeInterval = 5
     static let readySeconds: TimeInterval = 8
 
     private enum Phase: Equatable {
@@ -92,7 +97,10 @@ public struct CallOffer: Sendable {
         case checkingMeet(next: Date?)
         /// Confirmed while the last transcript was finishing: offered once it has.
         case held
-        case offered(since: Date)
+        /// Confirmed, and its app has rules: the choice waits for the name.
+        case naming(since: Date)
+        /// `auto`: the panel counts down to a start.
+        case offered(since: Date, auto: Bool)
         /// Nothing more to show for this call.
         case quiet
     }
@@ -102,8 +110,13 @@ public struct CallOffer: Sendable {
         var app: CallApp?
         var since: Date
         var releasedAt: Date?
+        /// The name the app shows.
         var name: String?
+        var remembered: String?
         var phase = Phase.pending
+
+        /// The name the call goes by.
+        var title: String? { name ?? remembered }
     }
 
     private struct Session {
@@ -142,7 +155,7 @@ public struct CallOffer: Sendable {
     public var current: Current? {
         guard let call, let app = call.app, call.releasedAt == nil else { return nil }
         switch call.phase {
-        case .offered, .quiet: return Current(name: call.name, app: app)
+        case .naming, .offered, .quiet: return Current(name: call.title, app: app)
         case .pending, .checkingMeet, .held: return nil
         }
     }
@@ -156,7 +169,7 @@ public struct CallOffer: Sendable {
         var effects: [Effect] = []
         switch event {
         case .took(let source, let pid):
-            guard settings.callApps.contains((source.app ?? .meet).rawValue) else { break }
+            guard settings.callMode(for: source.app ?? .meet) != .off else { break } // an app set to Off is not watched
             holders[pid] = source
             if call?.pid == pid {
                 call?.releasedAt = nil
@@ -178,6 +191,9 @@ public struct CallOffer: Sendable {
             }
         case .named(let name):
             call?.name = name
+            if case .naming = call?.phase { decide(now, settings) }
+        case .remembered(let name):
+            call?.remembered = name
         case .pressedMain:
             // The buttons act on the panel that was on screen.
             switch panel {
@@ -196,7 +212,7 @@ public struct CallOffer: Sendable {
             if case .offered = call?.phase {
                 effects.append(start(app, .started)) // counted like its offer's Start
             } else {
-                effects.append(.start(title: call?.name, app: app)) // the offer was answered already, or never shown
+                effects.append(.start(title: call?.title, app: app)) // the offer was answered already, or never shown
             }
         case .pressedOther:
             switch panel {
@@ -215,7 +231,10 @@ public struct CallOffer: Sendable {
             starting = nil
             let confirmed = call?.app != nil && call?.phase != .pending
             session = Session(ours: byPanel || confirmed, awaitsCall: call != nil && !confirmed)
-            if case .offered = call?.phase { call?.phase = .quiet }
+            switch call?.phase {
+            case .naming?, .offered?: call?.phase = .quiet
+            default: break
+            }
             ready = nil
         case .sessionStopping:
             session?.end = .stopping
@@ -242,11 +261,12 @@ public struct CallOffer: Sendable {
     private mutating func start(_ app: CallApp, _ outcome: Outcome) -> Effect {
         starting = (outcome, app)
         call?.phase = .quiet
-        return .start(title: call?.name, app: app)
+        return .start(title: call?.title, app: app)
     }
 
-    /// The call is confirmed: offer it, unless offers are off or a transcript already runs. A transcript that is finishing
-    /// no longer records: the call waits for it, back-to-back calls (the author, 2026-11-19).
+    /// The call is confirmed: offer it, unless a transcript already runs. A transcript that is finishing no longer
+    /// records: the call waits for it, back-to-back calls (the author, 2026-11-19). With rules for its app the choice
+    /// waits for the name; without, the panel is up at once and the name fills in.
     private mutating func offer(_ now: Date, _ settings: Settings) -> [Effect] {
         if session?.endingSince != nil { session?.end = .open } // a new call while the stop countdown runs: the transcript goes on
         if session?.awaitsCall == true { session?.ours = true }
@@ -254,12 +274,23 @@ public struct CallOffer: Sendable {
             call?.phase = .held
             return []
         }
-        guard settings.callOffer, session == nil else {
+        guard session == nil, let app = call?.app else {
             call?.phase = .quiet
-            return session == nil ? [.lookForName] : [] // Home still offers Start for the call, with its name
+            return []
         }
-        call?.phase = .offered(since: now)
-        return [.lookForName]
+        if settings.hasCallRules(for: app) {
+            call?.phase = .naming(since: now)
+        } else {
+            decide(now, settings)
+        }
+        return [.lookForName] // also for Home's Start when the choice is Off
+    }
+
+    /// The call's choice (settings review design §7.1): Auto or Offer puts its panel up; Off leaves Home's Start only.
+    private mutating func decide(_ now: Date, _ settings: Settings) {
+        guard let app = call?.app else { return }
+        let choice = settings.callChoice(app: app, name: call?.title)
+        call?.phase = choice == .off ? .quiet : .offered(since: now, auto: choice == .auto)
     }
 
     /// What the passing of time changes.
@@ -292,10 +323,12 @@ public struct CallOffer: Sendable {
             case .checkingMeet(let next?) where now >= next:
                 call?.phase = .checkingMeet(next: nil)
                 effects.append(.lookForMeet)
-            case .offered(let since):
+            case .naming(let since) where now.timeIntervalSince(since) >= Self.namingWait:
+                decide(now, settings)
+            case .offered(let since, let auto):
                 guard let app = current.app else { break }
                 let elapsed = now.timeIntervalSince(since)
-                if settings.callAutoStart {
+                if auto {
                     if elapsed >= Double(settings.callAutoStartSeconds) {
                         effects.append(start(app, .startedAutomatically))
                     }
@@ -318,9 +351,9 @@ public struct CallOffer: Sendable {
     private func currentPanel(_ now: Date, _ settings: Settings) -> Panel? {
         func left(_ total: Int, _ since: Date) -> Int { max(0, Int((Double(total) - now.timeIntervalSince(since)).rounded(.up))) }
         if let since = session?.endingSince { return .ended(stopsIn: left(settings.callAutoStopSeconds, since)) }
-        if let call, case .offered(let since) = call.phase, let app = call.app {
-            let title = call.name ?? "\(app.title) call"
-            if settings.callAutoStart { return .autoStart(title: title, app: app, startsIn: left(settings.callAutoStartSeconds, since)) }
+        if let call, case .offered(let since, let auto) = call.phase, let app = call.app {
+            let title = call.title ?? "\(app.title) call"
+            if auto { return .autoStart(title: title, app: app, startsIn: left(settings.callAutoStartSeconds, since)) }
             return .offer(title: title, app: app, hidesIn: settings.callOfferSeconds == 0 ? nil : left(settings.callOfferSeconds, since))
         }
         return ready.map { .ready(detail: $0.detail) }

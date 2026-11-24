@@ -13,6 +13,10 @@ private func home(_ change: (inout AppSnapshot) -> Void = { _ in }) -> Home {
     return HomeModel.build(view)
 }
 
+private func meeting(_ id: Int, _ title: String?, _ app: String?, _ duration: TimeInterval?) -> MeetingStore.Meeting {
+    .init(id: id, path: "/notes/\(id).md", title: title, app: app, start: at(6, 10, 0), duration: duration, you: nil)
+}
+
 private func at(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
     Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
 }
@@ -29,20 +33,6 @@ struct HomeModelTests {
         #expect(home { $0.load = .failed("x") }.status == "Error: x")
     }
 
-    @Test func controlsWaitForTheJobThatUsesThem() {
-        #expect(!home().dictating && home().microphoneEnabled)
-        let dictating = home { $0.state = .recording }
-        #expect(dictating.dictating && !dictating.microphoneEnabled)
-        let meeting = home { $0.meeting = .init(state: .recording(elapsed: 1, waiting: 0)) }
-        #expect(!meeting.dictating && !meeting.microphoneEnabled)
-    }
-
-    @Test func theConfiguredMicrophoneIsListedEvenWhenNotConnected() {
-        #expect(home { $0.microphones = ["Built-in"]; $0.settings.microphone = "Built-in" }.microphones == ["Built-in"])
-        #expect(home { $0.microphones = ["Built-in"]; $0.settings.microphone = "AirPods" }.microphones == ["Built-in", "AirPods"])
-        #expect(home { $0.microphones = ["Built-in"] }.microphones == ["Built-in"])
-    }
-
     @Test func aWarningForEachProblem() {
         #expect(home().warnings.isEmpty)
         let warnings = home { $0.hotkeyProblem = "Hotkey taken"; $0.accessibilityGranted = false; $0.microphoneDenied = true }.warnings
@@ -53,33 +43,43 @@ struct HomeModelTests {
         ])
     }
 
-    @Test func oneEngineRowPerJobWithTheDownloadedPairs() {
-        let rows = home { $0.downloaded = [turbo, kit]; $0.settings.engines[.meetings] = kit }.engines
-        #expect(rows.map(\.task) == [.dictation, .preview, .meetings])
-        #expect(rows.map(\.title) == ["Dictation", "Live draft", "Meetings"])
-        #expect(rows[0].hint == "The text that gets pasted")
-        #expect(rows[0].choices.map(\.title) == ["whisper.cpp · large-v3-turbo", "WhisperKit · large-v3"])
-        #expect(rows[0].current == turbo && rows[2].current == kit)
-        #expect(rows.map(\.enabled) == [true, true, true])
-        #expect(EngineChoice(engine: .apple, model: "").pairTitle == "Apple Speech")
+    // Settings review design §5: a model a job uses that isn't on this Mac.
+    @Test func aMissingModelOfAJobIsAWarningThatOpensTheModels() {
+        #expect(home { $0.meetingModels = MeetingModel.allCases }.warnings.isEmpty)
+        let warnings = home { $0.settings.engines[.meetings] = kit; $0.meetingModels = [.diarization] }.warnings
+        #expect(warnings == [Home.Warning(text: "Not downloaded: WhisperKit large-v3 (Meetings), Silero VAD (Voice detection)",
+                                          button: .init(title: "Download…", action: .openModels))])
+        #expect(home { $0.downloaded = [] }.warnings.map(\.text) == ["Not downloaded: whisper.cpp large-v3-turbo (Dictation, Live draft, Meetings)"])
+        #expect(home { $0.meetingModels = [.vad] }.warnings.map(\.text) == ["Not downloaded: pyannote + WeSpeaker (Speaker detection)"])
+        // The live draft's model only while the live draft is on.
+        #expect(home { $0.settings.engines[.preview] = kit; $0.settings.livePreview = false }.warnings.isEmpty)
+        // Apple Speech has nothing to download: on a macOS without it, choose another engine.
+        let apple = home { $0.settings.engines[.dictation] = EngineChoice(engine: .apple, model: "") }.warnings
+        #expect(apple == [Home.Warning(text: "Apple Speech needs macOS 26 (Dictation)", button: .init(title: "Choose another…", action: .openModels))])
     }
 
-    @Test func aConfiguredPairThatIsNotDownloadedIsStillListed() {
-        let row = home { $0.settings.engines[.dictation] = kit }.engines[0]
-        #expect(row.choices.map(\.title) == ["whisper.cpp · large-v3-turbo", "WhisperKit · large-v3 (not downloaded)"])
-        #expect(row.current == kit)
-    }
-
-    @Test func anEnginePickerIsOffWhileItsJobRuns() {
-        #expect(home { $0.state = .transcribing }.engines.map(\.enabled) == [false, false, true])
-        #expect(home { $0.meeting = .init(state: .recording(elapsed: 1, waiting: 0)) }.engines.map(\.enabled) == [true, true, false])
-        #expect(home { $0.meeting = .init(state: .finishing(left: 1)) }.engines.map(\.enabled) == [true, true, false])
+    @Test func recentMeetingsWithTheirNameAppAndLength() {
+        #expect(home().meetings.isEmpty)
+        let meetings = home {
+            $0.recentMeetings = [meeting(1, "Weekly sync", "Teams", 2_700), meeting(2, nil, "Meet", 20), meeting(3, nil, nil, nil)]
+        }.meetings
+        #expect(meetings == [Home.Meeting(id: 1, title: "Weekly sync", detail: "Teams · 45 min"),
+                             Home.Meeting(id: 2, title: "Google Meet call", detail: "Google Meet · 1 min"),
+                             Home.Meeting(id: 3, title: "Meeting", detail: "")])
+        let many = (0..<12).map { meeting($0, "\($0)", "Zoom", 60) }
+        #expect(home { $0.recentMeetings = many }.meetings.map(\.id) == Array(0..<10))
     }
 
     @Test func meetingRowWithNoCall() {
         #expect(home().meeting == Home.MeetingRow(title: "No call right now", hint: "Shepit offers a transcript when a call starts",
                                                    button: .init(title: "Start transcript", action: .startMeeting)))
-        #expect(home { $0.settings.callOffer = false }.meeting.hint == "Call offers are off")
+        #expect(home { $0.settings.callModes = [:] }.meeting.hint == "Call offers are off")
+        #expect(home { $0.settings.callModes = [.meet: .auto] }.meeting.hint == "Shepit starts a transcript when a call starts")
+        #expect(home { $0.settings.callModes = [.meet: .auto, .zoom: .offer] }.meeting.hint == "Shepit offers a transcript when a call starts")
+        let rule = CallRule(app: .teams, match: .contains, text: "Daily", then: .auto)
+        #expect(home { $0.settings.callRules = [rule] }.meeting.hint == "Shepit offers a transcript when a call starts, or as a rule by its name says")
+        #expect(home { $0.settings.callRules = [rule]; $0.settings.callModes = [.zoom: .offer] }.meeting.hint
+            == "Shepit offers a transcript when a call starts") // Teams is Off: its rules are ignored
         #expect(home { $0.meeting = .init(state: .done(speakers: 2)) }.meeting.button?.action == .startMeeting)
     }
 
@@ -114,11 +114,11 @@ struct HomeModelTests {
 
     @Test func withoutTheModelStartIsOffButTheCallIsStillNamed() {
         let missing = "download the model in Settings"
-        #expect(home { $0.meetingMissing = missing }.meeting
+        #expect(home { $0.meetingModels = [.diarization] }.meeting
             == Home.MeetingRow(title: "No call right now", hint: "To start a transcript, \(missing)", button: .init(title: "Start transcript")))
-        #expect(home { $0.meetingMissing = missing; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
+        #expect(home { $0.downloaded = []; $0.call = CallOffer.Current(name: nil, app: .zoom) }.meeting
             == Home.MeetingRow(title: "Zoom call", hint: "To start a transcript, \(missing)", button: .init(title: "Start transcript")))
-        #expect(home { $0.meetingMissing = missing; $0.call = CallOffer.Current(name: "Weekly sync", app: .teams) }.meeting.hint
+        #expect(home { $0.meetingModels = []; $0.call = CallOffer.Current(name: "Weekly sync", app: .teams) }.meeting.hint
             == "Teams · To start a transcript, \(missing)")
     }
 

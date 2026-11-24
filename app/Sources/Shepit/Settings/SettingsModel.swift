@@ -8,16 +8,21 @@ import SwiftUI
 @MainActor
 @Observable
 final class SettingsModel {
+    /// The pages of Settings (settings review design §4).
     enum Section: String, CaseIterable, Identifiable {
         case general = "General"
         case hotkeys = "Hotkeys"
-        case engines = "Engines and models"
         case dictation = "Dictation"
-        case overlay = "Overlay"
         case meetings = "Meetings"
-        case calls = "Calls"
+        case engines = "Engines and models"
         case historyPrivacy = "History and privacy"
         case appearance = "Appearance"
+
+        /// A page name remembered by the window, mapped to where its settings are now: Overlay went into Dictation and
+        /// Calls into Meetings (settings review, 2026-11-23).
+        init?(stored: String) {
+            self.init(rawValue: ["Overlay": Self.dictation.rawValue, "Calls": Self.meetings.rawValue][stored] ?? stored)
+        }
 
         var id: String { rawValue }
 
@@ -27,24 +32,35 @@ final class SettingsModel {
             case .hotkeys: "keyboard"
             case .dictation: "mic"
             case .meetings: "person.2.wave.2"
-            case .calls: "phone"
             case .engines: "cpu"
-            case .overlay: "rectangle.bottomhalf.inset.filled"
             case .historyPrivacy: "lock.shield"
             case .appearance: "paintbrush"
             }
         }
 
-        /// The settings.json keys each section edits (`serverPort` is accepted in the file but shown nowhere).
+        /// What the page is for, shown at its top.
+        var line: String {
+            switch self {
+            case .general: "Shepit itself: starting at login, sounds, and its files."
+            case .hotkeys: "The keys that start dictation and meetings."
+            case .dictation: "How you dictate: language, microphone, pasting, and the panel shown while you speak."
+            case .meetings: "Meeting transcripts: when they start, where the notes go, how they are transcribed."
+            case .engines: "Which engine does each job, and every model on this Mac."
+            case .historyPrivacy: "What Shepit keeps on this Mac, for how long, and how to clear it."
+            case .appearance: "How Shepit's window looks."
+            }
+        }
+
+        /// The settings.json keys each section edits.
         var keys: [String] {
             switch self {
-            case .general: ["launchAtLogin", "sounds", "language"]
+            case .general: ["launchAtLogin", "sounds"]
             case .hotkeys: ["mode", "hotkey", "cancelKey", "addWordHotkey", "meetingHotkey"]
-            case .dictation: ["microphone", "stylePrompt", "refocusOriginalApp", "restoreClipboard", "maxRecordingSeconds"]
-            case .meetings: ["meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"]
-            case .calls: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps"]
+            case .dictation: ["language", "microphone", "maxRecordingSeconds", "stylePrompt", "refocusOriginalApp", "restoreClipboard",
+                              "overlay", "livePreview", "overlayStyle"]
+            case .meetings: ["callOffer", "callOfferSeconds", "callAutoStart", "callAutoStartSeconds", "callAutoStopSeconds", "callApps", "callModes", "callRules",
+                             "meetingsFolder", "meetingFileName", "meetingAskTitle", "meetingMyName", "meetingLanguage", "meetingBlocksDictation"]
             case .engines: ["engines", "idleUnloadMinutes"]
-            case .overlay: ["overlay", "livePreview", "overlayStyle"]
             case .historyPrivacy: ["saveHistory", "historyDays", "historyMenuItems", "failedAudioHours", "collectStats", "typingSpeedWpm", "databasesFolder"]
             case .appearance: ["theme", "accentColor"]
             }
@@ -62,6 +78,8 @@ final class SettingsModel {
     var isReadOnly: Bool { !errors.isEmpty }
 
     @ObservationIgnored private let store: SettingsStore
+    /// The text settings typed and not saved yet.
+    @ObservationIgnored let drafts = SettingDrafts()
     @ObservationIgnored private let dictionaryStore: DictionaryStore
     /// Called after a successful write, so the app applies the change at once.
     @ObservationIgnored var onChange: () -> Void = {}

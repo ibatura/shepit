@@ -46,14 +46,14 @@ struct DictationStoreTests {
         #expect(seen == [ids[6], ids[5], ids[4], ids[3], ids[2], ids[1], ids[0]])
     }
 
-    @Test func pagesStopAtThePeriodsStart() throws {
+    @Test func pagesStayInThePeriod() throws {
         let (store, dir) = store()
         defer { try? FileManager.default.removeItem(at: dir) }
-        for i in 0..<5 { try store.add(text: "entry \(i)", app: nil, at: start.addingTimeInterval(Double(i) * 60)) }
-        let since = start.addingTimeInterval(120)
-        let first = try store.page(since: since, limit: 2)
+        for i in 0..<6 { try store.add(text: "entry \(i)", app: nil, at: start.addingTimeInterval(Double(i) * 60)) }
+        let range = DateInterval(start: start.addingTimeInterval(120), end: start.addingTimeInterval(300)) // entry 5 is at its end
+        let first = try store.page(in: range, limit: 2)
         #expect(first.map(\.text) == ["entry 4", "entry 3"])
-        #expect(try store.page(before: first.last, since: since, limit: 2).map(\.text) == ["entry 2"])
+        #expect(try store.page(before: first.last, in: range, limit: 2).map(\.text) == ["entry 2"])
     }
 
     @Test func deleteRemovesOneEntry() throws {

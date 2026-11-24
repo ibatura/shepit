@@ -10,9 +10,7 @@ struct SettingsTests {
         #expect(settings?.mode == "toggle")
         #expect(settings?.hotkey == Hotkey(mods: ["alt"], key: "space"))
         #expect(settings?.cancelKey == "escape")
-        #expect(settings?.model == "large-v3")
         #expect(settings?.language == "uk")
-        #expect(settings?.serverPort == 8178)
         #expect(settings?.maxRecordingSeconds == 300)
         #expect(settings?.idleUnloadMinutes == 0)
         #expect(settings?.refocusOriginalApp == true)
@@ -82,7 +80,7 @@ struct SettingsTests {
         #expect(errors.isEmpty)
         #expect(defaults?.overlay == true)
         #expect(defaults?.livePreview == true)
-        #expect(defaults?.previewModel == "large-v3-turbo")
+        #expect(defaults?.engines[.preview] == EngineChoice(engine: .whispercpp, model: "large-v3-turbo"))
         #expect(defaults?.overlayStyle == .defaults)
 
         let (custom, customErrors) = validateSettings(["overlayStyle": ["opacity": 0.6, "meterColor": "#AABBCC", "bars": 16, "listeningText": "Ready"]])
@@ -184,8 +182,7 @@ struct SettingsTests {
 
         #expect(errors.isEmpty)
         #expect(settings?.engines[.dictation] == EngineChoice(engine: .whisperkit, model: "large-v3"))
-        #expect(settings?.model == Settings.defaults.model)
-        #expect(settings?.previewModel == Settings.defaults.previewModel)
+        #expect(settings?.engines[.preview] == EngineChoice(engine: .whispercpp, model: "large-v3"))
     }
 
     @Test func engineChoicesValidateIDsModelsAndTaskNames() {
@@ -269,12 +266,10 @@ struct SettingsTests {
 
     @Test func callDefaults() {
         let settings = validateSettings([:]).0
-        #expect(settings?.callOffer == true)
+        #expect(settings?.callModes == [.teams: .offer, .zoom: .offer, .meet: .offer])
         #expect(settings?.callOfferSeconds == 15)
-        #expect(settings?.callAutoStart == false)
         #expect(settings?.callAutoStartSeconds == 5)
         #expect(settings?.callAutoStopSeconds == 10)
-        #expect(settings?.callApps == ["Teams", "Zoom", "Meet"])
     }
 
     @Test func callValuesAreAccepted() {
@@ -283,15 +278,14 @@ struct SettingsTests {
             "callAutoStartSeconds": 3, "callAutoStopSeconds": 120, "callApps": ["Zoom"],
         ])
         #expect(errors.isEmpty)
-        #expect(settings?.callOffer == false)
+        #expect(settings?.callModes == [.teams: .off, .zoom: .off, .meet: .off]) // offers off
         #expect(settings?.callOfferSeconds == 0)
-        #expect(settings?.callAutoStart == true)
         #expect(settings?.callAutoStartSeconds == 3)
         #expect(settings?.callAutoStopSeconds == 120)
-        #expect(settings?.callApps == ["Zoom"])
+        #expect(validateSettings(["callAutoStart": true, "callApps": ["Zoom"]]).0?.callModes == [.teams: .off, .zoom: .auto, .meet: .off])
         #expect(validateSettings(["callOfferSeconds": 5]).0?.callOfferSeconds == 5)
         #expect(validateSettings(["callOfferSeconds": 120]).0?.callOfferSeconds == 120)
-        #expect(validateSettings(["callApps": [String]()]).0?.callApps == [])
+        #expect(validateSettings(["callApps": [String]()]).0?.callModes == [.teams: .off, .zoom: .off, .meet: .off])
     }
 
     @Test func callValuesAreRejected() {
@@ -306,6 +300,33 @@ struct SettingsTests {
             #"settings.json: "callAutoStopSeconds" must be a whole number from 3 to 120"#,
             #"settings.json: "callOffer" must be a boolean"#,
         ])
+    }
+
+    // Settings review design §7.2.
+    @Test func callModesAndRulesAreRead() {
+        let (settings, errors) = validateSettings([
+            "callModes": ["Teams": "offer", "Zoom": "off", "Meet": "auto"],
+            "callRules": [["app": "Teams", "match": "contains", "text": "Daily scrum", "then": "auto"],
+                          ["app": "Meet", "match": "is", "text": "", "then": "off"]],
+        ])
+        #expect(errors.isEmpty)
+        #expect(settings?.callModes == [.teams: .offer, .zoom: .off, .meet: .auto])
+        #expect(settings?.callRules == [CallRule(app: .teams, match: .contains, text: "Daily scrum", then: .auto),
+                                        CallRule(app: .meet, match: .is, text: "", then: .off)])
+        #expect(validateSettings(["callModes": ["Zoom": "auto"], "callApps": ["Teams"]]).0?.callModes == [.zoom: .auto]) // the old keys only without callModes
+        #expect(validateSettings([:]).0?.callRules == [])
+        #expect(validateSettings(["callModes": [String: String]()]).0?.callModes == [:])
+    }
+
+    @Test func callModesAndRulesAreRejected() {
+        let modes = #"settings.json: "callModes" must be an object from an app (Teams, Zoom, Meet) to auto, offer or off"#
+        let badModes: [Any] = [["Slack": "auto"], ["Teams": "start"], ["Teams": 1], ["Teams", "auto"], "auto"]
+        for bad in badModes { #expect(validateSettings(["callModes": bad]).1 == [modes]) }
+        let rules = #"settings.json: "callRules" must be a list of rules, each with app (Teams, Zoom, Meet), match (contains, is), text and then (auto, offer, off)"#
+        let rule: [String: Any] = ["app": "Teams", "match": "contains", "text": "Daily", "then": "auto"]
+        let badRules: [Any] = [rule, [rule.merging(["app": "Slack"]) { $1 }], [rule.merging(["match": "starts"]) { $1 }],
+                               [rule.merging(["then": "start"]) { $1 }], [rule.merging(["text": 1]) { $1 }], [rule.filter { $0.key != "text" }], ["Teams"]]
+        for bad in badRules { #expect(validateSettings(["callRules": bad]).1 == [rules]) }
     }
 
     @Test func aHotkeyClashIgnoresModifierOrderAndCaseAndCountsTheCancelKey() {
@@ -380,11 +401,12 @@ struct SettingsTests {
         #expect(settings.myName(fullName: "") == "Я")
     }
 
-    @Test func serverPortIsIgnoredEvenWhenOutsideLegacyRange() {
+    /// `serverPort` was the old whisper-server's port; nothing reads it now, and a file that still has it loads.
+    @Test func aFileWithTheDroppedServerPortLoads() {
         let (settings, errors) = validateSettings(["serverPort": 99999])
 
         #expect(errors.isEmpty)
-        #expect(settings?.serverPort == Settings.defaults.serverPort)
+        #expect(settings != nil)
     }
 
     @Test func realUserSettingsFileLoadsAndUnknownKeysAreIgnored() throws {
@@ -413,5 +435,8 @@ struct SettingsTests {
         #expect(settings?.launchAtLogin == true)
         #expect(settings?.typingSpeedWpm == 40)
         #expect(settings?.collectStats == true)
+        #expect(settings?.meetingHotkey == Hotkey(mods: ["ctrl", "alt"], key: "m"))
+        #expect(settings.map { s in CallApp.allCases.map { s.callMode(for: $0) } } == [.offer, .offer, .offer])
+        #expect(settings?.callChoice(app: .teams, name: "Daily Scrum — team") == .auto)
     }
 }

@@ -36,14 +36,18 @@ struct DictationsModelTests {
         try store.add(text: "now", app: nil, at: now)
         let defaults = try defaults()
         let model = DictationsModel(store: store, defaults: defaults)
-        #expect(model.period == .month)
+        #expect(model.period == .preset(.month))
         model.reload()
         #expect(model.entries.map(\.text) == ["now", "this week"])
-        model.period = .today
+        model.period = .preset(.today)
         #expect(model.entries.map(\.text) == ["now"])
-        model.period = .all
+        model.period = .preset(.all)
         #expect(model.entries.map(\.text) == ["now", "this week", "old"])
-        #expect(DictationsModel(store: store, defaults: defaults).period == .all)
+        #expect(DictationsModel(store: store, defaults: defaults).period == .preset(.all))
+        let custom = StatsPeriod.custom(from: now.addingTimeInterval(-41 * 86_400), through: now.addingTimeInterval(-39 * 86_400))
+        model.period = custom
+        #expect(model.entries.map(\.text) == ["old"])
+        #expect(DictationsModel(store: store, defaults: defaults).period == custom)
     }
 
     @Test func theFirstPageThenTheNextWhenTheLastRowsAppear() throws {

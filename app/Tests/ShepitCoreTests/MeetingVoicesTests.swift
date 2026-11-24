@@ -127,13 +127,14 @@ struct MeetingVoicesTests {
         try store.setName(b.id, person: "Person 1", to: "Olena")
         try store.setName(b.id, person: "Person 2", to: "OLENA") // one person twice in a meeting: one presence
         let you = try #require(try store.people(a.id)[0].person), olena = try #require(try store.people(a.id)[1].person)
-        func presences(_ person: Int, since: Date? = nil) throws -> [MeetingStore.Presence] {
-            try store.presences(of: person, since: since).sorted { $0.meeting < $1.meeting }
+        func presences(_ person: Int, in range: DateInterval? = nil) throws -> [MeetingStore.Presence] {
+            try store.presences(of: person, in: range).sorted { $0.meeting < $1.meeting }
         }
         #expect(try presences(you) == [.init(meeting: a.id, words: 1, meetingWords: 4), .init(meeting: b.id, words: 1, meetingWords: 4)])
         #expect(try presences(olena) == [.init(meeting: a.id, words: 3, meetingWords: 4),
                                          .init(meeting: b.id, words: 2, meetingWords: 4)]) // both her labels in b: once
-        #expect(try presences(olena, since: start + 1) == [.init(meeting: b.id, words: 2, meetingWords: 4)])
+        #expect(try presences(olena, in: DateInterval(start: start + 1, end: .distantFuture)) == [.init(meeting: b.id, words: 2, meetingWords: 4)])
+        #expect(try presences(olena, in: DateInterval(start: start, end: start + 3600)) == [.init(meeting: a.id, words: 3, meetingWords: 4)])
         #expect(try MeetingStore(file: dir.appending(path: "none.sqlite")).presences(of: you).isEmpty)
         // People's list: a row each, the meetings counted once; Marko has no line left.
         #expect(try store.summaries().sorted { $0.person < $1.person } == [

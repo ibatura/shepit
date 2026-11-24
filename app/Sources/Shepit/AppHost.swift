@@ -141,7 +141,6 @@ final class AppHost: ControllerHost {
             }
         }
         if initial || before?.theme != after.theme { applyTheme(after.theme) }
-        if initial || before?.engines != after.engines { lookups.meetingMissing = meetingMissing } // follows the meetings engine
         if initial || before?.accentColor != after.accentColor { applyAccentColor(after.accentColor) }
         if announce, settingsOK, dictionaryOK { panel.message("Config reloaded") }
         refreshStatus()
@@ -209,34 +208,34 @@ final class AppHost: ControllerHost {
         view.meeting = liveMeeting()
         view.call = callOffer.current
         view.downloaded = lookups.downloaded
-        view.microphones = lookups.microphones
+        view.meetingModels = lookups.meetingModels
         view.history = lookups.history
         view.accessibilityGranted = lookups.accessibilityGranted
         view.microphoneDenied = lookups.microphoneDenied
-        view.meetingMissing = lookups.meetingMissing
+        view.recentMeetings = lookups.recentMeetings
         return view
     }
 
     /// The parts of the snapshot that need a device or disk lookup.
     struct Lookups {
         var downloaded: [EngineChoice] = []
-        var microphones: [String] = []
+        var meetingModels: [MeetingModel] = MeetingModel.allCases
         var history: [DictationStore.Entry] = []
         var accessibilityGranted = true
         var microphoneDenied = false
-        var meetingMissing: String?
+        var recentMeetings: [MeetingStore.Meeting] = []
     }
 
     /// Enough history for Home and for the menu's Recent.
     var recentHistory: [DictationStore.Entry] {
-        (try? dictations.page(limit: max(HomeModel.dictationCount, settings.historyMenuItems))) ?? []
+        (try? dictations.page(limit: max(HomeModel.recentCount, settings.historyMenuItems))) ?? []
     }
 
     func gatherLookups() {
-        lookups = Lookups(downloaded: ModelCatalog.downloadedChoices(), microphones: AudioRecorder.inputDevices().map(\.name),
+        lookups = Lookups(downloaded: ModelCatalog.downloadedChoices(), meetingModels: MeetingModel.allCases.filter { $0.isDownloaded() },
                           history: recentHistory,
                           accessibilityGranted: Permissions.accessibilityGranted, microphoneDenied: Permissions.microphoneDenied,
-                          meetingMissing: meetingMissing)
+                          recentMeetings: (try? meetingStore.meetings(limit: HomeModel.recentCount)) ?? [])
     }
 
     private var hotkeyProblem: String? {
@@ -279,46 +278,51 @@ final class AppHost: ControllerHost {
     }
 
     private func clearStatistics() {
-        NSApp.activate()
+        askToClear("Clear statistics?", "Deletes all recorded usage statistics on this Mac. This cannot be undone.") { [unowned self] in
+            do {
+                try stats.clear()
+                panel.message("🗑 Statistics cleared")
+            } catch {
+                showAlert(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Clear history… and Clear statistics… are pressed in the window, so they ask in a sheet on it, as every Delete…
+    /// there does (the author, 2026-11-23); a dialog of its own if no window is in front.
+    private func askToClear(_ title: String, _ message: String, clear: @escaping @MainActor () -> Void) {
         let alert = NSAlert()
-        alert.messageText = "Clear statistics?"
-        alert.informativeText = "Deletes all recorded usage statistics on this Mac. This cannot be undone."
+        alert.messageText = title
+        alert.informativeText = message
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Clear")
         alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        do {
-            try stats.clear()
-            panel.message("🗑 Statistics cleared")
-        } catch {
-            showAlert(error.localizedDescription)
+        guard let window = NSApp.keyWindow else {
+            NSApp.activate()
+            if alert.runModal() == .alertFirstButtonReturn { clear() }
+            return
+        }
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn { MainActor.assumeIsolated { clear() } }
         }
     }
 
     func perform(_ action: AppAction) {
         switch action {
-        case .setMode(let mode): update("mode", mode)
         case .setLanguage(let language): update("language", language)
-        case .setEngine(let choice):
-            var engines = settings.engines
-            engines[.dictation] = choice
-            update("engines", Dictionary(uniqueKeysWithValues: engines.map { ($0.key.rawValue, ["engine": $0.value.engine.rawValue, "model": $0.value.model]) }))
+        case .setMeetingLanguage(let language): update("meetingLanguage", language)
         case .addToDictionary: Task { await addToDictionary() }
         case .openWindow: showWindow()
         case .openSettings: showWindow(.settings)
+        case .openModels:
+            mainWindow.navigation.openSettings(.engines)
+            showWindow()
         case .reloadConfig: reloadConfig(announce: true)
-        case .reloadModels:
-            let engines = settings.engines
-            Task {
-                await self.models.setChoices([:])
-                await self.models.setChoices(engines)
-                await self.models.preload([.dictation, .preview])
-            }
         case .clearHistory: clearHistory()
         case .copyText(let text):
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
-            panel.message("📋 Скопійовано")
+            panel.message("📋 Copied")
         case .grantAccessibility: Permissions.requestAccessibility()
         case .grantMicrophone: Permissions.requestMicrophone()
         case .startMeeting: Task { await startMeeting() }
@@ -345,21 +349,15 @@ final class AppHost: ControllerHost {
     }
 
     private func clearHistory() {
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = "Clear dictation history?"
-        alert.informativeText = "Deletes every kept dictation and the kept audio of failed attempts. This cannot be undone."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Clear")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        do {
-            try dictations.clear()
-        } catch {
-            return panel.message("Could not clear history: \(error.localizedDescription)")
+        askToClear("Clear dictation history?", "Deletes every kept dictation and the kept audio of failed attempts. This cannot be undone.") { [unowned self] in
+            do {
+                try dictations.clear()
+            } catch {
+                return panel.message("Could not clear history: \(error.localizedDescription)")
+            }
+            FailedAudio.cleanup(Paths.failedDir, olderThanHours: 0, now: Date().addingTimeInterval(1))
+            panel.message("🗑 History cleared")
         }
-        FailedAudio.cleanup(Paths.failedDir, olderThanHours: 0, now: Date().addingTimeInterval(1))
-        panel.message("🗑 History cleared")
     }
 
     /// Selected text (or nothing) → dialog → rule in dictionary.json. The window's Add word reads no selection: ⌘C
@@ -375,8 +373,8 @@ final class AppHost: ControllerHost {
         field.frame = NSRect(x: 0, y: 0, width: 300, height: 24)
         alert.accessoryView = field
         alert.window.initialFirstResponder = field
-        alert.addButton(withTitle: "Додати")
-        alert.addButton(withTitle: "Скасувати")
+        alert.addButton(withTitle: "Add")
+        alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         switch AddWord.parse(selected: selected, input: field.stringValue) {
         case .error(let message):

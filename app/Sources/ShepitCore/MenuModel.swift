@@ -64,47 +64,41 @@ public enum MenuModel {
         }
     }
 
+    /// Settings review design §6: ⚠ problems, Meeting, Dictation, Shepit, each group led by its state.
     public static func build(_ view: AppSnapshot) -> [MenuItem] {
-        let busy = view.state != .idle
-        var items = [MenuItem(title: view.statusLine, enabled: false)]
-        if let meeting = view.meeting, let line = meetingLine(meeting.state, title: meeting.title) { items.append(MenuItem(title: line, enabled: false)) }
-        for error in view.configErrors {
-            items.append(MenuItem(title: StatusText.shorten("⚠ \(error)"), enabled: false))
-        }
-        if let problem = view.hotkeyProblem {
-            items.append(MenuItem(title: StatusText.shorten("⚠ \(problem)"), enabled: false))
-        }
+        var problems = (view.configErrors + [view.hotkeyProblem].compactMap { $0 }).map { MenuItem(title: StatusText.shorten("⚠ \($0)"), enabled: false) }
         if !view.accessibilityGranted {
-            items.append(MenuItem(title: "⚠ Accessibility not granted — click to allow (needed to paste)", action: .grantAccessibility))
+            problems.append(MenuItem(title: "⚠ Accessibility not granted — click to allow (needed to paste)", action: .grantAccessibility))
         }
         if view.microphoneDenied {
-            items.append(MenuItem(title: "⚠ Microphone access denied — click to open Settings", action: .grantMicrophone))
+            problems.append(MenuItem(title: "⚠ Microphone access denied — click to open Settings", action: .grantMicrophone))
         }
-        items += [.separator, MenuItem(title: "Open Shepit", keyEquivalent: "o", action: .openWindow), .separator]
-        items.append(meetingItem(view))
-        items += [.separator, MenuItem(title: "Copy last dictation", enabled: !view.history.isEmpty, action: view.history.first.map { .copyText($0.text) })]
+        var meeting = view.meeting.flatMap { meetingLine($0.state, title: $0.title) }.map { [MenuItem(title: $0, enabled: false)] } ?? []
+        meeting += [meetingItem(view),
+                    languages("Meeting language", view.settings.meetingLanguage, enabled: view.meeting?.state.isActive != true, action: AppAction.setMeetingLanguage)]
+        var dictation = [MenuItem(title: "Dictation: \(view.statusLine)", enabled: false),
+                         MenuItem(title: "Copy last dictation", enabled: !view.history.isEmpty, action: view.history.first.map { .copyText($0.text) })]
         if view.settings.historyMenuItems > 0 {
             let entries = view.history.prefix(view.settings.historyMenuItems).map {
                 MenuItem(title: recentLabel($0, now: view.now), tooltip: $0.text, action: .copyText($0.text))
             }
-            items.append(MenuItem(title: "Recent", submenu: entries.isEmpty ? [MenuItem(title: "No dictations yet", enabled: false)] : entries))
+            dictation.append(MenuItem(title: "Recent dictations", submenu: entries.isEmpty ? [MenuItem(title: "No dictations yet", enabled: false)] : entries))
         }
-        items += [
-            MenuItem(title: "Add word…", action: .addToDictionary),
-            .separator,
-            MenuItem(title: "Mode", enabled: !busy, submenu: Settings.modes.map {
-                MenuItem(title: $0.title, checked: $0.value == view.settings.mode, action: .setMode($0.value))
-            }),
-            MenuItem(title: "Language", enabled: !busy, submenu: Settings.languages.map {
-                MenuItem(title: $0.title, checked: $0.value == view.settings.language, action: .setLanguage($0.value))
-            }),
-            MenuItem(title: "Dictation engine", enabled: !busy, submenu: engineChoices(view)),
-            .separator,
-            MenuItem(title: "About Shepit", action: .about),
+        dictation += [MenuItem(title: "Add word to dictionary…", action: .addToDictionary),
+                      languages("Dictation language", view.settings.language, enabled: view.state == .idle, action: AppAction.setLanguage)]
+        let shepit = [
+            MenuItem(title: "Open Shepit", keyEquivalent: "o", action: .openWindow),
             MenuItem(title: "Settings…", keyEquivalent: ",", action: .openSettings),
+            MenuItem(title: "About Shepit", action: .about),
             MenuItem(title: "Quit Shepit", keyEquivalent: "q", action: .quit),
         ]
-        return items
+        return Array([problems, meeting, dictation, shepit].filter { !$0.isEmpty }.joined(separator: [.separator]))
+    }
+
+    private static func languages(_ title: String, _ current: String, enabled: Bool, action: (String) -> AppAction) -> MenuItem {
+        MenuItem(title: title, enabled: enabled, submenu: Settings.languages.map {
+            MenuItem(title: $0.title, checked: $0.value == current, action: action($0.value))
+        })
     }
 
     /// "14:32 · text" on one line, the text cut to `recentLabelChars` with "…".
@@ -114,15 +108,5 @@ public enum MenuModel {
             text = String(text.prefix(recentLabelChars - 1)).replacingOccurrences(of: #"\s+$"#, with: "", options: .regularExpression) + "…"
         }
         return "\(DictationPage.when(entry.time, now: now)) · \(text)"
-    }
-
-    /// Downloaded engine+model pairs for dictation; the configured one is shown even when missing.
-    private static func engineChoices(_ view: AppSnapshot) -> [MenuItem] {
-        let current = view.settings.engines[.dictation]
-        var items = view.downloaded.map { MenuItem(title: $0.title, checked: $0 == current, action: .setEngine($0)) }
-        if let current, !view.downloaded.contains(current) {
-            items.append(MenuItem(title: "\(current.title) (not downloaded)", enabled: false))
-        }
-        return items
     }
 }

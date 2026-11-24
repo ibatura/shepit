@@ -2,14 +2,15 @@ import Foundation
 
 /// What the app can be asked to do: from the menu, the window and the meeting hotkey.
 public enum AppAction: Equatable, Sendable {
-    case setMode(String)
-    case setEngine(EngineChoice)
+    /// The dictation language.
     case setLanguage(String)
+    case setMeetingLanguage(String)
     case addToDictionary
     case openWindow
     case openSettings
+    /// Settings → Engines and models, where a missing model is downloaded.
+    case openModels
     case reloadConfig
-    case reloadModels
     case clearHistory
     case copyText(String)
     case grantAccessibility
@@ -33,7 +34,8 @@ public struct AppSnapshot: Sendable {
     public var configErrors: [String] = []
     public var hotkeyProblem: String?
     public var now = Date()
-    public var microphones: [String] = []
+    /// The meetings' voice and speaker detection models on this Mac.
+    public var meetingModels: [MeetingModel] = MeetingModel.allCases
     public var accessibilityGranted = true
     public var microphoneDenied = false
     /// The transcript being recorded or finished; nil when none runs.
@@ -42,10 +44,20 @@ public struct AppSnapshot: Sendable {
     public var call: CallOffer.Current?
     /// The newest history entries, newest first: enough for Home and for Recent (`historyMenuItems`).
     public var history: [DictationStore.Entry] = []
-    /// nil when a meeting can start; else what to download first.
-    public var meetingMissing: String?
+    /// The newest listed meetings, newest first: enough for Home.
+    public var recentMeetings: [MeetingStore.Meeting] = []
 
     public init() {}
+
+    /// nil when a meeting can start; else what to download first.
+    public var meetingMissing: String? {
+        Self.meetingMissing(engine: downloaded.contains(settings.engine(for: .meetings)), voiceDetection: meetingModels.contains(.vad))
+    }
+
+    /// A meeting needs its engine's model and voice detection; speaker detection only names the voices.
+    public static func meetingMissing(engine: Bool, voiceDetection: Bool) -> String? {
+        engine && voiceDetection ? nil : "download the model in Settings"
+    }
 }
 
 /// The transcript being recorded, as the menu, Home and the Meetings section show it (Meetings design §7), from the session's memory.
