@@ -109,7 +109,7 @@ extension MeetingStore {
             [person]) { (name: $0.text(0), you: $0.int(1) == 1) }.first
     }
 
-    /// The meetings a person is in, newest first.
+    /// The meetings a person is in, newest first: found through `people_person`, then sorted (one person's meetings only).
     public func meetings(of person: Int) throws -> [Meeting] {
         try meetings("WHERE id IN (SELECT meeting FROM people WHERE person = ?) ORDER BY start DESC, id DESC", [person])
     }
@@ -124,23 +124,5 @@ extension MeetingStore {
         guard let key = Names.key(name) else { return nil }
         return try sqlite.rows("SELECT id, name FROM persons WHERE you = 0 AND id != ? AND name_key(name) = ? ORDER BY id LIMIT 1",
                                [person, key]) { (id: $0.int(0), name: $0.text(1) ?? "") }.first
-    }
-
-    /// Meetings listed before words were kept (voices design §7): some lines have none.
-    public func meetingsWithoutWords() throws -> [Meeting] {
-        try meetings("WHERE id IN (SELECT meeting FROM lines WHERE words IS NULL) ORDER BY start DESC, id DESC")
-    }
-
-    /// The words of a meeting listed before they were kept, from its note's `entries`; only lines that have none.
-    public func fillWords(_ meeting: Int, entries: [MeetingNote.Entry]) throws {
-        guard try !sqlite.rows("SELECT 1 FROM lines WHERE meeting = ? AND words IS NULL LIMIT 1", [meeting], read: { $0.int(0) }).isEmpty else { return }
-        let lines = try lines(meeting)
-        try transaction {
-            for (entry, line) in zip(entries, MeetingPage.pair(entries, lines)) {
-                guard let line else { continue }
-                try sqlite.run("UPDATE lines SET words = ? WHERE meeting = ? AND timestamp = ? AND ord = ? AND words IS NULL",
-                               [Self.words(entry.text), meeting, line.place.timestamp, line.place.order])
-            }
-        }
     }
 }

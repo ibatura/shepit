@@ -177,19 +177,4 @@ struct PeopleModelTests {
         #expect(model.meetingRows.isEmpty)
         #expect(PeopleModel(store: store, settings: { .defaults }, defaults: defaults).period == .preset(.today))
     }
-
-    @Test func wordsOfOlderMeetingsAreFilledOnce() async throws {
-        let (model, store, dir) = try rig(try defaults())
-        defer { try? FileManager.default.removeItem(at: dir) }
-        try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
-        model.reload()
-        model.selection = model.people[1].id
-        model.period = .preset(.all)
-        #expect(model.talk.map(\.value) == ["1", "–", "–", "–"])
-        await model.fillWords()
-        #expect(model.talk.map(\.value) == ["1", "–", "1", "33%"])
-        try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
-        await model.fillWords() // once per run
-        #expect(try store.meetingsWithoutWords().count == 1)
-    }
 }

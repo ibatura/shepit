@@ -322,7 +322,7 @@ struct MeetingVoicesTests {
 
     // MARK: Who talked how much (voices design §6)
 
-    @Test func presencesCountWordsAndTalkTimeAndOlderMeetingsGetTheirWords() throws {
+    @Test func presencesCountWordsAndTalkTime() throws {
         let (store, dir) = setUp()
         defer { try? FileManager.default.removeItem(at: dir) }
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -338,19 +338,5 @@ struct MeetingVoicesTests {
         #expect(try presences().map(\.words) == [3, 2]) // a line not recognised has no words
         #expect(try presences().map(\.seconds) == [2.5, 1.5])
         #expect(try presences().map(\.meetingWords) == [6, 6])
-
-        // A meeting listed before words were kept gets them from its note.
-        #expect(try store.meetingsWithoutWords().isEmpty)
-        try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
-        #expect(try presences().map(\.words) == [nil, nil])
-        #expect(try store.meetingsWithoutWords().map(\.id) == [id])
-        let entries = MeetingNote.parse(try String(contentsOf: file, encoding: .utf8)).entries
-        try store.fillWords(id, entries: entries)
-        #expect(try presences().map(\.words) == [3, 2])
-        #expect(try presences().map(\.meetingWords) == [6, 6])
-        #expect(try store.meetingsWithoutWords().isEmpty)
-        // Only where there are none: a note edited later doesn't change them.
-        try store.fillWords(id, entries: entries.map { var entry = $0; entry.text += " more"; return entry })
-        #expect(try presences().map(\.words) == [3, 2])
     }
 }

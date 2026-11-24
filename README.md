@@ -164,7 +164,7 @@ Shepit window → **People** lists everyone you named in meetings: you first, th
 - **Who talked how much** in the period picked beside it (the same menu as Dictations and Statistics, Custom… too; Last month by default): meetings, talk time, words, and their share of all the words of those meetings.
 - **Meetings** in that period: each with its date and their talk time and words; a click opens it in Meetings.
 
-Talk time is known for meetings recorded from this version on; older meetings and notes added with Add notes… show "–". The words of meetings listed before this version are counted from their notes the first time People opens.
+Talk time is known for meetings recorded from this version on; older meetings and notes added with Add notes… show "–".
 
 You have no Rename, Merge into or Delete voice: your name in notes is Settings → Meetings → Your name (`meetingMyName`), and **Delete all voices…** deletes your voice too.
 

@@ -230,6 +230,37 @@ struct MeetingStoreTests {
         #expect(try store.knownNames() == ["Ivan B.", "ОЛЕНА", "Me"]) // "you" labels are names, as before
     }
 
+    /// Query plans design §7.1: version 3 adds the indexes the list and a person's meetings need.
+    @Test func version2GetsTheIndexesAndItsPlansUseThem() throws {
+        let (_, dir) = store()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appending(path: "meetings.sqlite")
+        // Upgrade 2 calls name_key, which SQLite refuses at prepare time without the function.
+        let v2 = SQLiteFile(file: file, schema: MeetingStore.schema, upgrades: Array(MeetingStore.upgrades.dropLast()),
+                            functions: ["name_key": Names.key])
+        try v2.run("INSERT INTO meetings (id, path, start, you) VALUES (1, '/a.md', ?, 'Me')", [start.timeIntervalSince1970])
+        try v2.run("INSERT INTO people (meeting, key, person) VALUES (1, 'Me', 1)")
+        try v2.run("INSERT INTO lines (meeting, timestamp, ord, original, current, words) VALUES (1, '2026-07-31 10:00:01', 0, 'Me', 'Me', 2)")
+        #expect(try v2.rows("SELECT version FROM schema_version") { $0.int(0) } == [2])
+
+        let store = MeetingStore(file: file)
+        #expect(try store.meetings().map(\.path) == ["/a.md"])
+        #expect(try store.people(1) == [.init(key: "Me", name: nil, person: 1)])
+        #expect(try store.lines(1) == [.init(place: .init(timestamp: "2026-07-31 10:00:01", order: 0), original: "Me", current: "Me", words: 2)])
+        #expect(try store.sqlite.rows("SELECT version FROM schema_version") { $0.int(0) } == [3])
+        #expect(try store.sqlite.rows("SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%' ORDER BY name") {
+            $0.text(0)
+        } == ["meetings_start", "people_person"])
+        // Copies of the SQL meetings(limit:) and meetings(of:) build; a changed query is checked in its task's review.
+        func plan(_ sql: String) throws -> String { try store.sqlite.rows("EXPLAIN QUERY PLAN \(sql)") { $0.text(3) }.joined(separator: "\n") }
+        let list = try plan("SELECT id, path, title, app, start, duration, you FROM meetings ORDER BY start DESC, id DESC LIMIT ?")
+        #expect(list.contains("USING INDEX meetings_start") && !list.contains("TEMP B-TREE"))
+        #expect(try plan("""
+            SELECT id, path, title, app, start, duration, you FROM meetings
+            WHERE id IN (SELECT meeting FROM people WHERE person = ?) ORDER BY start DESC, id DESC
+            """).contains("USING INDEX people_person (person=?)"))
+    }
+
     @Test func aFailedChangeLeavesTheDatabaseAsItWas() throws {
         struct Refused: Error {}
         let (store, dir) = store()

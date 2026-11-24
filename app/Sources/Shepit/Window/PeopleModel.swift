@@ -64,7 +64,6 @@ final class PeopleModel {
     @ObservationIgnored private var prints: (version: Int, prints: [Int: Voices.Print])?
     /// The read of `prints` under way.
     @ObservationIgnored private(set) var reading: Task<Void, Never>?
-    @ObservationIgnored private var wordsFilled = false
 
     /// `settings`: your name, as it is now.
     init(store: MeetingStore, settings: @escaping () -> ShepitCore.Settings, defaults: UserDefaults = .standard) {
@@ -85,25 +84,6 @@ final class PeopleModel {
         }
         tally()
         suggest()
-    }
-
-    /// The words of meetings listed before they were kept (voices design §7), once per run when the section first
-    /// appears: each note is read off the main thread (a note in iCloud Drive may be downloaded), then the list again.
-    func fillWords() async {
-        guard !wordsFilled else { return }
-        wordsFilled = true
-        let older = (try? store.meetingsWithoutWords()) ?? []
-        guard !older.isEmpty else { return }
-        for meeting in older {
-            let note = URL(fileURLWithPath: meeting.path)
-            guard let text = await Task.detached(operation: { try? String(contentsOf: note, encoding: .utf8) }).value else { continue }
-            do {
-                try store.fillWords(meeting.id, entries: MeetingNote.parse(text).entries)
-            } catch {
-                NSLog("Shepit meeting words: %@", String(describing: error))
-            }
-        }
-        reload()
     }
 
     /// The chosen person's lines are read for `period` only: You is in every meeting.
