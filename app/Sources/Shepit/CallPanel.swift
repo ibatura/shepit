@@ -42,7 +42,10 @@ final class CallPanel {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().setFrame(NSRect(x: frame.minX, y: frame.minY, width: edge - frame.minX, height: frame.height), display: true)
         } completionHandler: { [weak self] in
-            if let self, slide == slides { settle() }
+            // AppKit ends it on the main thread, but its type doesn't say so.
+            Task { @MainActor in
+                if let self, slide == self.slides { self.settle() }
+            }
         }
     }
 
