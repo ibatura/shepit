@@ -217,6 +217,8 @@ A test in `make test` was the other way. It was left out because it needs a hook
 
 Both follow `prints(in:except:)`, which already runs on a connection of its own, off the main thread. Each connection opens the file with the schema, so it has `secure_delete` and the `line_voices` view. Both connections wait up to 5 s for each other (`sqlite3_busy_timeout`).
 
+Added after the plan review (2026-11-24): a transaction takes the write lock first (`BEGIN IMMEDIATE`). The busy timeout alone isn't enough. A deferred transaction that has read first gets `SQLITE_BUSY` at once when another connection holds a write, because SQLite skips the wait to avoid a deadlock. Checked with two connections: the deferred one failed after 0.00 s, and the immediate one waited 0.36 s and went through.
+
 **May also be in (`suggestedVoices`).**
 - `PeopleModel` reads the unnamed voices for the chosen person off the main thread. It reads the prints there too when its copy is older than the store, so the read and the prints become one step.
 - A read that comes back after the choice changed, or after the store changed, is dropped. A newer read for the person chosen now is under way by then.

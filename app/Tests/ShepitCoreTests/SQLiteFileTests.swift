@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 import Testing
 @testable import ShepitCore
 
@@ -53,5 +54,31 @@ struct SQLiteFileTests {
                                 functions: ["twice": { $0.isEmpty ? nil : $0 + $0 }])
         try sqlite.run("INSERT INTO t (a) VALUES ('ab'), (''), (NULL)")
         #expect(try sqlite.rows("SELECT twice(a) FROM t ORDER BY rowid") { $0.text(0) ?? "NULL" } == ["abab", "NULL", "NULL"])
+    }
+
+    /// Query plans design §7.5: a transaction that reads, then writes, waits for another connection's write instead of
+    /// failing at once with "database is locked" (SQLite skips the busy timeout for a reader that asks for the write lock).
+    @Test func aTransactionWaitsForAnotherConnectionsWrite() throws {
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let sqlite = open([])
+        try sqlite.run("INSERT INTO t (a) VALUES (1)")
+        var handle: OpaquePointer?
+        guard sqlite3_open(file.path, &handle) == SQLITE_OK else { throw CocoaError(.fileReadUnknown) }
+        nonisolated(unsafe) let other = handle
+        #expect(sqlite3_exec(other, "BEGIN IMMEDIATE; INSERT INTO t (a) VALUES (2)", nil, nil, nil) == SQLITE_OK)
+        let committed = DispatchSemaphore(value: 0)
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.2) {
+            sqlite3_exec(other, "COMMIT", nil, nil, nil)
+            committed.signal()
+        }
+        defer {
+            committed.wait() // closed only after the commit, also when the transaction failed at once
+            sqlite3_close(other)
+        }
+        try sqlite.transaction {
+            #expect(try sqlite.rows("SELECT count(*) FROM t") { $0.int(0) } == [2])
+            try sqlite.run("INSERT INTO t (a) VALUES (3)")
+        }
+        #expect(try read("SELECT a FROM t ORDER BY a") == [1, 2, 3])
     }
 }
