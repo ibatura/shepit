@@ -29,7 +29,7 @@
 
 **Its own rule.** From Task 1 on, every query a task adds or changes gets `EXPLAIN QUERY PLAN` (§7.4). In this branch that means only the plan test's own queries; no store query changes its SQL.
 
-**Task 2 is risky.** It changes `SQLiteFile.transaction`, which all three stores use. Its reviewer reads every caller of `transaction`.
+**Task 2 is risky.** It changes `SQLiteFile.transaction`, which is shared code. Only `MeetingStore` calls it: `StatsDatabase` and `DictationStore` don't. Its reviewer reads every caller of `transaction`.
 
 **One gate,** Task 6: the author checks the installed build. Tasks 1–4 change nothing the author can see beyond speed.
 
@@ -226,3 +226,8 @@ docs/process.md               the task reviewer's line (Task 1)
 - 2026-11-24, **Task 1** done (898589e). `make test`: 676 tests (one added, one removed).
   - The task review found the README still promising the fill ("counted from their notes the first time People opens"). That sentence goes. The plan's "no live doc names the fill" had missed it, since the README describes the fill without naming it.
   - `meetings(of:)` still sorts after its search, but only one person's meetings. Its doc comment now says so.
+- 2026-11-24, **Task 2** done (f9d4aa8). `make test`: 677 tests. Before the change, the new test failed at once with "database is locked".
+  - The task review found no bug in the transaction.
+  - Its test closed the second connection while the delayed commit could still use it. It now waits for the commit before closing.
+  - It noted that only `MeetingStore` calls `transaction`, which the execution notes now say.
+  - A main-thread change can now wait up to 5 s for another connection's write, where it used to fail. Task 4's forget is one short `DELETE`.
