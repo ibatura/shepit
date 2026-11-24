@@ -2,6 +2,17 @@
 
 What comes next, and what was set aside and why. Reviewed with the author on 2026-11-11.
 
+## Next
+
+In this order unless the author says otherwise (written 2026-11-20; back and forward, moved first on 2026-11-22, is merged). Every part follows `docs/process.md`.
+
+1. The open checks of import names with the author: I4, I5, and I6 once the 29 Oct meeting has names (the author, 2026-11-23: on a day with calls, after the settings review has started). I3 and I7, with Zoom's files, are put off for long (the author, 2026-11-22). Teams `.docx` and the Meet `.txt` format are later parts.
+2. Finish the settings review on branch `settings-review`: its reviews are fixed; ask the author about the pull request.
+3. Left from the small fixes: look at L3 again with the author (Cancel on the merge question).
+4. Check every query of the three databases with `EXPLAIN QUERY PLAN` and every index for use (the author, 2026-11-17); `stats.sqlite` is done. Details under "New ideas".
+
+The app icon and the check of the name are under "New ideas" (2026-11-22, not ordered).
+
 ## Planned, in this order
 
 Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-11-20, item 9 put first on 2026-11-21:
@@ -296,6 +307,7 @@ From the audit of 2026-10-06. The items about the old Lua tool (whisper-server, 
 - **Pre-commit guard** against force-adding `tools/accuracy/recordings/`.
 - **Checking GitHub for a new version** (the author, 2026-11-22). *Why not now:* only the author installs Shepit, built from source, and merges each release, so a check would tell nothing new; and it would be the first network call that isn't a model download the user asked for ("Everything stays local" in `CLAUDE.md`). Back to it with "A build colleagues can install"; then at most a Check for updates… button that reads `https://api.github.com/repos/ibatura/shepit/releases/latest` only when clicked.
 - **Integration tests** for the running app (capture, engines, a long soak run): covered by unit tests and manual checks only.
+- **Running the tests on GitHub** (the author, 2026-11-24). *Why not:* runners cost minutes, and `make test` runs everything on the author's Mac after every task. The one workflow makes the release.
 
 ## Minor ideas
 
