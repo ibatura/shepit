@@ -223,3 +223,6 @@ docs/process.md               the task reviewer's line (Task 1)
   Not taken:
   - `MeetingPage.pair`'s removal, since it has three other callers;
   - a shared SQL constant for the plan tests, which would add an API for a test. The review rule covers a changed query.
+- 2026-11-24, **Task 1** done (898589e). `make test`: 676 tests (one added, one removed).
+  - The task review found the README still promising the fill ("counted from their notes the first time People opens"). That sentence goes. The plan's "no live doc names the fill" had missed it, since the README describes the fill without naming it.
+  - `meetings(of:)` still sorts after its search, but only one person's meetings. Its doc comment now says so.
