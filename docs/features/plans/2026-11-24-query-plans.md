@@ -231,3 +231,12 @@ docs/process.md               the task reviewer's line (Task 1)
   - Its test closed the second connection while the delayed commit could still use it. It now waits for the commit before closing.
   - It noted that only `MeetingStore` calls `transaction`, which the execution notes now say.
   - A main-thread change can now wait up to 5 s for another connection's write, where it used to fail. Task 4's forget is one short `DELETE`.
+- 2026-11-24, **Task 3** done (0d37ac9). `make test`: 677 tests.
+  - **Different from the plan:**
+    - The dropped-read check is in the existing suggestions test, not a new test.
+    - `PeopleView` needs no change: May also be in shows only while there are suggestions, so no empty heading blinks. That settles the open question. The row now appears a moment after a person is chosen (about 70 ms after a year), which Q3 shows the author.
+  - **The task review found no bug.** On its first finding, the test now also covers a read that ends after Remember voices was turned off. Removing that check now fails the test.
+  - **Not covered by a test:**
+    - The `store.version` check: in a test the read starts only after the test's own write, so it sees the new data either way. Testing it would need a hook inside the read.
+    - Emptying on a switch from one named person to another: the test has only one named person besides You.
+  - Assigning the same person again (as back and forward may) empties the row and reads it again. Left as it is.
