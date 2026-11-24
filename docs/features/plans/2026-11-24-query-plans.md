@@ -6,12 +6,15 @@
 - May also be in and the forgetting of old unnamed voices no longer run on the main thread.
 
 **Architecture:**
-- **Upgrade 3 of `meetings.sqlite`:** a third entry in `MeetingStore.upgrades` adds `meetings_start` and `people_person`. `SQLiteFile` already runs a numbered upgrade once, in a transaction, and an older Shepit skips a version it doesn't know.
+- **Upgrade 3 of `meetings.sqlite`:** a second entry in `MeetingStore.upgrades` adds `meetings_start` and `people_person`. `SQLiteFile` already runs a numbered upgrade once, under `BEGIN IMMEDIATE`, and an older Shepit skips a version it doesn't know.
 - **The fill goes:** `MeetingStore.meetingsWithoutWords`, `fillWords`, `PeopleModel.fillWords` and `PeopleView`'s `.task` are removed.
-- **Two reads on connections of their own:** two static async methods sit beside `MeetingStore.prints(in:except:)`, each opening a `MeetingStore` of its own in a detached task.
-  - `suggestedVoices(in:for:)`: `PeopleModel.suggest()` awaits it, and the prints when its copy is out of date, in one task that a new choice or reload cancels.
+- **Transactions take the write lock first:** the outermost `SQLiteFile.transaction` begins with `BEGIN IMMEDIATE` instead of a deferred `SAVEPOINT`.
+  - The problem: a deferred transaction that read first gets `SQLITE_BUSY` at once, without the busy timeout, when another connection holds a write.
+  - The second writing connection of §7.5 makes this reachable.
+- **Two reads on connections of their own:** two static async methods sit beside `MeetingStore.prints(in:except:)`.
+  - `suggestedVoices(in:for:)`: `PeopleModel.suggest()` runs one such read at a time. When it ends, it checks the choice and the store, and reads again if either moved. The prints stay a read of their own (`readPrints()`, as today).
   - `forgetUnnamedVoices(in:before:)`: `AppHost.forgetOldVoices()` starts it, one at a time.
-- **A rule for new queries:** one line in the task reviewer's brief in `docs/process.md`.
+- **A rule for new queries:** one line in the task reviewer's brief in `docs/process.md`, committed with Task 1 so the reviewers of this branch get it.
 
 **Spec:** `docs/features/specs/2026-11-24-query-plans-design.md` ("the spec"; section numbers refer to it), approved by the author on 2026-11-24.
 
@@ -24,9 +27,11 @@
 - Both were made by a script in the scratchpad, which is not committed.
 - The author's files are read only with `sqlite3 -readonly`, and only for counts, the version and index names.
 
-**Its own rule from the start.** Every query this branch adds or changes gets `EXPLAIN QUERY PLAN` (§7.4). In this branch that means only the plan tests' own queries; no store query changes its SQL.
+**Its own rule.** From Task 1 on, every query a task adds or changes gets `EXPLAIN QUERY PLAN` (§7.4). In this branch that means only the plan test's own queries; no store query changes its SQL.
 
-**One gate,** Task 5: the author checks the installed build. Tasks 1–4 change nothing the author can see beyond speed.
+**Task 2 is risky.** It changes `SQLiteFile.transaction`, which all three stores use. Its reviewer reads every caller of `transaction`.
+
+**One gate,** Task 6: the author checks the installed build. Tasks 1–4 change nothing the author can see beyond speed.
 
 ## Global constraints
 
@@ -37,122 +42,150 @@
 
 ## Review focus
 
-1. **Upgrade 3 on a real file** (Tasks 1 and 4):
+1. **Two connections writing** (Tasks 2 and 4):
+   - a main-thread transaction that reads, then writes, waits for the forget's delete within the 5 s busy timeout instead of failing;
+   - the forget's delete waits for a main-thread transaction;
+   - a nested `transaction` (`change` inside `recognise`, `remove` inside `remove(_:trash:)`) still uses a savepoint and rolls back only its part.
+2. **Upgrade 3 on a real file** (Tasks 1 and 4):
    - a version-2 file gets both indexes and keeps its rows;
    - a version-3 file opened by 0.4.0 still works;
-   - the forget's own connection may be the first to open the file at launch and run the upgrade, while the main connection opens it a moment later (`SQLiteFile` reads the version again under the write lock).
-2. **May also be in shows only a current read** (Task 3):
-   - a read that returns after another person is chosen, after Remember voices is turned off, or after a reload started a newer read, is never shown;
-   - a reload for the same person keeps the suggestions shown until the new read replaces them.
-3. **Two connections writing** (Task 4): the forget's delete and a main-thread write (naming people after a meeting is listed, a rename) wait for each other within the 5 s busy timeout rather than fail.
-4. **Nothing still calls the fill** (Task 2): no caller, test or doc of `meetingsWithoutWords`, `fillWords` or `wordsFilled` is left.
+   - the forget's own connection may be the first to open the file at launch and run the upgrade (`SQLiteFile` reads the version again under the write lock).
+3. **May also be in shows only a current read** (Task 3):
+   - a read that ends after another person is chosen, after the store changed, or after Remember voices was turned off, is not shown, and a read for what is chosen now follows;
+   - choosing a person, or a change the section made itself (Name them, Delete voice…, Rename, Merge into…), empties the suggestions at once;
+   - a plain reload (the window becomes active) keeps them until the new read replaces them;
+   - the prints are read once per version, as today.
+4. **Nothing still calls the fill** (Task 1): no caller or test of `meetingsWithoutWords`, `fillWords` or `wordsFilled` is left.
 
 ## File structure
 
 ```
 app/Sources/ShepitCore/
   MeetingStore.swift          upgrade 3: meetings_start, people_person (Task 1)
-  MeetingStore+People.swift   meetingsWithoutWords and fillWords go (Task 2)
-  MeetingStore+Voices.swift   suggestedVoices(in:for:), forgetUnnamedVoices(in:before:) (Tasks 3, 4)
+  MeetingStore+People.swift   meetingsWithoutWords and fillWords go (Task 1)
+  SQLiteFile.swift            the outermost transaction begins IMMEDIATE (Task 2)
+  MeetingStore+Voices.swift   suggestedVoices(in:for:) (Task 3), forgetUnnamedVoices(in:before:) (Task 4)
 app/Sources/Shepit/
-  Window/PeopleModel.swift    fillWords goes (Task 2); suggest() reads off the main thread, readPrints() goes (Task 3)
-  Window/PeopleView.swift     its .task goes (Task 2)
-  AppHost.swift               var forgetting: Task<Void, Never>? (Task 4)
+  Window/PeopleModel.swift    fillWords goes (Task 1); suggest() reads off the main thread (Task 3)
+  Window/PeopleView.swift     its .task goes (Task 1)
+  AppHost.swift               private var forgettingVoices = false (Task 4)
   AppHost+Meetings.swift      forgetOldVoices() off the main thread (Task 4)
 app/Tests/ShepitCoreTests/
   MeetingStoreTests.swift     the upgrade and the two plans (Task 1)
-  MeetingVoicesTests.swift    the fill's part goes (Task 2); the reads of their own (Tasks 3, 4)
+  MeetingVoicesTests.swift    the fill's part goes (Task 1); the forget through its own connection (Task 4)
+  SQLiteFileTests.swift       a transaction waits for another connection's write (Task 2)
 app/Tests/ShepitTests/
-  PeopleModelTests.swift      the fill's test goes (Task 2); suggestions read off the main thread (Task 3)
-docs/process.md               the task reviewer's line (Task 6)
+  PeopleModelTests.swift      the fill's test goes (Task 1); suggestions read off the main thread (Task 3)
+docs/process.md               the task reviewer's line (Task 1)
 ```
 
 ---
 
-### Task 1: Upgrade 3, the two indexes (spec §7.1)
+### Task 1: Upgrade 3 with the two indexes; the fill goes; the review rule (spec §7.1, §7.2, §7.4)
 
-- **Tests first** in `MeetingStoreTests`:
-  - **`version2GetsTheIndexesAndKeepsItsRows`.**
-    - Make a version-2 file: `SQLiteFile(file:schema: MeetingStore.schema, upgrades: [MeetingStore.upgrades[0]])`, then one meeting, one person and one line.
-    - Open it with `MeetingStore(file:)` and read a meeting, which opens the file.
-    - `schema_version` is 3.
-    - `sqlite_master` has `meetings_start` and `people_person`.
-    - The meeting, its person and its line read back as written.
-  - **`theListAndAPersonsMeetingsUseTheirIndexes`.** On a store with one meeting, `store.sqlite.rows("EXPLAIN QUERY PLAN …")` reads column 3. The SQL is the same as `meetings(limit:)` and `meetings(of:)` build:
-    - the list's plan says `USING INDEX meetings_start` and has no `TEMP B-TREE`;
-    - a person's meetings search `people_person`.
+- **Test first,** in `MeetingStoreTests`: `version2GetsTheIndexesAndItsPlansUseThem`.
+  - Make a version-2 file with `SQLiteFile(file:, schema: MeetingStore.schema, upgrades: Array(MeetingStore.upgrades.dropLast()), functions: ["name_key": Names.key])`. Upgrade 2 calls `name_key`, which SQLite refuses at prepare time without the function. Then `run` one meeting, one `people` row with `person = 1` and one line, which creates the file.
+  - Open it with `MeetingStore(file:)` and read the meeting back, which opens the file and runs upgrade 3.
+  - `schema_version` is 3.
+  - `sqlite_master` has `meetings_start` and `people_person`.
+  - The meeting, its person and its line read back as written.
+  - **The plans,** read through `store.sqlite.rows("EXPLAIN QUERY PLAN …")`, column 3:
+    - `SELECT id, path, title, app, start, duration, you FROM meetings ORDER BY start DESC, id DESC LIMIT ?` uses `meetings_start` with no `TEMP B-TREE`;
+    - `… FROM meetings WHERE id IN (SELECT meeting FROM people WHERE person = ?) ORDER BY start DESC, id DESC` searches `people_person`.
 - **The change.** `MeetingStore.upgrades` gets a second string, `CREATE INDEX meetings_start ON meetings (start); CREATE INDEX people_person ON people (person)`. Its doc comment says version 3 and points to query plans design §7.1.
-- Commit `Meetings store: indexes on meetings (start) and people (person), version 3`.
-
-### Task 2: The fill of old meetings' words goes (spec §7.2)
-
-- **Remove:**
-  - `meetingsWithoutWords` and `fillWords` from `MeetingStore+People.swift`;
+- **The fill goes:**
+  - `meetingsWithoutWords` and `fillWords` in `MeetingStore+People.swift`;
   - `PeopleModel.fillWords` and `wordsFilled`;
-  - the `.task { await model.fillWords() }` in `PeopleView`.
-- **Tests:**
-  - remove `wordsOfOlderMeetingsAreFilledOnce` in `PeopleModelTests`;
-  - remove the block from "A meeting listed before words were kept" to the end of its test in `MeetingVoicesTests`. Its first half, presences' words, seconds and meeting words, stays.
-- **Docs:** grep `docs/`, the README and the code comments for "fill" and the two method names, and drop what describes the fill (the voices design keeps its history as written).
-- Commit `People: the fill of old meetings' words goes, with its scan of every line`.
+  - the `.task { await model.fillWords() }` in `PeopleView`;
+  - `PeopleModelTests.wordsOfOlderMeetingsAreFilledOnce`.
+  - In `MeetingVoicesTests`, `presencesCountWordsAndTalkTimeAndOlderMeetingsGetTheirWords` loses the block from "A meeting listed before words were kept" to its end, and becomes `presencesCountWordsAndTalkTime`. `MeetingPage.pair` stays: `MeetingPage` uses it three times.
+  - No live doc names the fill. Only the voices spec and plan do, as history, and they stay.
+- **`docs/process.md` §7,** the task reviewer's brief: the line of spec §7.4.
+- Commit `Meetings store: indexes on meetings (start) and people (person), version 3; the fill of old words goes`.
+
+### Task 2: A transaction takes the write lock first (risky)
+
+- **Test first,** in `SQLiteFileTests`: `aTransactionWaitsForAnotherConnectionsWrite`.
+  - A second connection, opened with `sqlite3_open` (as `DictationStoreTests` does), runs `BEGIN IMMEDIATE` and an insert.
+  - It commits from `DispatchQueue.global().asyncAfter` 0.2 s later.
+  - The file's `transaction { rows(…); run(insert) }` then succeeds and both rows are there. Today it throws "database is locked" at once.
+- **The change.** In `SQLiteFile.transaction`:
+  - when the connection is in autocommit (`sqlite3_get_autocommit`; no file open yet counts as autocommit), it begins with `BEGIN IMMEDIATE` and ends with `COMMIT`, or `ROLLBACK` on a throw;
+  - inside another transaction it keeps `SAVEPOINT change`, `RELEASE` and `ROLLBACK TO`.
+
+  A one-line comment says why: a deferred transaction that read first gets `SQLITE_BUSY` with no wait.
+- **Read every caller of `transaction`,** in the three stores. The existing tests of a failed change (`aFailedChangeLeavesTheDatabaseAsItWas`, and the notes that are put back) must stay green.
+- **The spec:** one line in §7.5, "added after the plan review", says a transaction takes the write lock first, which is what makes the two connections wait for each other.
+- Commit `SQLite: a transaction takes the write lock first, so it waits for another connection's write`.
 
 ### Task 3: May also be in off the main thread (spec §7.5)
 
-- **Tests first:**
-  - **`MeetingVoicesTests.suggestedVoicesReadOnAConnectionOfTheirOwn`:** `MeetingStore.suggestedVoices(in:for:)` gives what `store.suggestedVoices(for:)` gives, on the store of `suggestedVoicesLeaveOutThePersonsMeetingsNamedPeopleAndDeclinedOnes`.
-  - **`PeopleModelTests.suggestionsForTheChosenPersonWhileRememberVoicesIsOn`** is changed:
-    - after choosing Olena again, `await model.reading?.value`, then the suggestion is there;
-    - the `reading == nil` check for "read once" goes, since the unnamed voices are read every time.
-  - **A new test:** with Remember voices on, choose Olena, keep `model.reading`, and set `selection = nil` before awaiting it. After `await` the kept task, `suggestions` is empty: the cancelled read showed nothing.
-- **The changes:**
-  - `MeetingStore.suggestedVoices(in file: URL, for person: Int) async throws` reads on a `MeetingStore(file:)` of its own in `Task.detached`, as `prints(in:except:)` does.
-  - **`PeopleModel.suggest()`:**
-    - It cancels `reading`.
-    - Without a chosen person other than You, or with Remember voices off, it empties `suggestions`. Otherwise it empties them only when the person differs from the one they were read for, kept in an ignored `suggestedFor`.
-    - It starts `reading = Task { … }`. That task awaits `suggestedVoices(in:for:)`, then, when there are unnamed voices and `prints` is not at the store's version, awaits `prints(in:)` and keeps it with the version read at the start.
-    - After each `await`, if `Task.isCancelled`, it returns without touching anything.
-    - At the end it sets `suggestions` as today (`Voices.suggestions`, then `PeoplePage.suggestions`), `suggestedFor`, and `reading = nil`.
-    - A failed read logs and empties `suggestions`, as today.
-  - `readPrints()` goes; its job is in this task.
+- **Tests first,** in `PeopleModelTests`:
+  - **A helper** `settle(_ model:)` awaits `model.suggesting` and `model.reading` until both are nil.
+  - **`suggestionsForTheChosenPersonWhileRememberVoicesIsOn`** is changed:
+    - after `reload()` with Remember voices on, the suggestions are empty until `await settle(model)`; then they are `["Person 1"]`;
+    - choosing Olena again empties them at once. After `await model.suggesting?.value`, they are `["Person 1"]` and `model.reading` is nil: the prints were not read again;
+    - after `name(…)`, they are empty at once, and still empty after `settle`.
+  - **New: `aReadThatEndsAfterTheChoiceChangedShowsNothing`.** Choose Olena with Remember voices on, set `selection = nil` before the read ends, then `settle`. The suggestions are empty.
+- **The change** in `MeetingStore+Voices.swift`: `public static func suggestedVoices(in file: URL, for person: Int) async throws -> [Int: [String: [VoiceSample]]]`, which is `Task.detached { try MeetingStore(file: file).suggestedVoices(for: person) }.value`, as `prints(in:except:)` is.
+- **The change** in `PeopleModel`:
+  - **`selection`'s `didSet`** empties `suggestions` before `suggest()`. So does `apply`, before its `reload()`.
+  - **`suggest()`:**
+    - Without a chosen person other than You, or with Remember voices off, it empties `suggestions` and returns.
+    - While `suggesting` isn't nil, it returns: the read under way checks the choice when it ends.
+    - Otherwise it takes the person, `store.version` and `store.file`, and starts `suggesting = Task { … }`.
+  - **The task:**
+    - It awaits `suggestedVoices(in:for:)`, logging a failure as today.
+    - It sets `suggesting = nil`.
+    - If the chosen person, `store.version` or Remember voices changed meanwhile, it calls `suggest()` and returns.
+    - Otherwise it goes on as today's `suggest()`: no unnamed voices, or prints not at this version, gives no suggestions and, when there are unnamed voices, calls `readPrints()`. Otherwise `Voices.suggestions`, then `PeoplePage.suggestions`.
+  - `readPrints()` stays as it is: one prints read at a time, kept at the version it started with, and then `suggest()`.
 - Commit `People: May also be in is read off the main thread`.
 
 ### Task 4: Forgetting old unnamed voices off the main thread (spec §7.5)
 
-- **Test first:** `MeetingVoicesTests.forgetOnAConnectionOfItsOwnOverwritesTheSamples`. It is `deletedVoicesLeaveNoTraceInTheFile`'s forget step, through `try await MeetingStore.forgetUnnamedVoices(in:before:)`. The unnamed sample is gone from `unnamedVoices`, and its bytes are not in the file.
+- **Test first:** `MeetingVoicesTests.deletedVoicesLeaveNoTraceInTheFile` becomes `async`, and its forget step becomes `try await MeetingStore.forgetUnnamedVoices(in: dir.appending(path: "meetings.sqlite"), before: start + 30 * 86_400)`.
+  - Its byte checks then prove that a connection of its own overwrites the samples (`secure_delete` from the schema). This replaces the spec's `PRAGMA secure_delete` check.
+  - The sync method stays, for `unnamedVoicesGoAfterThirtyDays` and for the static one.
 - **The changes:**
-  - `MeetingStore.forgetUnnamedVoices(in file: URL, before date: Date) async throws`, on a `MeetingStore(file:)` of its own in `Task.detached`.
-  - `AppHost` gets `var forgetting: Task<Void, Never>?`.
+  - `public static func forgetUnnamedVoices(in file: URL, before date: Date) async throws`, which is `Task.detached { try MeetingStore(file: file).forgetUnnamedVoices(before: date) }.value`.
+  - `AppHost` gets `private var forgettingVoices = false`.
   - **`forgetOldVoices()`:**
-    - it returns when `forgetting` isn't nil;
-    - otherwise it takes the file and the date on the main thread and starts `forgetting = Task { … }`;
-    - the task awaits the delete, logs a failure as today, and sets `forgetting = nil`.
+    - it returns when `forgettingVoices` is set;
+    - otherwise it sets the flag, takes the file and the date, and starts a `Task` on the main actor;
+    - that task awaits the static method, logs a failure as today, and clears the flag.
 - **No version bump:** the main connection's `version` doesn't see the delete (spec §7.5). Prints and People's counts read only named samples, which the forget leaves.
 - Commit `Voices: old unnamed voices are forgotten off the main thread`.
 
-### Task 5: GATE: the installed build (spec §9, Q1–Q3, with the author)
+### Task 5: Docs and version
+
+- **`docs/architecture.md`:**
+  - line 18: `meetings.sqlite` (version 3);
+  - line 90: May also be in and the forget read on connections of their own, as the prints do;
+  - `SQLiteFile`'s transaction takes the write lock first.
+- **`docs/manual-test-checklist.md`:** a "Query plans" section with Q1–Q3 of spec §9.
+- **`docs/future-ideas.md`:**
+  - item 13 built on `query-plans`;
+  - "Next" without it;
+  - "Query plans: left open":
+    - `keys(of:in:)` (spec §10);
+    - `summaries` on the main thread;
+    - `lines (meeting, current)` not added;
+    - a main-thread write still waits for a long read on another connection (the prints, May also be in), now only when the two meet;
+    - the plan tests copy the SQL of two queries.
+- **`CLAUDE.md`:** "Now", and the test count.
+- **README** and **`examples/settings.json`:** nothing. The README names `meetings.sqlite` but not its version or the fill, and no key changes.
+- **Version:** agreed with the author. I propose 0.4.1, since nothing new shows. It goes in `CFBundleShortVersionString` and `docs/releases/<version>.md`.
+- Commit `Docs: query plans; version <version>`.
+
+### Task 6: GATE: the installed build (spec §9, Q1–Q3, with the author)
 
 - Run `make test`, then ask before installing: it restarts Shepit, and a transcript may be running. Then install.
 - **Q1.** After first launch, read the author's `meetings.sqlite` with `sqlite3 -readonly`. Report the version and the index names only: version 3, `meetings_start`, `people_person`.
 - **Q2 and Q3 with the author:**
   - Home's recent meetings, Meetings and People, with a person, Who talked how much and May also be in;
   - after the next meeting is listed, dictation by hotkey at once.
-- Fix the author's remarks in this task.
-
-### Task 6: Docs and version
-
-- **`docs/process.md`:** the task reviewer's line of spec §7.4.
-- **`docs/architecture.md`:**
-  - `meetings.sqlite` is version 3;
-  - May also be in and the forget read on connections of their own, as the prints do.
-- **`docs/manual-test-checklist.md`:** a "Query plans" section with Q1–Q3 and their results from Task 5.
-- **`docs/future-ideas.md`:**
-  - item 13 built on `query-plans`;
-  - "Next" without it;
-  - "Query plans: left open": `keys(of:in:)` (spec §10), `summaries` on the main thread, `lines (meeting, current)` not added.
-- **`CLAUDE.md`:** "Now", and the test count.
-- **README:** only if it names `meetings.sqlite`'s version or the fill.
-- **Version:** agreed with the author. I propose 0.4.1, since nothing new shows. It goes in `CFBundleShortVersionString` and `docs/releases/<version>.md`.
-- Commit `Docs: query plans; version <version>`.
+- Mark each check in the checklist; fix the author's remarks in this task.
 
 ### Task 7: End-of-branch reviews and the pull request
 
@@ -166,8 +199,27 @@ docs/process.md               the task reviewer's line (Task 6)
 ## Open questions to raise when the task starts (not blockers)
 
 - **Task 3:** if `PeopleView` shows May also be in with a heading even while `suggestions` is empty, the block blinks when a new person is chosen. If so, show the author before changing the view.
-- **Task 6:** the version (0.4.1 proposed).
+- **Task 5:** the version (0.4.1 proposed).
 
 ## Progress
 
 - 2026-11-24: the spec approved (c5440a9).
+- 2026-11-24, the plan review. Of the critic's findings, these were taken:
+  - transactions wait for another writer (Task 2, new, after a check with two connections);
+  - the test fixture's `name_key`;
+  - suggestions emptied after the section's own changes;
+  - one read at a time that checks the store and Remember voices when it ends, with the prints kept as their own read;
+  - the review rule from Task 1;
+  - the docs before the gate.
+
+  Of the improver's suggestions, these were taken:
+  - Tasks 1 and 2 as one;
+  - one test for the upgrade and the plans;
+  - no separate store tests for the two reads;
+  - the forget's test folded into the existing one;
+  - a flag for the forget;
+  - the doc lines to edit.
+
+  Not taken:
+  - `MeetingPage.pair`'s removal, since it has three other callers;
+  - a shared SQL constant for the plan tests, which would add an API for a test. The review rule covers a changed query.
