@@ -424,6 +424,6 @@ public final class MeetingStore {
         UPDATE people SET name = NULL WHERE person IN (SELECT id FROM persons WHERE you = 0)
         """,
         // Version 3 (query plans design §7.1): the list and Home read meetings by start; a person's reads find their rows.
-        "CREATE INDEX meetings_start ON meetings (start); CREATE INDEX people_person ON people (person)",
+        "CREATE INDEX IF NOT EXISTS meetings_start ON meetings (start); CREATE INDEX IF NOT EXISTS people_person ON people (person)",
     ]
 }

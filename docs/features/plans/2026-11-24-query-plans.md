@@ -248,3 +248,9 @@ docs/process.md               the task reviewer's line (Task 1)
 - 2026-11-24, **Task 6**: 0.4.1 (cb9910f) installed.
   - Q1 passed: version 3, both indexes, and the same row counts as before the install.
   - The author checked Q2 and Q3: "everything is ok".
+- 2026-11-24, **Task 7**, the code and security reviews. Nothing blocking; nine minor findings. The author took Claude's advice:
+  - upgrade 3 uses `CREATE INDEX IF NOT EXISTS`, so an index made by hand can't lock the store out;
+  - the data's permissions are noted as a new idea;
+  - the write lock taken on every open, and a failed `COMMIT` after notes were rewritten, are noted under "Query plans: left open".
+
+  The rest were left with reasons: harmless, older than the branch, or accepted in the spec. One proposed fix, `journal_mode = TRUNCATE` or `PERSIST`, was wrong, since neither overwrites the journal's pages.
