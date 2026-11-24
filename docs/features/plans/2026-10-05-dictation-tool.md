@@ -8,7 +8,7 @@
 
 **Tech Stack:** Lua 5.4 (Hammerspoon 1.1.x runtime), whisper.cpp v1.9.4 built with cmake, sox, curl, Python 3 (accuracy harness only, stdlib), Bash (install scripts).
 
-**Spec:** `docs/superpowers/specs/2026-10-04-dictation-tool-design.md`
+**Spec:** `docs/features/specs/2026-10-04-dictation-tool-design.md`
 
 ## Global Constraints
 
@@ -79,12 +79,12 @@ tools/accuracy/test_evaluate.py  unit tests for evaluate.py pure functions
 - Create: `.gitignore`
 - Create: `scripts/build-whisper.sh`
 - Create: `scripts/download-models.sh`
-- Modify: `docs/superpowers/specs/2026-10-04-dictation-tool-design.md` (Dependencies paragraph in §2)
+- Modify: `docs/features/specs/2026-10-04-dictation-tool-design.md` (Dependencies paragraph in §2)
 
 **Interfaces:**
 - Produces: executable `~/.local/share/dictation/bin/whisper-server`; files `~/.local/share/dictation/models/ggml-large-v3.bin`, `ggml-silero-v6.2.0.bin`, optionally `ggml-large-v3-turbo.bin`. Both scripts are idempotent and are called by `scripts/install.sh` (Task 11).
 
-- [ ] **Step 1: Create `.gitignore`**
+- **Step 1: Create `.gitignore`**
 
 ```gitignore
 .DS_Store
@@ -92,12 +92,12 @@ tools/accuracy/recordings/
 tools/accuracy/__pycache__/
 ```
 
-- [ ] **Step 2: Install build dependency**
+- **Step 2: Install build dependency**
 
 Run: `brew list cmake >/dev/null 2>&1 || brew install cmake`
 Expected: cmake available (`cmake --version` prints 4.x).
 
-- [ ] **Step 3: Write `scripts/build-whisper.sh`**
+- **Step 3: Write `scripts/build-whisper.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -137,13 +137,13 @@ echo "$VERSION" > "$BIN/.version"
 echo "built $BIN/whisper-server"
 ```
 
-- [ ] **Step 4: Run the build**
+- **Step 4: Run the build**
 
 Run: `chmod +x scripts/build-whisper.sh && scripts/build-whisper.sh && otool -L ~/.local/share/dictation/bin/whisper-server`
 Expected: ends with `built .../whisper-server`; `otool -L` lists only system libraries/frameworks (Metal, Accelerate, libc++, libSystem) — no `libwhisper`/`libggml` dylibs, proving the static build.
 Run again: `scripts/build-whisper.sh` → prints `whisper-server v1.9.4 already built`.
 
-- [ ] **Step 5: Write `scripts/download-models.sh`**
+- **Step 5: Write `scripts/download-models.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -185,12 +185,12 @@ if [[ "${1:-}" == "--with-turbo" ]]; then
 fi
 ```
 
-- [ ] **Step 6: Download models (turbo too, for the accuracy comparison in Task 2)**
+- **Step 6: Download models (turbo too, for the accuracy comparison in Task 2)**
 
 Run: `chmod +x scripts/download-models.sh && scripts/download-models.sh --with-turbo`
 Expected: three `get` lines followed by curl progress; no checksum error. Run again → three `ok` lines.
 
-- [ ] **Step 7: Smoke-test the server with the bundled JFK sample**
+- **Step 7: Smoke-test the server with the bundled JFK sample**
 
 Run:
 ```bash
@@ -205,18 +205,18 @@ kill $WS
 ```
 Expected: health prints `{"status":"ok"}`; inference prints JSON whose `text` contains `ask not what your country can do for you`. If `--vad` flags are rejected, check `/tmp/ws.log` and fix the flag names in the Global Constraints before continuing.
 
-- [ ] **Step 8: Update the spec's dependency note**
+- **Step 8: Update the spec's dependency note**
 
-In `docs/superpowers/specs/2026-10-04-dictation-tool-design.md` §2 "Dependencies", replace the line
+In `docs/features/specs/2026-10-04-dictation-tool-design.md` §2 "Dependencies", replace the line
 `` `brew install whisper-cpp sox`, `brew install --cask hammerspoon`. ``
 with
 `` `brew install sox cmake`, `brew install --cask hammerspoon`. `whisper-server` is built from whisper.cpp source (tag v1.9.4) because the Homebrew formula does not include it. ``
 and replace `Silero VAD model for whisper.cpp (~2 MB)` with `` Silero VAD model `ggml-silero-v6.2.0.bin` (~1 MB) ``.
 
-- [ ] **Step 9: Commit**
+- **Step 9: Commit**
 
 ```bash
-git add .gitignore scripts/build-whisper.sh scripts/download-models.sh docs/superpowers/specs/2026-10-04-dictation-tool-design.md
+git add .gitignore scripts/build-whisper.sh scripts/download-models.sh docs/features/specs/2026-10-04-dictation-tool-design.md
 git commit -m "Add whisper-server build and model download scripts
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
@@ -236,7 +236,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Consumes: server binary and models from Task 1.
 - Produces: `evaluate.py` CLI printing a results table; constants `STYLE_PROMPT` and `DEFAULT_TERMS` whose values must equal the defaults later put in `examples/settings.json` / `examples/dictionary.json` (Task 5). Recordings in `tools/accuracy/recordings/NN.wav` + `NN.txt` (git-ignored).
 
-- [ ] **Step 1: Write `tools/accuracy/sentences.txt`** (one sentence per line; the user reads these aloud)
+- **Step 1: Write `tools/accuracy/sentences.txt`** (one sentence per line; the user reads these aloud)
 
 ```text
 Сьогодні я відкрив pull request у GitHub і попросив колегу зробити code review.
@@ -247,7 +247,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 На мітингу обговорили roadmap і дедлайн для нового release.
 ```
 
-- [ ] **Step 2: Write the failing tests `tools/accuracy/test_evaluate.py`**
+- **Step 2: Write the failing tests `tools/accuracy/test_evaluate.py`**
 
 ```python
 import unittest
@@ -300,12 +300,12 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- **Step 3: Run tests to verify they fail**
 
 Run: `cd tools/accuracy && python3 -m unittest test_evaluate -v; cd -`
 Expected: FAIL/ERROR with `ModuleNotFoundError: No module named 'evaluate'`.
 
-- [ ] **Step 4: Write `tools/accuracy/evaluate.py`**
+- **Step 4: Write `tools/accuracy/evaluate.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -445,12 +445,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- **Step 5: Run tests to verify they pass**
 
 Run: `cd tools/accuracy && python3 -m unittest test_evaluate -v; cd -`
 Expected: 10 tests, all `ok`.
 
-- [ ] **Step 6: Write `tools/accuracy/record.sh`**
+- **Step 6: Write `tools/accuracy/record.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -483,7 +483,7 @@ echo "Done. Add your own clips as recordings/NN.wav + NN.txt if you like, then r
 
 Run: `brew list sox >/dev/null 2>&1 || brew install sox; chmod +x tools/accuracy/record.sh tools/accuracy/evaluate.py`
 
-- [ ] **Step 7: Commit**
+- **Step 7: Commit**
 
 ```bash
 git add tools/accuracy
@@ -492,7 +492,7 @@ git commit -m "Add accuracy harness for model and prompt comparison
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 8: CHECKPOINT — the human partner records and we decide** (requires the user's voice; a subagent cannot do this step)
+- **Step 8: CHECKPOINT — the human partner records and we decide** (requires the user's voice; a subagent cannot do this step)
 
 1. Ask the user to run `! tools/accuracy/record.sh` in this session (the terminal will need Microphone permission on first use).
 2. Run `tools/accuracy/evaluate.py` and show the user the final table.
@@ -520,12 +520,12 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - `utf8util.lower(s) -> string` (ASCII + Ukrainian/Russian Cyrillic; keeps byte length, so byte offsets line up with the original), `utf8util.charAt(s, i) -> string` (the character starting at byte `i`, `""` past the end), `utf8util.charBefore(s, i) -> string` (the character ending at byte `i-1`, `""` at the start), `utf8util.isWordChar(ch) -> boolean` (letters, digits, `_`, apostrophes `'` `’` `ʼ`).
   - Invalid UTF-8 never raises; bytes that aren't valid are passed through unchanged.
 
-- [ ] **Step 1: Install Lua 5.4 (same version Hammerspoon embeds)**
+- **Step 1: Install Lua 5.4 (same version Hammerspoon embeds)**
 
 Run: `brew list lua@5.4 >/dev/null 2>&1 || brew install lua@5.4; /opt/homebrew/opt/lua@5.4/bin/lua -v`
 Expected: `Lua 5.4.x`.
 
-- [ ] **Step 2: Write `tests/run.lua`**
+- **Step 2: Write `tests/run.lua`**
 
 ```lua
 -- Minimal test runner. Usage (from repo root): lua tests/run.lua [tests/test_x.lua ...]
@@ -594,7 +594,7 @@ print(string.format("%d passed, %d failed", passed, #failures))
 os.exit(#failures == 0 and 0 or 1)
 ```
 
-- [ ] **Step 3: Write `Makefile`**
+- **Step 3: Write `Makefile`**
 
 ```makefile
 LUA ?= /opt/homebrew/opt/lua@5.4/bin/lua
@@ -605,7 +605,7 @@ test:
 	cd tools/accuracy && python3 -m unittest -q test_evaluate
 ```
 
-- [ ] **Step 4: Write the failing tests `tests/test_utf8util.lua`**
+- **Step 4: Write the failing tests `tests/test_utf8util.lua`**
 
 ```lua
 local u = require("dictation.utf8util")
@@ -660,7 +660,7 @@ test("isWordChar: spaces, punctuation, emoji, empty", function()
 end)
 ```
 
-- [ ] **Step 5: Write the failing tests `tests/test_paths.lua`**
+- **Step 5: Write the failing tests `tests/test_paths.lua`**
 
 ```lua
 local paths = require("dictation.paths")
@@ -684,12 +684,12 @@ test("tempWav is unique-ish and in /tmp", function()
 end)
 ```
 
-- [ ] **Step 6: Run tests to verify they fail**
+- **Step 6: Run tests to verify they fail**
 
 Run: `make test`
 Expected: FAIL — `module 'dictation.utf8util' not found` (runner reports errors per test file; non-zero exit).
 
-- [ ] **Step 7: Write `src/dictation/paths.lua`**
+- **Step 7: Write `src/dictation/paths.lua`**
 
 ```lua
 -- All filesystem locations used by the tool.
@@ -724,7 +724,7 @@ end
 return M
 ```
 
-- [ ] **Step 8: Write `src/dictation/utf8util.lua`**
+- **Step 8: Write `src/dictation/utf8util.lua`**
 
 ```lua
 -- UTF-8 helpers. Lua's string.lower only handles ASCII; this adds Cyrillic.
@@ -784,12 +784,12 @@ end
 return M
 ```
 
-- [ ] **Step 9: Run tests to verify they pass**
+- **Step 9: Run tests to verify they pass**
 
 Run: `make test`
 Expected: Lua runner prints `12 passed, 0 failed`; Python prints `OK`.
 
-- [ ] **Step 10: Commit**
+- **Step 10: Commit**
 
 ```bash
 git add Makefile tests src/dictation/paths.lua src/dictation/utf8util.lua
@@ -816,7 +816,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - `dictionary.process(text, dict) -> string` — `stripHallucinations(text, dict.dropPhrases)` → `applyReplacements(…, dict.replace)` → collapse runs of spaces → trim.
   - `dictionary.BUILTIN_DROP` — list of built-in hallucination phrases.
 
-- [ ] **Step 1: Write the failing tests `tests/test_dictionary.lua`**
+- **Step 1: Write the failing tests `tests/test_dictionary.lua`**
 
 ```lua
 local d = require("dictation.dictionary")
@@ -932,12 +932,12 @@ test("process tolerates missing dict fields", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: FAIL — `tests/test_dictionary.lua (load error) … module 'dictation.dictionary' not found`.
 
-- [ ] **Step 3: Write `src/dictation/dictionary.lua`**
+- **Step 3: Write `src/dictation/dictionary.lua`**
 
 ```lua
 -- Prompt building and transcript post-processing. Pure Lua, no hs.
@@ -1082,12 +1082,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `33 passed, 0 failed` (12 from Task 3 + 21 here); Python `OK`.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add src/dictation/dictionary.lua tests/test_dictionary.lua
@@ -1117,7 +1117,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
     - `store:load() -> ok, errors` — loads both files; each file independently keeps its last good value on failure.
     - `store:update(key, value) -> true | false, errString` — refuses when the last settings load failed (never overwrites a broken file); otherwise writes the user's raw table with `key` changed (does not dump all defaults into the file) and updates `store.settings`.
 
-- [ ] **Step 1: Write the failing tests `tests/test_config.lua`**
+- **Step 1: Write the failing tests `tests/test_config.lua`**
 
 ```lua
 local config = require("dictation.config")
@@ -1345,12 +1345,12 @@ test("jsonFileIo treats a non-table result as an error", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: FAIL — `tests/test_config.lua (load error) … module 'dictation.config' not found`.
 
-- [ ] **Step 3: Write `src/dictation/config.lua`**
+- **Step 3: Write `src/dictation/config.lua`**
 
 ```lua
 -- Settings and dictionary: defaults, validation, last-good store. Pure Lua; JSON codec injected.
@@ -1601,12 +1601,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `52 passed, 0 failed`; Python `OK`.
 
-- [ ] **Step 5: Write `examples/settings.json`** (values must equal `config.DEFAULT_SETTINGS`)
+- **Step 5: Write `examples/settings.json`** (values must equal `config.DEFAULT_SETTINGS`)
 
 ```json
 {
@@ -1625,7 +1625,7 @@ Expected: `52 passed, 0 failed`; Python `OK`.
 }
 ```
 
-- [ ] **Step 6: Write `examples/dictionary.json`** (`terms` must equal `DEFAULT_TERMS` in `tools/accuracy/evaluate.py`)
+- **Step 6: Write `examples/dictionary.json`** (`terms` must equal `DEFAULT_TERMS` in `tools/accuracy/evaluate.py`)
 
 ```json
 {
@@ -1644,7 +1644,7 @@ Expected: `52 passed, 0 failed`; Python `OK`.
 }
 ```
 
-- [ ] **Step 7: Add an examples consistency test** — append to `tests/test_config.lua`:
+- **Step 7: Add an examples consistency test** — append to `tests/test_config.lua`:
 
 ```lua
 -- examples/settings.json must match defaults (checked without a JSON library:
@@ -1666,7 +1666,7 @@ end)
 Run: `make test`
 Expected: `53 passed, 0 failed`.
 
-- [ ] **Step 8: Commit**
+- **Step 8: Commit**
 
 ```bash
 git add src/dictation/config.lua tests/test_config.lua examples
@@ -1715,7 +1715,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - Recorder exiting by itself while recording (e.g. mic denied) → `notify("Recording failed: " .. stderr)`, `sound("error")`, idle.
   - Result empty after `process` → `notify("Nothing recognized")`, no paste, WAV removed.
 
-- [ ] **Step 1: Write the failing tests `tests/test_controller.lua`**
+- **Step 1: Write the failing tests `tests/test_controller.lua`**
 
 ```lua
 local controller = require("dictation.controller")
@@ -1981,12 +1981,12 @@ test("transcribe waits for the recorder to finalize the file", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: FAIL — `tests/test_controller.lua (load error) … module 'dictation.controller' not found`.
 
-- [ ] **Step 3: Write `src/dictation/controller.lua`**
+- **Step 3: Write `src/dictation/controller.lua`**
 
 ```lua
 -- Dictation state machine: idle → recording → transcribing → idle. All side effects injected.
@@ -2132,12 +2132,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `73 passed, 0 failed`; Python `OK`.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add src/dictation/controller.lua tests/test_controller.lua
@@ -2176,7 +2176,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - `idleUnloadMinutes > 0` → stop after that much idle time; `ensure()` reloads on demand and resets the idle timer.
   - Results from stale health checks or old processes never change the current state.
 
-- [ ] **Step 1: Write the failing tests `tests/test_server.lua`**
+- **Step 1: Write the failing tests `tests/test_server.lua`**
 
 ```lua
 local server = require("dictation.server")
@@ -2433,12 +2433,12 @@ test("idleUnloadMinutes 0 never unloads", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: FAIL — `tests/test_server.lua (load error) … module 'dictation.server' not found`.
 
-- [ ] **Step 3: Write `src/dictation/server.lua`**
+- **Step 3: Write `src/dictation/server.lua`**
 
 ```lua
 -- whisper-server process lifecycle. Side effects are injected (real ones in platform.lua).
@@ -2616,12 +2616,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `90 passed, 0 failed`; Python `OK`.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add src/dictation/server.lua tests/test_server.lua
@@ -2649,7 +2649,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - `history.format(text, time) -> string` — `"YYYY-MM-DD HH:MM:SS\t<text>\n"`, newlines in text replaced with spaces.
   - `history.append(path, text, [time]) -> true | nil, err`.
 
-- [ ] **Step 1: Write the failing tests `tests/test_transcriber.lua`**
+- **Step 1: Write the failing tests `tests/test_transcriber.lua`**
 
 ```lua
 local transcriber = require("dictation.transcriber")
@@ -2764,7 +2764,7 @@ test("server errors are not retried", function()
 end)
 ```
 
-- [ ] **Step 2: Write the failing tests `tests/test_history.lua`**
+- **Step 2: Write the failing tests `tests/test_history.lua`**
 
 ```lua
 local history = require("dictation.history")
@@ -2794,12 +2794,12 @@ test("append reports an unwritable path", function()
 end)
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- **Step 3: Run tests to verify they fail**
 
 Run: `make test`
 Expected: FAIL — load errors for `dictation.transcriber` and `dictation.history`.
 
-- [ ] **Step 4: Write `src/dictation/transcriber.lua`**
+- **Step 4: Write `src/dictation/transcriber.lua`**
 
 ```lua
 -- Sends a WAV to the local whisper-server and returns the text.
@@ -2869,7 +2869,7 @@ end
 return M
 ```
 
-- [ ] **Step 5: Write `src/dictation/history.lua`**
+- **Step 5: Write `src/dictation/history.lua`**
 
 ```lua
 -- Every transcript is appended here so text is never lost if a paste misses.
@@ -2890,12 +2890,12 @@ end
 return M
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- **Step 6: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `102 passed, 0 failed`; Python `OK`.
 
-- [ ] **Step 7: Commit**
+- **Step 7: Commit**
 
 ```bash
 git add src/dictation/transcriber.lua src/dictation/history.lua tests/test_transcriber.lua tests/test_history.lua
@@ -2922,7 +2922,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - `actions = { setMode(m), setModel(m), setLanguage(l), editDictionary(), editSettings(), reload(), restartServer(), openHistory(), quit() }`.
   - `menubar.create() -> { update(view, actions), delete() }` — thin `hs.menubar` wrapper (requires `hs`; not unit-tested).
 
-- [ ] **Step 1: Write the failing tests `tests/test_menubar.lua`**
+- **Step 1: Write the failing tests `tests/test_menubar.lua`**
 
 ```lua
 local menubar = require("dictation.menubar")
@@ -3049,12 +3049,12 @@ test("action items call their actions", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: FAIL — `tests/test_menubar.lua (load error) … module 'dictation.menubar' not found`.
 
-- [ ] **Step 3: Write `src/dictation/menubar.lua`**
+- **Step 3: Write `src/dictation/menubar.lua`**
 
 ```lua
 -- Menu bar icon and dropdown. build/title/statusLine are pure; create() wraps hs.menubar.
@@ -3163,12 +3163,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `113 passed, 0 failed`; Python `OK`.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add src/dictation/menubar.lua tests/test_menubar.lua
@@ -3195,14 +3195,14 @@ These modules call `hs.*` directly, so they can't be unit-tested. Each is small,
   - `recorder.new{ recPath, onUnexpectedExit(code, stderr) } -> { start(path) -> true | false, err; stop(done); cancel() }`, matching the controller's `deps.recorder` from Task 6.
   - `paster.paste(text, app, { refocus = bool, restore = bool })`; constants `paster.REFOCUS_DELAY = 0.2`, `paster.RESTORE_DELAY = 1.0`, `paster.KEYCODE_V = 9`.
 
-- [ ] **Step 1: Install Hammerspoon and sox**
+- **Step 1: Install Hammerspoon and sox**
 
 Run: `brew list --cask hammerspoon >/dev/null 2>&1 || brew install --cask hammerspoon; brew list sox >/dev/null 2>&1 || brew install sox; open -a Hammerspoon`
 Then ask the human partner to:
 1. Grant **Accessibility** to Hammerspoon (System Settings → Privacy & Security → Accessibility).
 2. In Hammerspoon Preferences, turn on "Launch Hammerspoon at login".
 
-- [ ] **Step 2: Write `src/dictation/platform.lua`**
+- **Step 2: Write `src/dictation/platform.lua`**
 
 ```lua
 -- Thin wrappers over hs.* used by the pure modules. Requires Hammerspoon.
@@ -3303,7 +3303,7 @@ end
 return M
 ```
 
-- [ ] **Step 3: Write `src/dictation/recorder.lua`**
+- **Step 3: Write `src/dictation/recorder.lua`**
 
 ```lua
 -- Records 16 kHz mono 16-bit WAV with sox `rec`. Requires Hammerspoon.
@@ -3357,7 +3357,7 @@ end
 return M
 ```
 
-- [ ] **Step 4: Write `src/dictation/paster.lua`**
+- **Step 4: Write `src/dictation/paster.lua`**
 
 ```lua
 -- Puts text into the target app: refocus, clipboard, ⌘V, restore clipboard. Requires Hammerspoon.
@@ -3414,7 +3414,7 @@ end
 return M
 ```
 
-- [ ] **Step 5: Verify in the Hammerspoon console**
+- **Step 5: Verify in the Hammerspoon console**
 
 Open the Hammerspoon Console (menu bar 🔨 → Console) and paste these one block at a time. Replace `REPO` with the absolute repo path.
 
@@ -3449,7 +3449,7 @@ hs.timer.doAfter(3, function() p.paste("Привіт, pull request ✅", nil, { 
 ```
 Expected: within 3 s the human partner clicks into a TextEdit document. `Привіт, pull request ✅` is pasted there, and about 1 s later `hs.pasteboard.getContents()` returns `OLD CLIPBOARD`. Repeat with the **Ukrainian keyboard layout active**; the paste must still work.
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add src/dictation/platform.lua src/dictation/recorder.lua src/dictation/paster.lua
@@ -3480,7 +3480,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - "Edit dictionary…" and "Edit settings…" copy the matching `examples/` file if the user file doesn't exist yet, then open it in the default text editor.
   - On a Hammerspoon reload or quit: the server is terminated, and the hotkeys and menu bar item are deleted. Any existing `hs.shutdownCallback` is preserved.
 
-- [ ] **Step 1: Write `src/dictation/init.lua`**
+- **Step 1: Write `src/dictation/init.lua`**
 
 ```lua
 -- Hammerspoon entry point: wires the modules together. Requires Hammerspoon.
@@ -3723,12 +3723,12 @@ end
 return M
 ```
 
-- [ ] **Step 2: Check that the module files compile**
+- **Step 2: Check that the module files compile**
 
 Run: `for f in src/dictation/*.lua; do /opt/homebrew/opt/lua@5.4/bin/luac -p "$f" || exit 1; done && echo OK && make test`
 Expected: `OK`, then all unit tests pass. The count is unchanged from Task 9.
 
-- [ ] **Step 3: Load it in Hammerspoon by hand (the installer automates this in Task 12)**
+- **Step 3: Load it in Hammerspoon by hand (the installer automates this in Task 12)**
 
 Append this to `~/.hammerspoon/init.lua`, replacing `REPO` with the absolute repo path:
 ```lua
@@ -3742,7 +3742,7 @@ Expected:
 - The Hammerspoon Console shows no Lua errors.
 - `ps aux | grep whisper-server` shows one process with `--port 8178`.
 
-- [ ] **Step 4: End-to-end smoke test**
+- **Step 4: End-to-end smoke test**
 
 Ask the human partner to:
 1. Click into a TextEdit document.
@@ -3755,13 +3755,13 @@ Expected:
 - `~/.local/share/dictation/history.log` has a new line containing the text.
 - No `/tmp/dictation-*.wav` file is left behind.
 
-- [ ] **Step 5: Reload and lifecycle checks**
+- **Step 5: Reload and lifecycle checks**
 
 1. Reload Hammerspoon twice. Then `pgrep -fl whisper-server` must show exactly **one** process. This proves the old server is killed and nothing is left over.
 2. Choose "Quit dictation" in the menu. The icon disappears and `pgrep -fl whisper-server` shows nothing.
 3. Reload Hammerspoon to bring it back.
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add src/dictation/init.lua
@@ -3787,7 +3787,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - Both honour the environment variables `DICTATION_HOME` (default `$HOME`) and `DICTATION_SKIP_DEPS=1`, which skips brew, the build and the downloads. These exist only so the test script can run them against a temporary home directory.
   - The loader block in `~/.hammerspoon/init.lua` is wrapped in the marker lines `-- >>> dictation-tool >>>` and `-- <<< dictation-tool <<<`.
 
-- [ ] **Step 1: Write the failing test `tests/install_test.sh`**
+- **Step 1: Write the failing test `tests/install_test.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -3828,7 +3828,7 @@ grep -q 'hs.alert.show("mine")' "$T/.hammerspoon/init.lua" || fail "uninstall re
 echo "install tests passed"
 ```
 
-- [ ] **Step 2: Add the test to the Makefile and run it**
+- **Step 2: Add the test to the Makefile and run it**
 
 Replace the contents of `Makefile` with:
 ```makefile
@@ -3843,7 +3843,7 @@ test:
 Run: `chmod +x tests/install_test.sh && make test`
 Expected: the Lua and Python tests pass, then the install test fails with `scripts/install.sh: No such file or directory`.
 
-- [ ] **Step 3: Write `scripts/install.sh`**
+- **Step 3: Write `scripts/install.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -3908,7 +3908,7 @@ Default hotkey: ⌥Space (toggle). Change it via 🎙 → Edit settings…
 EOF
 ```
 
-- [ ] **Step 4: Write `scripts/uninstall.sh`**
+- **Step 4: Write `scripts/uninstall.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -3945,12 +3945,12 @@ fi
 echo "Homebrew packages (sox, cmake, lua@5.4, hammerspoon) were left installed."
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- **Step 5: Run the tests to verify they pass**
 
 Run: `chmod +x scripts/install.sh scripts/uninstall.sh && make test`
 Expected: the Lua and Python tests pass, then `install tests passed`.
 
-- [ ] **Step 6: Write `README.md`**
+- **Step 6: Write `README.md`**
 
 ````markdown
 # dictation-tool
@@ -4036,12 +4036,12 @@ tools/accuracy/evaluate.py      # compare models and prompt on those clips
 ```
 ````
 
-- [ ] **Step 7: Run the real installer on this machine**
+- **Step 7: Run the real installer on this machine**
 
 Run: `scripts/install.sh --with-turbo`
 Expected: everything already present prints `ok` or `keep`, the loader is added once, and the final instructions are printed. If the loader from Task 11 Step 3 was added by hand, remove those two lines from `~/.hammerspoon/init.lua` first, so only the marked block remains. Then reload Hammerspoon and confirm the 🎙 icon reaches `Ready — large-v3`.
 
-- [ ] **Step 8: Commit**
+- **Step 8: Commit**
 
 ```bash
 git add scripts/install.sh scripts/uninstall.sh tests/install_test.sh Makefile README.md
@@ -4061,7 +4061,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Consumes: the installed tool from Task 12.
 - Produces: a checklist file with each result filled in.
 
-- [ ] **Step 1: Write `docs/manual-test-checklist.md`**
+- **Step 1: Write `docs/manual-test-checklist.md`**
 
 ```markdown
 # Manual acceptance checklist
@@ -4092,20 +4092,20 @@ Date: ____  Model: ____  Result legend: ✅ pass · ❌ fail (note what happened
 | 20 | Dictate 2 minutes continuously | Full text pasted, nothing cut off in the middle | |
 ```
 
-- [ ] **Step 2: Go through the checklist with the human partner**
+- **Step 2: Go through the checklist with the human partner**
 
 Run each scenario and fill in the Result column. For each ❌: use the superpowers:systematic-debugging skill to find the cause, fix it with a test where the code is unit-testable, and run the scenario again.
 
-- [ ] **Step 3: Restore the defaults changed during testing**
+- **Step 3: Restore the defaults changed during testing**
 
 Set `settings.json` back to `mode` `"toggle"`, `hotkey` ⌥Space, `model` `"large-v3"` and `idleUnloadMinutes` `0`, unless the human partner wants to keep their changes. Remove the `"тест"` rule from the dictionary.
 
-- [ ] **Step 4: Run the full test suite one last time**
+- **Step 4: Run the full test suite one last time**
 
 Run: `make test`
 Expected: all Lua tests pass, Python prints `OK`, and the last line is `install tests passed`.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add docs/manual-test-checklist.md

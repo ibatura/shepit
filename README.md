@@ -262,7 +262,7 @@ Shepit can use several local speech engines, chosen separately for **dictation**
 | Parakeet | Very fast, but writes English terms in Cyrillic and takes no prompt |
 | Apple Speech | macOS 26; Ukrainian only through the older dictation recognizer, weakest results |
 
-Benchmark details: `docs/superpowers/specs/2026-10-18-native-app/02-engines.md` §7. Compare on your own voice with `tools/accuracy/evaluate.py --engines …`.
+Benchmark details: `docs/features/specs/2026-10-18-native-app/02-engines.md` §7. Compare on your own voice with `tools/accuracy/evaluate.py --engines …`.
 
 ### settings.json fields
 
@@ -439,7 +439,7 @@ tools/accuracy/evaluate.py --engines whispercpp:large-v3-turbo parakeet apple   
 
 Releases: a merge into `main` that raises `CFBundleShortVersionString` in `app/Resources/Info.plist` makes the tag `v<version>` and a GitHub release with the notes in `docs/releases/<version>.md` (`.github/workflows/release.yml`).
 
-The code is a SwiftPM package in `app/`: `ShepitCore` (settings, dictionary, controller, statistics — pure logic), `ShepitEngines` (the four speech engines), `Shepit` (the app). A plain `swift build --package-path app` on a fresh clone needs `scripts/build-whisper-lib.sh` first. Design: `docs/superpowers/specs/2026-10-18-native-app/`.
+The code is a SwiftPM package in `app/`: `ShepitCore` (settings, dictionary, controller, statistics — pure logic), `ShepitEngines` (the four speech engines), `Shepit` (the app). A plain `swift build --package-path app` on a fresh clone needs `scripts/build-whisper-lib.sh` first. Design: `docs/features/specs/2026-10-18-native-app/`.
 
 ## License
 

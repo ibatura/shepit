@@ -9,7 +9,7 @@
 
 The app gets the button, the file picker, `ImportNamesSheet`, and `MeetingsModel.importNames` and `applyNames`. Applying changes the meeting through `MeetingStore.change`, as typing names does.
 
-**Spec:** `docs/superpowers/specs/2026-11-20-import-names-design.md` ("the spec"; section numbers refer to it). Look: `docs/superpowers/specs/2026-11-11-visual-style/` (`visual-style.md` §5.2; `mockups.html` screen 2). Builds on `2026-11-14-meetings-design.md` §8 (the store and the note changed together) and `2026-11-17-voices-design.md` §5 (a name belongs to a person).
+**Spec:** `docs/features/specs/2026-11-20-import-names-design.md` ("the spec"; section numbers refer to it). Look: `docs/features/specs/2026-11-11-visual-style/` (`visual-style.md` §5.2; `mockups.html` screen 2). Builds on `2026-11-14-meetings-design.md` §8 (the store and the note changed together) and `2026-11-17-voices-design.md` §5 (a name belongs to a person).
 
 **Branch:** `import-names`, cut from `main`; the docs commits of 2026-11-20 are already on it. When it is ready, ask the author whether to open the pull request. Push the branch and open it only after they say yes. The author merges it in GitHub; Claude never merges.
 
@@ -88,7 +88,7 @@ app/Tests/ShepitTests/
 
 ### Task 1: Read a .vtt
 
-- [ ] Tests first for `SpeakerTranscript.cues(_ text: String) throws -> [Cue]`. A `Cue` is start, end and speaker, with times in seconds from the file's start; it has no text field.
+- Tests first for `SpeakerTranscript.cues(_ text: String) throws -> [Cue]`. A `Cue` is start, end and speaker, with times in seconds from the file's start; it has no text field.
   - **Teams:** an id line, the timing line, and `<v Olena K.>text</v>` over one or several lines, with or without `</v>`. The speaker is the tag's name, trimmed and as written: "Olena K. (Guest)" stays as it is (spec §2).
   - **Zoom:** a number line, the timing line, and `Olena K.: text`. The speaker is what comes before the first `: ` of the first text line, so a colon later in the text doesn't count. A cue with no `: ` has no speaker and is left out.
   - **Both:**
@@ -98,16 +98,16 @@ app/Tests/ShepitTests/
   - **Refused:**
     - text that doesn't start with `WEBVTT` (after a BOM), the empty file included: "This isn't a WebVTT transcript.";
     - WebVTT where fewer than half the cues name a speaker: "This transcript has no speaker names." Zoom's captions file has no names, but a colon in the text of a few cues.
-- [ ] `SpeakerTranscript` in `ShepitCore`, with the two errors as a `LocalizedError`.
-- [ ] Commit `Shepit: read speakers and times from a Teams or Zoom .vtt`.
+- `SpeakerTranscript` in `ShepitCore`, with the two errors as a `LocalizedError`.
+- Commit `Shepit: read speakers and times from a Teams or Zoom .vtt`.
 
 ### Task 2: Line the file up with the meeting
 
-- [ ] Tests first for `MeetingStore.timedLines(_ meeting: Int) -> [NameImport.Line]`, on a temporary store. A line is its current person, its start in seconds from the meeting's start (from `MeetingNote.date` of its timestamp), and its length.
+- Tests first for `MeetingStore.timedLines(_ meeting: Int) -> [NameImport.Line]`, on a temporary store. A line is its current person, its start in seconds from the meeting's start (from `MeetingNote.date` of its timestamp), and its length.
   - The length is `seconds` where the line has it, else half a second per word; at least half a second either way.
   - Lines whose person is the call label (`MeetingNote.callLabel`) are left out.
   - A line counts under its person now: after a give, a merge and a reset.
-- [ ] Tests first for `NameImport.align(_ lines: [Line], _ cues: [SpeakerTranscript.Cue]) -> Alignment?`. An `Alignment` holds:
+- Tests first for `NameImport.align(_ lines: [Line], _ cues: [SpeakerTranscript.Cue]) -> Alignment?`. An `Alignment` holds:
   - `shift`: the meeting second at which the file's 00:00 falls, negative when the file started first;
   - `matches`: for each person with a clear match, the speaker, the share and the seconds shared;
   - `speakers`: the file's speakers in order of their first cue.
@@ -121,14 +121,14 @@ app/Tests/ShepitTests/
   - **Refused:** another meeting's file gives nil, for example the same people's turns in another order. The rule: every shift more than 60 s from the best must score below 90% of it. Make the two numbers constants, with a comment pointing to spec §11.
   - **Match:** a person's match is the speaker they share most seconds with, with its share of all the seconds they share. It is clear at 50% and 5 s; at 49%, or at 4 s, there is no match.
   - **Ties:** equal scores pick the shift nearest to 0.
-- [ ] `NameImport.align`: two arrays of owners, one entry per second, and the score of each shift summed over the file seconds that fall inside the meeting.
-- [ ] Measure the speed in release with a scratch test, deleted before the commit, run with `swift test -c release --filter`: 2 hours of made-up lines (6 people) against a 2-hour file (12 speakers). Report the time. If it isn't well under a second, tell the author before changing the method.
-- [ ] `/code-review` on the task's diff.
-- [ ] Commit `Shepit: line a transcript file up with a meeting`.
+- `NameImport.align`: two arrays of owners, one entry per second, and the score of each shift summed over the file seconds that fall inside the meeting.
+- Measure the speed in release with a scratch test, deleted before the commit, run with `swift test -c release --filter`: 2 hours of made-up lines (6 people) against a 2-hour file (12 speakers). Report the time. If it isn't well under a second, tell the author before changing the method.
+- `/code-review` on the task's diff.
+- Commit `Shepit: line a transcript file up with a meeting`.
 
 ### Task 3: The sheet's suggestions
 
-- [ ] Tests first for `NameImport.sheet(file: String, alignment:, people: [MeetingStore.Person], order: [String], you: String?) -> Sheet`. `order` is the people with lines, in the meeting's order.
+- Tests first for `NameImport.sheet(file: String, alignment:, people: [MeetingStore.Person], order: [String], you: String?) -> Sheet`. `order` is the people with lines, in the meeting's order.
   - **Subtitle:**
     - "From Daily.vtt · the file starts 12:04 into the meeting";
     - "From Daily.vtt · the file starts 0:40 before the meeting";
@@ -145,21 +145,21 @@ app/Tests/ShepitTests/
     - A person with a name who isn't the holder: no merge.
     - You matching a speaker a Person N holds: nothing for You.
   - **Also in the file:** the speakers nobody holds, by first cue.
-- [ ] Tests first for `NameImport.clashes(names: [String: String], people:, you:) -> Set<String>`. It returns the keys whose ticked name another person of the meeting will also have after the import. That other person is either someone not renamed by the import (You's name included) or another ticked row.
-- [ ] Tests first for `NameImport.changes(names:, merges:) -> (merges: [(String, String)], names: [(String, String)])`, what Apply does:
+- Tests first for `NameImport.clashes(names: [String: String], people:, you:) -> Set<String>`. It returns the keys whose ticked name another person of the meeting will also have after the import. That other person is either someone not renamed by the import (You's name included) or another ticked row.
+- Tests first for `NameImport.changes(names:, merges:) -> (merges: [(String, String)], names: [(String, String)])`, what Apply does:
   - the ticked merges, then the ticked names;
   - each name made one line and trimmed (`MeetingPage.name`), and empty names skipped;
   - no name for a person who is merged away.
-- [ ] Commit `Shepit: the import's suggestions, merges and changes`.
+- Commit `Shepit: the import's suggestions, merges and changes`.
 
 ### Task 4: GATE: Import names… in Meetings (with the author)
 
-- [ ] `MeetingsModel.importNames()`:
+- `MeetingsModel.importNames()`:
   - **Picker:** an open panel for `.vtt` files, "Choose the transcript file Teams or Zoom saved of this meeting", prompt "Import", starting in Downloads.
   - **Reading:** the file is read, parsed and lined up off the main thread; the store's reads (`timedLines`, `people`) stay on the main thread, as the section's other reads do. While it works, the button shows a spinner.
   - **Errors:** each shows a notice "Can't import names from <file name>" with the reason: not WebVTT, no speaker names, not readable as UTF-8, or "This transcript doesn't line up with this meeting."
   - **Result:** the sheet's model (the meeting and the `Sheet`), while the sheet is open.
-- [ ] `ImportNamesSheet` (`Window/ImportNamesSheet.swift`):
+- `ImportNamesSheet` (`Window/ImportNamesSheet.swift`):
   - The title and subtitle.
   - **Rows:** each has the person's colour and label as in the People box; `NameField` (no longer private), filled with the file's name and with every meeting's names as suggestions; the share; and the checkbox, or "already named". Show "now Marko D." when the person has another name.
   - Typing a name ticks the row, and emptying it unticks it.
@@ -167,41 +167,41 @@ app/Tests/ShepitTests/
   - **Merge rows** have checkboxes; below them, "Also in the file:".
   - **Buttons:** Cancel, and Apply names (the default button), off while nothing is ticked.
   - Apply names first ends editing in the sheet (the window's first responder set to nil), so a name typed just before clicking counts.
-- [ ] `MeetingsModel.applyNames(_ meeting: Int, _ changes:)` makes one `change(meeting) { merges; names }`, as `merge` and `name` do. Then the sheet closes and the page is read again.
-- [ ] The Import names… button in `FinishedMeeting`, after Open note (style spec §5.2). It is off when the note is missing.
-- [ ] Tests in `ShepitTests`, with a temporary store and note:
+- `MeetingsModel.applyNames(_ meeting: Int, _ changes:)` makes one `change(meeting) { merges; names }`, as `merge` and `name` do. Then the sheet closes and the page is read again.
+- The Import names… button in `FinishedMeeting`, after Open note (style spec §5.2). It is off when the note is missing.
+- Tests in `ShepitTests`, with a temporary store and note:
   - applying a name and a merge changes the store and the note's headers together;
   - with the note unwritable, nothing changes and the notice shows;
   - a sheet closed with Cancel changes nothing.
-- [ ] Look at the sheet in light and dark (a scratch render, deleted before the commit).
-- [ ] `/code-review` on the task's diff.
-- [ ] **With the author** (ask before installing): install, then the author imports three files.
+- Look at the sheet in light and dark (a scratch render, deleted before the commit).
+- `/code-review` on the task's diff.
+- **With the author** (ask before installing): install, then the author imports three files.
   - The 20 Nov file into its meeting: every row says "already named".
   - The 29 Oct file into its meeting: names are offered. The author checks a few against who spoke, and applies them or not.
   - The 28 Oct file into the 29 Oct meeting: refused.
 
   Report in counts only, and change what the author asks.
-- [ ] Commit `Shepit: Import names… in Meetings`.
+- Commit `Shepit: Import names… in Meetings`.
 
 ### Task 5: Docs
 
-- [ ] README, under "Meetings in the window": Import names…, covering
+- README, under "Meetings in the window": Import names…, covering
   - Teams and Zoom `.vtt` only;
   - the file is only read, and only names are taken;
   - what the sheet shows;
   - when a file is refused (another meeting's file, or a file of a few minutes).
 
   The privacy section: nothing of the file is kept.
-- [ ] `docs/manual-test-checklist.md`: I1–I8 from spec §10, plus I9: type a name and click Apply names at once, and the name is saved.
-- [ ] The style spec's §5.2, and the meetings and voices specs' non-goals, point to this spec. The Import names… button is no longer "not shown".
-- [ ] Commit `Docs: Import names`.
+- `docs/manual-test-checklist.md`: I1–I8 from spec §10, plus I9: type a name and click Apply names at once, and the name is saved.
+- The style spec's §5.2, and the meetings and voices specs' non-goals, point to this spec. The Import names… button is no longer "not shown".
+- Commit `Docs: Import names`.
 
 ### Task 6: GATE: the author's checks and reviews
 
-- [ ] I1–I9 with the author on the installed app. I7 waits for a Zoom call: it goes to `docs/future-ideas.md` as left open.
-- [ ] The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list. Fix what the author picks.
-- [ ] Update `docs/future-ideas.md` (item 8 done; left open: I7, Teams `.docx`, the Meet `.txt` format) and "Where things stand" in `CLAUDE.md`.
-- [ ] Ask the author whether to open the pull request. Push and open it, with a description of what changed and how it was checked, only after they say yes.
+- I1–I9 with the author on the installed app. I7 waits for a Zoom call: it goes to `docs/future-ideas.md` as left open.
+- The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list. Fix what the author picks.
+- Update `docs/future-ideas.md` (item 8 done; left open: I7, Teams `.docx`, the Meet `.txt` format) and "Where things stand" in `CLAUDE.md`.
+- Ask the author whether to open the pull request. Push and open it, with a description of what changed and how it was checked, only after they say yes.
 
 ---
 

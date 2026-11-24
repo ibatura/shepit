@@ -8,7 +8,7 @@
 
 **Tech Stack:** Lua 5.4 (Hammerspoon), hs.canvas, existing modules.
 
-**Spec:** `docs/superpowers/specs/2026-10-04-dictation-tool-design.md` §11
+**Spec:** `docs/features/specs/2026-10-04-dictation-tool-design.md` §11
 
 ## Global Constraints
 
@@ -45,7 +45,7 @@
   - `wav.level(path, seconds) -> number` (RMS of the last `seconds` of audio; 0 if the file is missing or too short)
   - `wav.snapshot(src, dst, seconds) -> durationSeconds | nil, err` (writes the last `seconds` (or everything, if shorter) to `dst` as a valid WAV)
 
-- [ ] **Step 1: Write the failing tests `tests/test_wav.lua`**
+- **Step 1: Write the failing tests `tests/test_wav.lua`**
 
 ```lua
 local wav = require("dictation.wav")
@@ -155,12 +155,12 @@ test("snapshot reports a missing source", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: `tests/test_wav.lua (load error) … module 'dictation.wav' not found`.
 
-- [ ] **Step 3: Write `src/dictation/wav.lua`**
+- **Step 3: Write `src/dictation/wav.lua`**
 
 ```lua
 -- Reads a 16 kHz mono 16-bit WAV while sox is still writing it.
@@ -223,12 +223,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `122 passed, 0 failed`; Python `OK`; `install tests passed`.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add src/dictation/wav.lua tests/test_wav.lua
@@ -258,7 +258,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
     - `overlay.hide()` — a silent short-hold discard
   - Controller emits `deps.onRecordingStart(path)` and `deps.onRecordingStop()` (both optional), used by preview in Task 3. `onRecordingStop` fires whenever the recording state ends (stop, cancel, discard, recorder failure).
 
-- [ ] **Step 1: Write the failing config tests** — append to `tests/test_config.lua`:
+- **Step 1: Write the failing config tests** — append to `tests/test_config.lua`:
 
 ```lua
 test("overlay settings have defaults and are validated", function()
@@ -272,7 +272,7 @@ test("overlay settings have defaults and are validated", function()
 end)
 ```
 
-- [ ] **Step 2: Write the failing controller tests** — append to `tests/test_controller.lua`:
+- **Step 2: Write the failing controller tests** — append to `tests/test_controller.lua`:
 
 ```lua
 local function withOverlay()
@@ -337,12 +337,12 @@ test("overlay: start failure emits only a message", function()
 end)
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- **Step 3: Run tests to verify they fail**
 
 Run: `make test`
 Expected: the 7 new tests FAIL (`expected true, got nil` for the overlay setting; event lists that don't match). All other tests pass.
 
-- [ ] **Step 4: Add the settings to `src/dictation/config.lua`**
+- **Step 4: Add the settings to `src/dictation/config.lua`**
 
 In `M.DEFAULT_SETTINGS`, after `idleUnloadMinutes = 0,`, add:
 ```lua
@@ -357,7 +357,7 @@ In `SETTING_CHECKS`, after `idleUnloadMinutes = integer(0, 1440),`, add:
   previewModel = enum(M.MODELS),
 ```
 
-- [ ] **Step 5: Add the settings to `examples/settings.json`**
+- **Step 5: Add the settings to `examples/settings.json`**
 
 Replace the last line `  "idleUnloadMinutes": 0` with:
 ```json
@@ -367,7 +367,7 @@ Replace the last line `  "idleUnloadMinutes": 0` with:
   "previewModel": "large-v3-turbo"
 ```
 
-- [ ] **Step 6: Emit events from `src/dictation/controller.lua`**
+- **Step 6: Emit events from `src/dictation/controller.lua`**
 
 Add a helper after `Ctl:stopTimer`:
 ```lua
@@ -399,12 +399,12 @@ Then make these edits:
 - In `Ctl:stop`, after `d.bindCancel(false)` (the transcribing path), add `self:recordingEnded()`. After `self:setState("transcribing")`, add `self:emit("transcribing")`.
 - In `Ctl:finish`, after `d.paste(result, rec.app)`, add `self:emit("done", result)`.
 
-- [ ] **Step 7: Run tests to verify they pass**
+- **Step 7: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `129 passed, 0 failed` (122 + 1 config + 6 controller); the examples consistency test still passes; Python `OK`; `install tests passed`.
 
-- [ ] **Step 8: Commit**
+- **Step 8: Commit**
 
 ```bash
 git add src/dictation/config.lua examples/settings.json src/dictation/controller.lua tests/test_config.lua tests/test_controller.lua
@@ -441,7 +441,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - Results are processed; an empty result is ignored, otherwise it goes to `onText`. Errors are ignored silently.
   - Once `stop` has been called, results are discarded (a session counter) and the snapshot file is removed.
 
-- [ ] **Step 1: Write the failing tests `tests/test_preview.lua`**
+- **Step 1: Write the failing tests `tests/test_preview.lua`**
 
 ```lua
 local preview = require("dictation.preview")
@@ -550,12 +550,12 @@ test("disabled preview does nothing", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: `tests/test_preview.lua (load error) … module 'dictation.preview' not found`.
 
-- [ ] **Step 3: Write `src/dictation/preview.lua`**
+- **Step 3: Write `src/dictation/preview.lua`**
 
 ```lua
 -- Draft text while recording: every few seconds, transcribe the tail of the growing WAV.
@@ -609,12 +609,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `137 passed, 0 failed`; Python `OK`; `install tests passed`.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add src/dictation/preview.lua tests/test_preview.lua
@@ -644,7 +644,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - `paths.previewWav = "/tmp/dictation-preview.wav"`
   - `platform.every(sec, fn) -> {stop=fn}`
 
-- [ ] **Step 1: Write the failing tests `tests/test_overlay.lua`**
+- **Step 1: Write the failing tests `tests/test_overlay.lua`**
 
 ```lua
 local overlay = require("dictation.overlay")
@@ -685,19 +685,19 @@ test("previewWav path", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 Run: `make test`
 Expected: `tests/test_overlay.lua (load error) … module 'dictation.overlay' not found`; the `previewWav path` test FAILS with `expected "/tmp/dictation-preview.wav", got nil`.
 
-- [ ] **Step 3: Add `M.previewWav` to `src/dictation/paths.lua`**
+- **Step 3: Add `M.previewWav` to `src/dictation/paths.lua`**
 
 After `M.failedDir = …`, add:
 ```lua
 M.previewWav = "/tmp/dictation-preview.wav"
 ```
 
-- [ ] **Step 4: Write `src/dictation/overlay.lua`**
+- **Step 4: Write `src/dictation/overlay.lua`**
 
 ```lua
 -- Floating status panel. Never takes focus. Formatting helpers are pure; new() requires hs.
@@ -852,12 +852,12 @@ end
 return M
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- **Step 5: Run tests to verify they pass**
 
 Run: `make test`
 Expected: `143 passed, 0 failed` (137 + 5 overlay + 1 paths); Python `OK`; `install tests passed`.
 
-- [ ] **Step 6: Add `every` to `src/dictation/platform.lua`**
+- **Step 6: Add `every` to `src/dictation/platform.lua`**
 
 After the `M.after` function, add:
 ```lua
@@ -873,7 +873,7 @@ function M.every(sec, fn)
 end
 ```
 
-- [ ] **Step 7: Wire it up in `src/dictation/init.lua`**
+- **Step 7: Wire it up in `src/dictation/init.lua`**
 
 1. Add the requires next to the others:
    ```lua
@@ -953,12 +953,12 @@ end
    panel, livePreview, previewServer = nil, nil, nil
    ```
 
-- [ ] **Step 8: Compile-check and test**
+- **Step 8: Compile-check and test**
 
 Run: `for f in src/dictation/*.lua; do /opt/homebrew/opt/lua@5.4/bin/luac -p "$f" || exit 1; done && echo OK && make test`
 Expected: `OK`, then `143 passed, 0 failed`; Python `OK`; `install tests passed`.
 
-- [ ] **Step 9: Live check in Hammerspoon**
+- **Step 9: Live check in Hammerspoon**
 
 Reload with `hs -c 'hs.reload()'` (or 🔨 → Reload Config). Then:
 - `pgrep -fl whisper-server` shows two processes, on ports 8178 and 8180.
@@ -970,7 +970,7 @@ Reload with `hs -c 'hs.reload()'` (or 🔨 → Reload Config). Then:
 - Press Esc while recording: the panel shows `Cancelled` for about 2.5 s.
 - Set `"overlay": false` in settings.json and save. The next dictation shows no panel and uses `hs.alert` notices as before. Then set it back to `true`.
 
-- [ ] **Step 10: Update README** — add rows to the settings table:
+- **Step 10: Update README** — add rows to the settings table:
 
 ```markdown
 | `overlay` | `true` | Show a floating panel while recording: state, timer, level and draft text. It never takes focus |
@@ -978,7 +978,7 @@ Reload with `hs -c 'hs.reload()'` (or 🔨 → Reload Config). Then:
 | `previewModel` | `"large-v3-turbo"` | Faster model used only for the draft text; the pasted text always uses `model` |
 ```
 
-- [ ] **Step 11: Commit**
+- **Step 11: Commit**
 
 ```bash
 git add src/dictation/overlay.lua src/dictation/paths.lua src/dictation/platform.lua src/dictation/init.lua tests/test_overlay.lua tests/test_paths.lua README.md

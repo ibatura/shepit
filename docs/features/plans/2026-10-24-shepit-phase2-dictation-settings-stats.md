@@ -8,7 +8,7 @@
 
 **Tech Stack:** as phase 1, plus AVAudioEngine, Carbon `RegisterEventHotKey`, `CGEvent`, AppKit `NSPanel`, SwiftUI hosted in `NSWindow`, Swift Charts, system SQLite (`import SQLite3`, no package), `SMAppService`, CryptoKit (SHA-256 for in-app downloads).
 
-**Spec:** `docs/superpowers/specs/2026-10-18-native-app/` — `03-dictation.md`, `04-settings.md`, `05-statistics.md`, `01-app-build-signing.md` §4–6, `02-engines.md` §3–5. "As today" means `../2026-10-04-dictation-tool-design.md` (incl. §11 overlay addendum), the README, and the Lua source named in each task. Phase 1 results and the user's engine decision: `02-engines.md` §6–7.
+**Spec:** `docs/features/specs/2026-10-18-native-app/` — `03-dictation.md`, `04-settings.md`, `05-statistics.md`, `01-app-build-signing.md` §4–6, `02-engines.md` §3–5. "As today" means `../2026-10-04-dictation-tool-design.md` (incl. §11 overlay addendum), the README, and the Lua source named in each task. Phase 1 results and the user's engine decision: `02-engines.md` §6–7.
 
 **Branch:** continue on `shepit-phase1` or a new `shepit-phase2` cut from it (the user left phase 1 unmerged; ask before merging anything into `main`).
 
@@ -88,10 +88,10 @@ docs/manual-test-checklist.md native version
 - `enum DictionaryRules { static func estimateTokens(_:) -> Int; static func buildPrompt(style:terms:maxTokens:) -> String; static func applyReplacements(_ text: String, _ replace: [String: String]) -> (text: String, fired: [String]); static func stripHallucinations(_:extra:) -> String; static func process(_ text: String, _ dict: DictionaryFile) -> (text: String, fired: [String]) }` — `fired` = replace targets that matched (for statistics, Task 10).
 - `final class DictionaryStore` mirroring `SettingsStore` (`load() -> Bool`, `errors`, `update`).
 
-- [ ] **Step 1:** Port the tests; add `firedTermsListEveryMatch` (every match appends its replacement to `fired`, in order). Run `swift test --filter Dictionary` → FAIL.
-- [ ] **Step 2:** Implement. Case-insensitive whole-word matching with Swift's Unicode lowercasing; utf8util cases become tests of the same behaviour, not a port of byte helpers that Swift doesn't need (drop those cases with a note in the ledger).
-- [ ] **Step 3:** Run → PASS. `examples/dictionary.json` and the user's real file (read-only, from `Paths.dictionaryFile` if present) load with no errors.
-- [ ] **Step 4:** Commit `Shepit: dictionary rules and dictionary.json store`.
+- **Step 1:** Port the tests; add `firedTermsListEveryMatch` (every match appends its replacement to `fired`, in order). Run `swift test --filter Dictionary` → FAIL.
+- **Step 2:** Implement. Case-insensitive whole-word matching with Swift's Unicode lowercasing; utf8util cases become tests of the same behaviour, not a port of byte helpers that Swift doesn't need (drop those cases with a note in the ledger).
+- **Step 3:** Run → PASS. `examples/dictionary.json` and the user's real file (read-only, from `Paths.dictionaryFile` if present) load with no errors.
+- **Step 4:** Commit `Shepit: dictionary rules and dictionary.json store`.
 
 ### Task 2: History, failed audio, WAV writer
 
@@ -101,8 +101,8 @@ docs/manual-test-checklist.md native version
 
 **Interfaces:** `enum History { format, append(_:to:at:) throws, recent(_:count:) -> [Entry], label(_:today:maxChars:), prune(_:before:), clear(_:) }`; `enum FailedAudio { static func keep(_ samples: [Float], in dir: URL, now: Date) throws -> URL; static func cleanup(_ dir: URL, olderThanHours: Int, now: Date) }`; `enum WAV { static func data(samples: [Float], sampleRate: Int) -> Data }`.
 
-- [ ] Port tests → FAIL → implement → PASS. Add `wavRoundTripsThroughAudioFile`: `WAV.data` written to a temp file and read back with phase 1 `AudioFile.load` gives the same length.
-- [ ] Commit `Shepit: history log and failed-audio retention`.
+- Port tests → FAIL → implement → PASS. Add `wavRoundTripsThroughAudioFile`: `WAV.data` written to a temp file and read back with phase 1 `AudioFile.load` gives the same length.
+- Commit `Shepit: history log and failed-audio retention`.
 
 ### Task 3: Model host (shared engines, priority, idle unload)
 
@@ -114,8 +114,8 @@ docs/manual-test-checklist.md native version
 - One engine instance per distinct `EngineChoice`; one request at a time per instance; `.dictation` requests jump ahead of queued `.preview`/`.meetings`; a `.preview` request that is still queued when a newer `.preview` arrives is cancelled with `CancellationError`.
 - `setChoices` loads newly chosen engines in the background and unloads ones no task uses.
 
-- [ ] **Step 1: Tests with a fake engine** (records call order, controllable delay): `sameChoiceSharesInstance`, `dictationRunsBeforeQueuedPreview`, `newerPreviewCancelsQueued`, `differentModelsRunInParallel`, `changingChoiceUnloadsUnused`, `idleUnloadAfterMinutes` (test clock), `loadsAgainAfterIdleUnload`. → FAIL.
-- [ ] **Step 2:** Implement. → PASS. Commit `Shepit: model host shares engines and puts dictation first`.
+- **Step 1: Tests with a fake engine** (records call order, controllable delay): `sameChoiceSharesInstance`, `dictationRunsBeforeQueuedPreview`, `newerPreviewCancelsQueued`, `differentModelsRunInParallel`, `changingChoiceUnloadsUnused`, `idleUnloadAfterMinutes` (test clock), `loadsAgainAfterIdleUnload`. → FAIL.
+- **Step 2:** Implement. → PASS. Commit `Shepit: model host shares engines and puts dictation first`.
 
 ### Task 4: Controller state machine (review)
 
@@ -127,9 +127,9 @@ docs/manual-test-checklist.md native version
 `Recording { start() throws; stop() -> [Float]; cancel() }`, `Transcribing { transcribe(_ samples: [Float], prompt: String) async throws -> Transcript }` (the app adapts `ModelHost`), `Pasting { paste(_ text: String, into app: AppRef?) async -> PasteOutcome /* .pasted | .copied */ }`, `ControllerEffects { setState, sound(_:), notify(_:), overlay(_ event:), frontApp() -> AppRef?, historyAppend(_:), keepFailed(_:) -> URL?, stats(_ event: DictationEvent) }`, plus an injected clock/timer.
 `DictationEvent` carries exactly the `05` §1 per-dictation fields (outcome, audio s, wait s, words, characters, engine, model, language requested/detected, app, replacement count, fired terms, preview count).
 
-- [ ] **Step 1:** Port the 26 controller tests with fakes. Add: `retriesOnceThenKeepsFailedAudio`, `historyWrittenBeforePaste` (effect order), `noAccessibilityCopiesAndSaysSo`, `modelLoadingWaitsUpTo60s`, `statsEventPerOutcome` (one event for each of pasted/copied/empty/cancelled/discarded/failed, no text field exists on the type). → FAIL.
-- [ ] **Step 2:** Implement → PASS. Reviewer subagent on this task.
-- [ ] **Step 3:** Commit `Shepit: dictation controller state machine`.
+- **Step 1:** Port the 26 controller tests with fakes. Add: `retriesOnceThenKeepsFailedAudio`, `historyWrittenBeforePaste` (effect order), `noAccessibilityCopiesAndSaysSo`, `modelLoadingWaitsUpTo60s`, `statsEventPerOutcome` (one event for each of pasted/copied/empty/cancelled/discarded/failed, no text field exists on the type). → FAIL.
+- **Step 2:** Implement → PASS. Reviewer subagent on this task.
+- **Step 3:** Commit `Shepit: dictation controller state machine`.
 
 ### Task 5: Audio recorder and spectrum
 
@@ -137,10 +137,10 @@ docs/manual-test-checklist.md native version
 **Port:** `spectrum.lua` (8 tests), microphone choice from `recorder.lua`/`platform.lua`.
 **Spec:** `03` §2, §4 (meter).
 
-- [ ] **Step 1:** Port spectrum tests (same band edges and levels for the same synthetic sine input); implement with vDSP. → PASS.
-- [ ] **Step 2:** `AudioRecorder: Recording` with `AVAudioEngine`: input tap → `AVAudioConverter` → 16 kHz mono Float32 appended to an in-memory buffer; `devices() -> [String]`; `select(name:)` falls back to the default and reports `usedFallback`; route-change / device-lost → continue on default if possible, else stop and keep what was recorded. Live level callback for the meter. No temp WAV.
-- [ ] **Step 3:** Manual check (no unit test for hardware): record 5 s from the built-in mic via a temporary `Shepit record-test` subcommand that prints duration and RMS; remove the subcommand before committing, or keep it only if Task 9 needs it.
-- [ ] **Step 4:** Commit `Shepit: in-memory recording and spectrum meter`.
+- **Step 1:** Port spectrum tests (same band edges and levels for the same synthetic sine input); implement with vDSP. → PASS.
+- **Step 2:** `AudioRecorder: Recording` with `AVAudioEngine`: input tap → `AVAudioConverter` → 16 kHz mono Float32 appended to an in-memory buffer; `devices() -> [String]`; `select(name:)` falls back to the default and reports `usedFallback`; route-change / device-lost → continue on default if possible, else stop and keep what was recorded. Live level callback for the meter. No temp WAV.
+- **Step 3:** Manual check (no unit test for hardware): record 5 s from the built-in mic via a temporary `Shepit record-test` subcommand that prints duration and RMS; remove the subcommand before committing, or keep it only if Task 9 needs it.
+- **Step 4:** Commit `Shepit: in-memory recording and spectrum meter`.
 
 ### Task 6: Hotkeys and paste (review)
 
@@ -148,10 +148,10 @@ docs/manual-test-checklist.md native version
 **Port:** key names as Hammerspoon used them (`config.lua` hotkey validation), `paster.lua`, `selection.lua`.
 **Spec:** `03` §1, §3, §5; `01` §6.
 
-- [ ] **Step 1:** `KeyNames` tests: every key name the settings validator accepts maps to a Carbon key code and back; `{"mods":["alt"],"key":"space"}` → `kVK_Space` + `optionKey`.
-- [ ] **Step 2:** `HotkeyCenter` behind a `HotkeyRegistrar` protocol (real one wraps `RegisterEventHotKey`/`UnregisterEventHotKey`, press and release via `kEventHotKeyPressed`/`Released`). Tests with a fake: `takenHotkeyReportsTaken` (registrar returns `eventHotKeyExistsErr` → state `.taken`, menu text "Hotkey taken"), `cancelKeyOnlyWhileRecording`, `reRegistersOnSettingsChange`. **Verify** that `RegisterEventHotKey` really returns `eventHotKeyExistsErr` while Hammerspoon holds ⌥Space; if it doesn't, detect the clash another way and record the finding in the ledger.
-- [ ] **Step 3:** `Paster: Pasting` — refocus original app (`refocusOriginalApp`), save all pasteboard items, set text, post ⌘V with keycode 9 via `CGEvent`, restore after `RESTORE_DELAY` (`restoreClipboard`). Without Accessibility (`AXIsProcessTrusted() == false`) → set clipboard only and return `.copied`. Selection read for add-word: temporary ⌘C, read, restore.
-- [ ] **Step 4:** Reviewer subagent. Commit `Shepit: global hotkeys and paste`.
+- **Step 1:** `KeyNames` tests: every key name the settings validator accepts maps to a Carbon key code and back; `{"mods":["alt"],"key":"space"}` → `kVK_Space` + `optionKey`.
+- **Step 2:** `HotkeyCenter` behind a `HotkeyRegistrar` protocol (real one wraps `RegisterEventHotKey`/`UnregisterEventHotKey`, press and release via `kEventHotKeyPressed`/`Released`). Tests with a fake: `takenHotkeyReportsTaken` (registrar returns `eventHotKeyExistsErr` → state `.taken`, menu text "Hotkey taken"), `cancelKeyOnlyWhileRecording`, `reRegistersOnSettingsChange`. **Verify** that `RegisterEventHotKey` really returns `eventHotKeyExistsErr` while Hammerspoon holds ⌥Space; if it doesn't, detect the clash another way and record the finding in the ledger.
+- **Step 3:** `Paster: Pasting` — refocus original app (`refocusOriginalApp`), save all pasteboard items, set text, post ⌘V with keycode 9 via `CGEvent`, restore after `RESTORE_DELAY` (`restoreClipboard`). Without Accessibility (`AXIsProcessTrusted() == false`) → set clipboard only and return `.copied`. Selection read for add-word: temporary ⌘C, read, restore.
+- **Step 4:** Reviewer subagent. Commit `Shepit: global hotkeys and paste`.
 
 ### Task 7: Overlay panel and live draft
 
@@ -159,9 +159,9 @@ docs/manual-test-checklist.md native version
 **Port:** `overlay.lua` (11 tests: layout functions), `preview.lua` (8 tests).
 **Spec:** `03` §4; `../2026-10-04-dictation-tool-design.md` §11.
 
-- [ ] **Step 1:** Port layout and preview tests (preview against a fake transcriber + test clock: one request in flight, late results dropped, nothing below 0.5 s, stops on stop). → FAIL → implement → PASS.
-- [ ] **Step 2:** `OverlayPanel`: non-activating `NSPanel`, ignores mouse, `.canJoinAllSpaces` + `.fullScreenAuxiliary`, on the screen of the focused window, every `overlayStyle` key honoured. With `overlay` false → small transient notices instead. With `livePreview` false or the preview model missing → status + meter only.
-- [ ] **Step 3:** Commit `Shepit: overlay panel and live draft`.
+- **Step 1:** Port layout and preview tests (preview against a fake transcriber + test clock: one request in flight, late results dropped, nothing below 0.5 s, stops on stop). → FAIL → implement → PASS.
+- **Step 2:** `OverlayPanel`: non-activating `NSPanel`, ignores mouse, `.canJoinAllSpaces` + `.fullScreenAuxiliary`, on the screen of the focused window, every `overlayStyle` key honoured. With `overlay` false → small transient notices instead. With `livePreview` false or the preview model missing → status + meter only.
+- **Step 3:** Commit `Shepit: overlay panel and live draft`.
 
 ### Task 8: Menu, add-word, app wiring
 
@@ -169,78 +169,78 @@ docs/manual-test-checklist.md native version
 **Port:** `menubar.lua` (18 tests: title, statusLine, item list as data), `addword.lua` (7 tests), `init.lua` wiring.
 **Spec:** `03` §5–7.
 
-- [ ] **Step 1:** Port menu tests against a pure `MenuModel` (items as data: title, enabled, checked, submenu) — the `NSMenu` is built from it. Icon states 🎙/🔴/⏳/🎙⚠ (or distinct template SF Symbols). Items per the `03` §7 table: Engine ▸ (downloaded pairs for dictation), Mode ▸, Language ▸, Microphone ▸, Recent ▸, Open history, Clear history… (asks; also clears failed audio), Edit dictionary…, Settings… (⌘,), Statistics, Reload models, Quit.
-- [ ] **Step 2:** Port add-word tests; dialog with today's Ukrainian texts.
-- [ ] **Step 3:** Wire everything in `AppDelegate`; launch loads dictation + preview models (`ModelHost.preload`); settings/dictionary changes apply live (existing watcher + menu-open reload).
-- [ ] **Step 4:** `make test` green; `scripts/build-app.sh`; quick self-check with the Lua tool **still running** → Shepit shows "Hotkey taken" and does not interfere.
-- [ ] **Step 5:** Commit `Shepit: menu, add-word and dictation wiring`.
+- **Step 1:** Port menu tests against a pure `MenuModel` (items as data: title, enabled, checked, submenu) — the `NSMenu` is built from it. Icon states 🎙/🔴/⏳/🎙⚠ (or distinct template SF Symbols). Items per the `03` §7 table: Engine ▸ (downloaded pairs for dictation), Mode ▸, Language ▸, Microphone ▸, Recent ▸, Open history, Clear history… (asks; also clears failed audio), Edit dictionary…, Settings… (⌘,), Statistics, Reload models, Quit.
+- **Step 2:** Port add-word tests; dialog with today's Ukrainian texts.
+- **Step 3:** Wire everything in `AppDelegate`; launch loads dictation + preview models (`ModelHost.preload`); settings/dictionary changes apply live (existing watcher + menu-open reload).
+- **Step 4:** `make test` green; `scripts/build-app.sh`; quick self-check with the Lua tool **still running** → Shepit shows "Hotkey taken" and does not interfere.
+- **Step 5:** Commit `Shepit: menu, add-word and dictation wiring`.
 
 ### Task 9: GATE — dictation parity with the user
 
-- [ ] Update `docs/manual-test-checklist.md` for the native app (`03` §8 additions: permissions survive a rebuild; no Accessibility → copied + notice; switching engines while idle and while recording; hotkey taken while the Lua tool runs).
-- [ ] With the user: they quit dictation in the 🎙 menu, start Shepit, and walk the checklist. Measure stop-to-paste on a 30 s dictation with whisper.cpp turbo in Shepit and in the Lua tool (same model): Shepit ≤ ~6 s and not slower.
-- [ ] Fix what the user finds; record results in the ledger. **Do not switch over yet** — Lua stays the installed tool until Task 17.
+- Update `docs/manual-test-checklist.md` for the native app (`03` §8 additions: permissions survive a rebuild; no Accessibility → copied + notice; switching engines while idle and while recording; hotkey taken while the Lua tool runs).
+- With the user: they quit dictation in the 🎙 menu, start Shepit, and walk the checklist. Measure stop-to-paste on a 30 s dictation with whisper.cpp turbo in Shepit and in the Lua tool (same model): Shepit ≤ ~6 s and not slower.
+- Fix what the user finds; record results in the ledger. **Do not switch over yet** — Lua stays the installed tool until Task 17.
 
 ### Task 10: Statistics store (review)
 
 **Files:** Create `ShepitCore/Stats.swift`, `Shepit/StatsDatabase.swift`, tests `StatsTests.swift`, `StatsDatabaseTests.swift`.
 **Spec:** `05` §1–2.
 
-- [ ] **Step 1: Tests**: `timeSavedFormula` (words ÷ wpm − (audio + wait), floored at 0 per dictation, only pasted/copied), `bucketsByPeriod` (hour for Day, day for Week/Month, month for Year/All, in the stored local time zone), `medianWaitPerEngine`, `medianWaitPer10sAudio`, `topAppsWithOther` (top 8 + Other), `heatmapHourWeekday`, `qualityShares`, `previousPeriodDelta`, `collectStatsFalseRecordsNothing`, `clearDeletesDatabase`, `noTextInDatabase` (Review Focus 5). → FAIL.
-- [ ] **Step 2:** `StatsDatabase` on system SQLite (`import SQLite3`): tables `dictations`, `model_events` (and `meetings` created empty for phase 3), `schema_version`. Queries return rows; aggregation stays in pure `Stats` functions (tested without SQLite). Controller `stats` effect → insert.
-- [ ] **Step 3:** Reviewer subagent. Commit `Shepit: local usage statistics store`.
+- **Step 1: Tests**: `timeSavedFormula` (words ÷ wpm − (audio + wait), floored at 0 per dictation, only pasted/copied), `bucketsByPeriod` (hour for Day, day for Week/Month, month for Year/All, in the stored local time zone), `medianWaitPerEngine`, `medianWaitPer10sAudio`, `topAppsWithOther` (top 8 + Other), `heatmapHourWeekday`, `qualityShares`, `previousPeriodDelta`, `collectStatsFalseRecordsNothing`, `clearDeletesDatabase`, `noTextInDatabase` (Review Focus 5). → FAIL.
+- **Step 2:** `StatsDatabase` on system SQLite (`import SQLite3`): tables `dictations`, `model_events` (and `meetings` created empty for phase 3), `schema_version`. Queries return rows; aggregation stays in pure `Stats` functions (tested without SQLite). Controller `stats` effect → insert.
+- **Step 3:** Reviewer subagent. Commit `Shepit: local usage statistics store`.
 
 ### Task 11: Settings window — shell and simple sections
 
 **Files:** Create `Shepit/Settings/SettingsWindow.swift`, `GeneralSection.swift`, `HotkeysSection.swift`, `DictationSection.swift`, `HistoryPrivacySection.swift`; tests `SettingsBindingTests.swift`.
 **Spec:** `04` §1, §3.
 
-- [ ] **Step 1: Tests** for the binding layer (pure): a control change calls `SettingsStore.update(key, value)` with exactly that key; broken file → every binding read-only and the error list exposed; external file edit → bindings refresh; `serverPort` never shown; unknown keys survive an update (round-trip the user's real file into a temp copy).
-- [ ] **Step 2:** SwiftUI sidebar window in an `NSWindow` (accessory app; opened by Settings… ⌘, or by launching the app again). General (launch at login via `SMAppService.mainApp`, sounds, language, Open settings file, Open data folder), Hotkeys (shortcut recorder, conflicts inline), Dictation (microphone list, style prompt, refocus, restore clipboard, max length), History & Privacy (save history, days, recent items, failed-audio hours, Open/Clear history, collect statistics, Clear statistics…). One-line hints = README wording. Steppers/sliders clamp to allowed ranges.
-- [ ] **Step 3:** Commit `Shepit: Settings window with general, hotkeys, dictation and privacy`.
+- **Step 1: Tests** for the binding layer (pure): a control change calls `SettingsStore.update(key, value)` with exactly that key; broken file → every binding read-only and the error list exposed; external file edit → bindings refresh; `serverPort` never shown; unknown keys survive an update (round-trip the user's real file into a temp copy).
+- **Step 2:** SwiftUI sidebar window in an `NSWindow` (accessory app; opened by Settings… ⌘, or by launching the app again). General (launch at login via `SMAppService.mainApp`, sounds, language, Open settings file, Open data folder), Hotkeys (shortcut recorder, conflicts inline), Dictation (microphone list, style prompt, refocus, restore clipboard, max length), History & Privacy (save history, days, recent items, failed-audio hours, Open/Clear history, collect statistics, Clear statistics…). One-line hints = README wording. Steppers/sliders clamp to allowed ranges.
+- **Step 3:** Commit `Shepit: Settings window with general, hotkeys, dictation and privacy`.
 
 ### Task 12: Settings — Overlay and Dictionary sections
 
 **Files:** Create `OverlaySection.swift`, `DictionarySection.swift`; tests extend `SettingsBindingTests.swift`.
-- [ ] Overlay: show panel, live draft, every `overlayStyle` key (position picker, sliders, color pickers, text fields) + **Preview** button that shows the panel with sample text.
-- [ ] Dictionary: terms (ordered, drag to reorder, add/remove), replace rules (two-column table), drop phrases — writes via `DictionaryStore.update` only on valid input. Test: reorder writes the new order; an invalid rule is rejected and the file is unchanged.
-- [ ] Commit `Shepit: Settings overlay and dictionary sections`.
+- Overlay: show panel, live draft, every `overlayStyle` key (position picker, sliders, color pickers, text fields) + **Preview** button that shows the panel with sample text.
+- Dictionary: terms (ordered, drag to reorder, add/remove), replace rules (two-column table), drop phrases — writes via `DictionaryStore.update` only on valid input. Test: reorder writes the new order; an invalid rule is rejected and the file is unchanged.
+- Commit `Shepit: Settings overlay and dictionary sections`.
 
 ### Task 13: Settings — Statistics screen
 
 **Files:** Create `StatisticsSection.swift`.
 **Spec:** `05` §2.
-- [ ] Period picker (Day, Week, Month, Year, All) driving tiles (Dictations, Words, Time saved with the formula note and a link to typing speed, Meetings "—") and Swift Charts (words per bucket, speed by engine, pasted into, heatmap, quality signals). Empty state text exactly "No dictations in this period yet." All numbers come from Task 10's pure functions; this task adds no new aggregation logic.
-- [ ] Commit `Shepit: statistics screen`.
+- Period picker (Day, Week, Month, Year, All) driving tiles (Dictations, Words, Time saved with the formula note and a link to typing speed, Meetings "—") and Swift Charts (words per bucket, speed by engine, pasted into, heatmap, quality signals). Empty state text exactly "No dictations in this period yet." All numbers come from Task 10's pure functions; this task adds no new aggregation logic.
+- Commit `Shepit: statistics screen`.
 
 ### Task 14: Settings — Engines & Models (without downloads)
 
 **Files:** Create `EnginesSection.swift`; tests extend `SettingsBindingTests.swift`.
 **Spec:** `04` §3 (Engines & Models), `02` §3–5.
-- [ ] Three task pickers (engine + model) writing `engines` (and dropping `model`/`previewModel`, as `SettingsStore.update` already does); a note when the language can't be forced (`EngineCapabilities.check`); `idleUnloadMinutes`. Changing a choice calls `ModelHost.setChoices` (loads in background, unloads unused). Model list shows each catalog model's state (downloaded / missing / loading) and size on disk.
-- [ ] Commit `Shepit: engine choice per task in Settings`.
+- Three task pickers (engine + model) writing `engines` (and dropping `model`/`previewModel`, as `SettingsStore.update` already does); a note when the language can't be forced (`EngineCapabilities.check`); `idleUnloadMinutes`. Changing a choice calls `ModelHost.setChoices` (loads in background, unloads unused). Model list shows each catalog model's state (downloaded / missing / loading) and size on disk.
+- Commit `Shepit: engine choice per task in Settings`.
 
 ### Task 15: In-app model downloads (review)
 
 **Files:** Create `ShepitCore/ModelDownloader.swift`, tests `ModelDownloaderTests.swift`; modify `EnginesSection.swift`, `scripts/build-app.sh` (copy `scripts/models/*.sha256` into `Contents/Resources/models/`).
 **Spec:** `02` §5; anti-goal "network only when the user asks".
-- [ ] **Step 1: Tests** (URLProtocol stub, no network): same behaviour as `fetch_dir` — malformed or duplicate manifest row fails before any download; checksum mismatch deletes `.part`; success renames `.part` → folder and writes `.complete`; existing `.complete` re-verifies; cancel leaves no folder. Single-file ggml models use the pinned SHA from `download-models.sh` (move those three hashes into a manifest file both use).
-- [ ] **Step 2:** Download / Delete buttons with progress. Apple: "Download" calls `AssetInventory.assetInstallationRequest` (same as `Shepit apple-assets --install`). Nothing downloads without a click.
-- [ ] **Step 3:** Reviewer subagent. Commit `Shepit: download and delete models from Settings`.
+- **Step 1: Tests** (URLProtocol stub, no network): same behaviour as `fetch_dir` — malformed or duplicate manifest row fails before any download; checksum mismatch deletes `.part`; success renames `.part` → folder and writes `.complete`; existing `.complete` re-verifies; cancel leaves no folder. Single-file ggml models use the pinned SHA from `download-models.sh` (move those three hashes into a manifest file both use).
+- **Step 2:** Download / Delete buttons with progress. Apple: "Download" calls `AssetInventory.assetInstallationRequest` (same as `Shepit apple-assets --install`). Nothing downloads without a click.
+- **Step 3:** Reviewer subagent. Commit `Shepit: download and delete models from Settings`.
 
 ### Task 16: Install and uninstall scripts
 
 **Files:** Rewrite `scripts/install.sh` (behind `--native` until Task 17), create `scripts/uninstall.sh`, update `tests/install_test.sh`.
 **Spec:** `01` §5.
-- [ ] `install.sh --native`: checks Xcode/CLT and cmake, `build-app.sh`, downloads **`large-v3-turbo` by default** (`02-engines.md` §6 decision) plus VAD, creates `settings.json`/`dictionary.json` from `examples/` only if absent, opens the app. Safe to re-run. `uninstall.sh`: quits the app, removes it and its login item; `--purge` also deletes `~/.config/dictation` and `~/.local/share/dictation`. `tests/install_test.sh` covers both with stubs and stays green; the Lua install path is unchanged.
-- [ ] Commit `Shepit: native install and uninstall scripts`.
+- `install.sh --native`: checks Xcode/CLT and cmake, `build-app.sh`, downloads **`large-v3-turbo` by default** (`02-engines.md` §6 decision) plus VAD, creates `settings.json`/`dictionary.json` from `examples/` only if absent, opens the app. Safe to re-run. `uninstall.sh`: quits the app, removes it and its login item; `--purge` also deletes `~/.config/dictation` and `~/.local/share/dictation`. `tests/install_test.sh` covers both with stubs and stays green; the Lua install path is unchanged.
+- Commit `Shepit: native install and uninstall scripts`.
 
 ### Task 17: GATE — switchover (with the user)
 
-- [ ] Only when the user says parity is reached and they want to switch.
-- [ ] `install.sh` becomes the native installer by default and removes the Hammerspoon loader block (Hammerspoon stays installed). README rewritten for the native app. Remove `scripts/build-whisper.sh` and `patches/whisper-server-auth.patch` (`01` §4).
-- [ ] The Lua code (`src/`, `tests/*.lua`, Lua `Makefile` targets) is **not** deleted here — that is a separate commit after the user has used Shepit for a while and says so (`01` §6).
-- [ ] Phase-end review of the whole phase diff, fix, ledger "Phase 2: complete", then plan phase 3 (meetings).
+- Only when the user says parity is reached and they want to switch.
+- `install.sh` becomes the native installer by default and removes the Hammerspoon loader block (Hammerspoon stays installed). README rewritten for the native app. Remove `scripts/build-whisper.sh` and `patches/whisper-server-auth.patch` (`01` §4).
+- The Lua code (`src/`, `tests/*.lua`, Lua `Makefile` targets) is **not** deleted here — that is a separate commit after the user has used Shepit for a while and says so (`01` §6).
+- Phase-end review of the whole phase diff, fix, ledger "Phase 2: complete", then plan phase 3 (meetings).
 
 ---
 

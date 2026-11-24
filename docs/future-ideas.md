@@ -2,24 +2,34 @@
 
 What comes next, and what was set aside and why. Reviewed with the author on 2026-11-11.
 
+## Next
+
+In this order unless the author says otherwise (written 2026-11-20; back and forward, moved first on 2026-11-22, is merged). Every part follows `docs/process.md`.
+
+1. The open checks of import names with the author: I4, I5, and I6 once the 29 Oct meeting has names (the author, 2026-11-23: on a day with calls, after the settings review has started). I3 and I7, with Zoom's files, are put off for long (the author, 2026-11-22). Teams `.docx` and the Meet `.txt` format are later parts.
+2. Left from the small fixes: look at L3 again with the author (Cancel on the merge question).
+3. Check every query of the three databases with `EXPLAIN QUERY PLAN` and every index for use (the author, 2026-11-17); `stats.sqlite` is done. Details under "New ideas".
+
+The app icon and the check of the name are under "New ideas" (2026-11-22, not ordered).
+
 ## Planned, in this order
 
 Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-11-20, item 9 put first on 2026-11-21:
 
-1. **Visual style with mockups**: done, `docs/superpowers/specs/2026-11-11-visual-style/`.
+1. **Visual style with mockups**: done, `docs/features/specs/2026-11-11-visual-style/`.
 2. **Offer to record when a call starts**: built on branch `call-offer`; manual checks C1–C10 and the three end-of-branch reviews are done (2026-11-13). Merged into `main` on 2026-11-13. Left: the list under "Call offer: left open" below.
 3. **Window shell** with Home and Settings: built on branch `window-shell`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-14. Left: the list under "Window shell: left open" below.
 4. **Meetings**: the database, names, merging people, giving a line to another person. Built on branch `meetings`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-16. Left: the list under "Meetings: left open" below.
 5. **Dictations and Dictionary**: `dictations.sqlite` with the app of each dictation instead of `history.log`, the Dictations section with a period menu, the Dictionary section as in mockup 5, one `databasesFolder` setting. Built on branch `dictations-dictionary`; the three end-of-branch reviews are done and the author's picks fixed. Merged into `main` on 2026-11-17. Left: the list under "Dictations and Dictionary: left open" below.
 6. **Statistics** with the new numbers: the period menu shared with Dictations plus Custom…, the Overview, Dictation and Meetings views, the meeting's call app in `stats.sqlite`. Built on branch `statistics`; the three end-of-branch reviews are done and their findings fixed. Merged into `main` on 2026-11-17. Left: the list under "Statistics: left open" below.
 7. **Voices**: voice samples in `meetings.sqlite`, prints that follow the author's corrections, recognition when a transcript is ready, and the People section (rename and merge across meetings, Delete voice, May also be in, who talked how much, your voice from the microphone). Built on branch `voices`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-19). Merged into `main` on 2026-11-20. Left: the list under "Voices: left open" below.
-8. **Import names** from a transcript: Teams and Zoom `.vtt` in this part (spec `docs/superpowers/specs/2026-11-20-import-names-design.md`), Teams `.docx` and the Meet `.txt` format later. Built on branch `import-names`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-20). Merged into `main` on 2026-11-21 as release `v0.2.0`. Left: the list under "Import names: left open" below.
+8. **Import names** from a transcript: Teams and Zoom `.vtt` in this part (spec `docs/features/specs/2026-11-20-import-names-design.md`), Teams `.docx` and the Meet `.txt` format later. Built on branch `import-names`; the three end-of-branch reviews are done and the author's picks fixed (2026-11-20). Merged into `main` on 2026-11-21 as release `v0.2.0`. Left: the list under "Import names: left open" below.
 9. **Version and About Shepit** (the author, 2026-11-21: next, before everything else below): see "Version and About Shepit" under "New ideas". Done on branch `import-names`, merged on 2026-11-21: version 0.2.0, the build's commit, About Shepit, and a workflow that makes the tag and release when a merge raises the version (it made `v0.2.0`). The check for new versions is set aside (the author, 2026-11-22): see "Security and housekeeping" under "Set aside".
-10. **Every setting reviewed** with the author, with automatic start per app, rules by meeting name, what each engine is for and the voice numbers: see "Every setting reviewed" under "New ideas". Built on branch `settings-review` (2026-11-23), version 0.4.0: seven Settings pages, Home as a status page, the 🎙 menu in groups, Auto · Offer · Off per call app with rules by meeting name, every model in Engines and models, one period menu, and the same controls everywhere. Spec `docs/superpowers/specs/2026-11-23-settings-review-design.md`, plan `docs/superpowers/plans/2026-11-23-settings-review.md`. Left: the list under "Settings review: left open" below.
+10. **Every setting reviewed** with the author, with automatic start per app, rules by meeting name, what each engine is for and the voice numbers: see "Every setting reviewed" under "New ideas". Built on branch `settings-review` (2026-11-23), version 0.4.0: seven Settings pages, Home as a status page, the 🎙 menu in groups, Auto · Offer · Off per call app with rules by meeting name, every model in Engines and models, one period menu, and the same controls everywhere. Spec `docs/features/specs/2026-11-23-settings-review-design.md`, plan `docs/features/plans/2026-11-23-settings-review.md`. Merged into `main` on 2026-11-24 as release `v0.4.0`. Left: the list under "Settings review: left open" below.
 11. **L3 again** with the author (Cancel on the merge question): see "Meetings: left open".
 12. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open". Task 9 of the settings review, on a real Meet call with the author. Done on branch `settings-review` (2026-11-23).
 13. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas"; `stats.sqlite` is checked.
-14. **Back and forward in the window** (the author, 2026-11-20; on 2026-11-22: now, before items 10–13), with a sidebar that collapses to its icons (asked on 2026-11-22 while trying it). Built on branch `back-forward` (2026-11-22), version 0.3.0. Merged into `main` on 2026-11-22 as release `v0.3.0`. The spec is `docs/superpowers/specs/2026-11-22-back-forward-design.md`. Left: the list under "Back and forward: left open" below.
+14. **Back and forward in the window** (the author, 2026-11-20; on 2026-11-22: now, before items 10–13), with a sidebar that collapses to its icons (asked on 2026-11-22 while trying it). Built on branch `back-forward` (2026-11-22), version 0.3.0. Merged into `main` on 2026-11-22 as release `v0.3.0`. The spec is `docs/features/specs/2026-11-22-back-forward-design.md`. Left: the list under "Back and forward: left open" below.
 
 Each gets its own spec and plan.
 
@@ -207,7 +217,7 @@ From a team call of 2026-11-13 (colleagues' questions, and how Shepit wrote that
   - *What it needs:* keep the embeddings of each line when the meeting stops (the call audio is deleted then, `MeetingSession.cleanUpAudio`), in `meetings.sqlite` next to the lines, so a correction made days later can still feed the print. A print keeps its samples with the meeting they came from: a wrong name given by mistake, or a line given back, takes its samples out again, and deleting a meeting or a person deletes them. Skip short or low-quality segments (`qualityScore`). The author's own microphone could give the author's print without any naming, which would also find the author's voice heard through the call.
   - *To find out in the spec:* the distance at which a saved voice counts as recognised; whether a running mean or the nearest of several samples matches better across apps and microphones (Teams, Meet and Zoom compress audio differently); how many samples a print needs before it is offered; and a check on real meetings of how often the right person is found before and after a few corrections.
   - Voice prints are biometric data: off by default (decided 2026-11-11), only on this Mac, never in `stats.sqlite`, each person and all of them deletable.
-- **Back and forward in the window** (the author, 2026-11-20, while checking Voices). Arrows at the top of the window, as in a browser or Finder: a click on a meeting in People opens it in Meetings, and there is no way back to that person. It should work across the whole window: every section, and the meeting or person chosen in it, is a step. To settle in a spec: what counts as a step (a section, a meeting, a person, a period?), the keys (⌘[ and ⌘], the mouse's back and forward buttons, a two-finger swipe), and what a step to a deleted meeting or person does. Decided with the author on 2026-11-22 and written in `docs/superpowers/specs/2026-11-22-back-forward-design.md`: a section and what is chosen in it is a step, each choice a step; ‹ › at the top, ⌘[ and ⌘], a hint on hover; gone steps skipped; the history lasts while Shepit runs, 50 steps. Built on branch `back-forward` (2026-11-22).
+- **Back and forward in the window** (the author, 2026-11-20, while checking Voices). Arrows at the top of the window, as in a browser or Finder: a click on a meeting in People opens it in Meetings, and there is no way back to that person. It should work across the whole window: every section, and the meeting or person chosen in it, is a step. To settle in a spec: what counts as a step (a section, a meeting, a person, a period?), the keys (⌘[ and ⌘], the mouse's back and forward buttons, a two-finger swipe), and what a step to a deleted meeting or person does. Decided with the author on 2026-11-22 and written in `docs/features/specs/2026-11-22-back-forward-design.md`: a section and what is chosen in it is a step, each choice a step; ‹ › at the top, ⌘[ and ⌘], a hint on hover; gone steps skipped; the history lasts while Shepit runs, 50 steps. Built on branch `back-forward` (2026-11-22).
 - **A sidebar that collapses to its icons** (the author, 2026-11-22, after trying back and forward). Today the sidebar button hides the whole sidebar. The author wants it to collapse to a narrow column of the sections' icons instead (Home, Meetings, Dictations, Dictionary, People, Statistics, Settings), as the Claude desktop app's sidebar does, with each section's name as a hint on hover. And the back and forward arrows could sit in the bar above the sidebar, next to its button, as in that app; to compare with where they are now (left of the section's name). SwiftUI's `NavigationSplitView` only hides its sidebar, so a collapsed one needs a sidebar of Shepit's own width and labels. Built on branch `back-forward` (2026-11-22): macOS's own sidebar when full; when collapsed, it is hidden and a column of Shepit's own icons takes its place, with the arrows next to the sidebar button in the window's bar (spec §10).
 - **Every database query on an index, every index used** (the author, 2026-11-15; widened 2026-11-17). Check each query of `meetings.sqlite`, `dictations.sqlite` and `stats.sqlite` with `EXPLAIN QUERY PLAN`; where one scans a whole table or sorts in a temporary B-tree, add the index it needs. Then go through every index each database has and drop the ones no query uses (they only slow writes). Known at the time of writing (2026-11-15): in `meetings.sqlite`, `people` and `lines` are keyed by meeting first and `meetings.path` is unique, but the list sorts `meetings` by `start` with no index, and the name suggestions read all of `people` on purpose. `stats.sqlite` checked on 2026-11-17 (Statistics part, on the author's file at version 2): the reads of `dictations`, `meetings` and `offers` for a period each search their `time` index, which also gives the order; `offers` got its index in that part; `model_events` has none and is only written. Left: `meetings.sqlite`, `dictations.sqlite`, and whether each index is used.
 
@@ -233,7 +243,7 @@ Decided later the same day:
 - A meeting whose note was moved or renamed stays in the list, marked "note not found", with a way to point at the file.
 - The look is restrained, like macOS System Settings, plus an Appearance section in Settings with a colour choice.
 
-The screens are in `docs/superpowers/specs/2026-11-11-visual-style/`.
+The screens are in `docs/features/specs/2026-11-11-visual-style/`.
 
 ### Offer to record when a call starts (decided 2026-11-11)
 
@@ -249,7 +259,7 @@ The screens are in `docs/superpowers/specs/2026-11-11-visual-style/`.
 - **Apps:** Teams, Zoom, Google Meet, Teams in a browser, Slack. FaceTime and Telegram if possible.
 - **Calendar names** (EventKit) are not part of this; see below.
 
-Design: `docs/superpowers/specs/2026-11-12-call-offer-design.md`. Plan: `docs/superpowers/plans/2026-11-12-call-offer.md`.
+Design: `docs/features/specs/2026-11-12-call-offer-design.md`. Plan: `docs/features/plans/2026-11-12-call-offer.md`.
 
 Built 2026-11-12 for Teams, Zoom and Meet in Chromium browsers. The microphone is watched by a once-a-second check: Core Audio's listeners reported nothing on a real call. Checked on real calls: the watch in all three apps, and the whole path (offer, stop countdown, empty transcript removed) in Zoom.
 
@@ -276,7 +286,7 @@ Everything stays local: no network, no calendar sign-in.
 
 ### Meetings
 
-From the meeting transcription design (`docs/superpowers/specs/2026-10-17-meeting-transcription-design.md` §3), 2026-10-26.
+From the meeting transcription design (`docs/features/specs/2026-10-17-meeting-transcription-design.md` §3), 2026-10-26.
 
 - **Real names read from the Teams or Meet window, or through the Graph API.** *Why not now:* fragile or needs company sign-in. Names from an imported transcript are planned above.
 - **Meeting names from calendars.** *Why not now:* window titles, the Meet page, remembered names and the name dialog are enough so far. Option (2026-11-06): read macOS Calendar (EventKit) after the author adds their Google or Microsoft account in System Settings → Internet Accounts. Local only, no sign-in inside Shepit; the event that runs now gives the name. It would give Zoom calls a name the first time. To be discussed again after the offer panel works. On 2026-11-23 the author saw a Zoom call with no name and put the fix off (see "Call offer: left open"); this would be the fix.
@@ -284,7 +294,7 @@ From the meeting transcription design (`docs/superpowers/specs/2026-10-17-meetin
 - **On-screen live captions, meeting summaries.** *Why not now:* not needed for the notes; summaries would need a local LLM.
 - **Only the meeting app's audio** instead of all system audio. *Why not now:* the app has to be picked per call; headphones and muting other sound work for now. Worth another look once Shepit knows which app the call is in.
 - **Echo cancellation**, so speakers (not headphones) give clean attribution. *Why not now:* headphones solve it, and mic phrases that repeat the call within 5 s are dropped by their words (Test4: 17 of 19 repeats).
-- **Names from a screenshot of Teams' speaker timeline** (the author, 2026-11-20). *Why not:* Shepit has no vision model, only speech models; it would need Apple's Vision text recognition for the names plus its own reading of the coloured bars by pixel, which breaks with any change of Teams' layout, zoom, theme or scroll, and a `.vtt` gives the same names with exact times. The author doubted it would work; set aside in the import names spec (`docs/superpowers/specs/2026-11-20-import-names-design.md` §2). Worth another look only for meetings with the timeline and no transcript.
+- **Names from a screenshot of Teams' speaker timeline** (the author, 2026-11-20). *Why not:* Shepit has no vision model, only speech models; it would need Apple's Vision text recognition for the names plus its own reading of the coloured bars by pixel, which breaks with any change of Teams' layout, zoom, theme or scroll, and a `.vtt` gives the same names with exact times. The author doubted it would work; set aside in the import names spec (`docs/features/specs/2026-11-20-import-names-design.md` §2). Worth another look only for meetings with the timeline and no transcript.
 - **Finishing an interrupted session** after a quit or crash. *Why not now:* audio is deleted on purpose; the note keeps what was written.
 
 ### Security and housekeeping
@@ -296,6 +306,7 @@ From the audit of 2026-10-06. The items about the old Lua tool (whisper-server, 
 - **Pre-commit guard** against force-adding `tools/accuracy/recordings/`.
 - **Checking GitHub for a new version** (the author, 2026-11-22). *Why not now:* only the author installs Shepit, built from source, and merges each release, so a check would tell nothing new; and it would be the first network call that isn't a model download the user asked for ("Everything stays local" in `CLAUDE.md`). Back to it with "A build colleagues can install"; then at most a Check for updates… button that reads `https://api.github.com/repos/ibatura/shepit/releases/latest` only when clicked.
 - **Integration tests** for the running app (capture, engines, a long soak run): covered by unit tests and manual checks only.
+- **Running the tests on GitHub** (the author, 2026-11-24). *Why not:* runners cost minutes, and `make test` runs everything on the author's Mac after every task. The one workflow makes the release.
 
 ## Minor ideas
 

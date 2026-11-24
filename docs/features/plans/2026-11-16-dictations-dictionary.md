@@ -4,7 +4,7 @@
 
 **Architecture:** The store and what the Dictations section shows are built in `ShepitCore` and unit-tested: a `DictationStore` over the shared `SQLiteFile` like `MeetingStore`, and a pure `DictationPage` that turns entries into day groups and row texts. `AppHost` writes to the store before pasting and builds `AppSnapshot.history` from it, so Home and the menu follow. `Shepit` gets `DictationsModel` and `DictationsView` in `Window/`, and a rewritten `DictionarySection`.
 
-**Spec:** `docs/superpowers/specs/2026-11-16-dictations-dictionary-design.md` ("the spec"; section numbers refer to it). Look: `docs/superpowers/specs/2026-11-11-visual-style/` (`visual-style.md` §5.3–5.4; `mockups.html` screens 4 and 5).
+**Spec:** `docs/features/specs/2026-11-16-dictations-dictionary-design.md` ("the spec"; section numbers refer to it). Look: `docs/features/specs/2026-11-11-visual-style/` (`visual-style.md` §5.3–5.4; `mockups.html` screens 4 and 5).
 
 **Branch:** `dictations-dictionary`, cut from `main`. When it is ready: push it and open a pull request with a description, merged as one squashed commit; while `gh` is not logged in, merge it into `main` locally. Ask the author before merging either way.
 
@@ -63,69 +63,69 @@ app/Sources/Shepit/
 
 ### Task 1: The dictations store
 
-- [x] Tests first for `DictationStore` on a temporary file:
+- Tests first for `DictationStore` on a temporary file:
   - A new file gets the schema and a version; reopening keeps the data.
   - `add(text:app:at:)` stores time, app name and bundle ID (both optional), text and words (split on white space, as `Controller` counts them for statistics) and returns the id.
   - `page(before:limit:)` gives the newest entries, or the next older ones after a given entry, ordered by time and then id, so entries in one second neither repeat nor go missing across pages.
   - `delete(id)` removes one entry; `prune(before:)` removes older entries and returns how many; `clear()` deletes the file, and the next `add` starts a new one.
   - The text of a deleted or pruned entry is not left in the file. macOS's SQLite defaults to `secure_delete = FAST`, which leaves freed overflow pages as they were, so the store sets it `ON` in its schema statements (run on every open); the test uses long texts that reach overflow pages.
-- [x] Open lazily, as `MeetingStore` does. The app opens it at `Paths.dataDir/dictations.sqlite` in Task 3, as it does `meetings.sqlite`; no `Paths` entry.
-- [x] Commit `Shepit: dictations store`.
+- Open lazily, as `MeetingStore` does. The app opens it at `Paths.dataDir/dictations.sqlite` in Task 3, as it does `meetings.sqlite`; no `Paths` entry.
+- Commit `Shepit: dictations store`.
 
 ### Task 2: The Dictations section as data
 
-- [x] Tests first for `DictationPage` with a fixed calendar, time zone and now:
+- Tests first for `DictationPage` with a fixed calendar, time zone and now:
   - Day groups: Today, Yesterday, "13 November", "13 November 2025" for another year; entries keep their order inside a group; a page that ends mid-day continues the same group when the next page comes.
   - Row detail: "14:02 · Slack · 7 words", "14:02 · 1 word" without an app.
   - "Kept forever" for `historyDays` 0, "Kept for 1 day", "Kept for 30 days".
-- [x] Commit `Shepit: Dictations section as data`.
+- Commit `Shepit: Dictations section as data`.
 
 ### Task 3: The app writes and reads the store
 
-- [x] `ControllerHost.appendHistory` takes the result's app (`recording.app`); `AppHost` adds to the store when `saveHistory` is on and shows today's "Could not write history" message on failure. `ControllerTests` check that the app is passed and that the write still comes before the paste.
-- [x] `AppSnapshot.history` holds store entries; Home shows "14:02 · Slack" (the time with the date when not today, then the app when there is one); Recent and Copy last dictation read the same entries. `HomeModelTests` and `MenuModelTests` updated.
-- [x] At launch `historyDays` prunes the store instead of `history.log`. Clear history… clears the store and the failed audio, as before.
-- [x] `history.log` is no longer written or read: `Paths.historyFile`, the `History` file code and its tests, `AppAction.openHistory` and Settings → History and privacy's Open history go. The Dictations placeholder keeps its text without the button until Task 4. `History.swift` becomes `FailedAudio.swift` with `WAV` and `FailedAudio`.
-- [x] The hint of Save history in Settings says "history", not `history.log`.
-- [x] Every database is opened in `databasesFolder` (default `~/.local/share/dictation`), one setting for all of them, read at launch; a row in Settings → History and privacy → Databases. The exception is written into the storage rule in `CLAUDE.md` (the author, 2026-11-16).
-- [x] Install; dictate into two apps; `sqlite3` on the real store shows two more rows with app names (counts and app names only); Home and Recent show them; `history.log` is unchanged.
-- [x] Commit `Shepit: dictations go to dictations.sqlite with their app`.
+- `ControllerHost.appendHistory` takes the result's app (`recording.app`); `AppHost` adds to the store when `saveHistory` is on and shows today's "Could not write history" message on failure. `ControllerTests` check that the app is passed and that the write still comes before the paste.
+- `AppSnapshot.history` holds store entries; Home shows "14:02 · Slack" (the time with the date when not today, then the app when there is one); Recent and Copy last dictation read the same entries. `HomeModelTests` and `MenuModelTests` updated.
+- At launch `historyDays` prunes the store instead of `history.log`. Clear history… clears the store and the failed audio, as before.
+- `history.log` is no longer written or read: `Paths.historyFile`, the `History` file code and its tests, `AppAction.openHistory` and Settings → History and privacy's Open history go. The Dictations placeholder keeps its text without the button until Task 4. `History.swift` becomes `FailedAudio.swift` with `WAV` and `FailedAudio`.
+- The hint of Save history in Settings says "history", not `history.log`.
+- Every database is opened in `databasesFolder` (default `~/.local/share/dictation`), one setting for all of them, read at launch; a row in Settings → History and privacy → Databases. The exception is written into the storage rule in `CLAUDE.md` (the author, 2026-11-16).
+- Install; dictate into two apps; `sqlite3` on the real store shows two more rows with app names (counts and app names only); Home and Recent show them; `history.log` is unchanged.
+- Commit `Shepit: dictations go to dictations.sqlite with their app`.
 
 ### Task 4: GATE — the Dictations section (with the author)
 
-- [x] `DictationsModel`: the first page when the section opens; the next when the last rows appear; the open (expanded) rows; a new dictation at the top while the section shows (from `refreshHistory`); Delete… and Clear history… with their questions (spec §5).
-- [x] `DictationsView` (mockup 4): day groups, rows with two lines and "…", the detail on the right, Copy (`copyText`), the right-click menu, the empty texts and the button to Settings → History and privacy, the bottom bar with "Kept for …" and Clear history….
-- [x] The placeholder goes; All dictations on Home opens the section, as now.
-- [x] Settle spec §11's question on paging a long `List` with a test home of a few thousand made-up entries (a short `sqlite3` script; the app started with `DICTATION_HOME` while the installed one is quit); write the answer in the commit message. Answer: one flat `List` of day titles and rows, each page adding its own lines (a grouped `Form` built every row and loaded all 5000 entries; day sections built every row to count them).
-- [x] A "Show" menu at the top limits the list to a period: Today, Last 7 days, Last month (the default), Last 3, 6 and 9 months, Last year, All history; pages of 200 stay inside it. Remembered like the window's section (the author, 2026-11-16, after scrolling through 5000 entries felt slow).
-- [x] Install; show the author the section next to mockup 4; change what the author asks before going on. The author's design remarks are set aside under "Minor ideas" in `docs/future-ideas.md`.
-- [x] Commit `Shepit: Dictations section`.
+- `DictationsModel`: the first page when the section opens; the next when the last rows appear; the open (expanded) rows; a new dictation at the top while the section shows (from `refreshHistory`); Delete… and Clear history… with their questions (spec §5).
+- `DictationsView` (mockup 4): day groups, rows with two lines and "…", the detail on the right, Copy (`copyText`), the right-click menu, the empty texts and the button to Settings → History and privacy, the bottom bar with "Kept for …" and Clear history….
+- The placeholder goes; All dictations on Home opens the section, as now.
+- Settle spec §11's question on paging a long `List` with a test home of a few thousand made-up entries (a short `sqlite3` script; the app started with `DICTATION_HOME` while the installed one is quit); write the answer in the commit message. Answer: one flat `List` of day titles and rows, each page adding its own lines (a grouped `Form` built every row and loaded all 5000 entries; day sections built every row to count them).
+- A "Show" menu at the top limits the list to a period: Today, Last 7 days, Last month (the default), Last 3, 6 and 9 months, Last year, All history; pages of 200 stay inside it. Remembered like the window's section (the author, 2026-11-16, after scrolling through 5000 entries felt slow).
+- Install; show the author the section next to mockup 4; change what the author asks before going on. The author's design remarks are set aside under "Minor ideas" in `docs/future-ideas.md`.
+- Commit `Shepit: Dictations section`.
 
 ### Task 5: GATE — the Dictionary section (with the author)
 
-- [x] Tests first: `DictionaryRules` gives the number of terms that fit the prompt with a style prompt, without one, and with a term longer than the whole limit; `buildPrompt` uses the same count and keeps its tests.
-- [x] Chips in a small wrapping `Layout`; "+ add" turns into a field, Enter adds at the end (a term already there is ignored); × on hover removes; drag changes the order through `setTerms`; terms past the limit are dimmed, with the hint.
-- [x] Replace rows: two fields with → and −, sorted by what is heard; saved on Enter or when the focus leaves the row through `setRule(replacing:)`, which now refuses a heard phrase another rule has; a refusal puts the fields back and its reason shows in the window's banner at the top (as every refused write does), not under the row; the empty last row with +.
-- [x] Drop phrases as chips with "+ add" and ×, no order.
-- [x] Add word in the title row opens today's dialog with nothing selected: the window's button does not read the selection (`Paster.readSelection` would press ⌘C in Shepit itself).
-- [x] Read only when `dictionaryIsReadOnly`, as now. Shorter hints under each label (spec §6). The grouped `Form` stays: its sections are mockup 5's label and group; Add word sits in a bar above it, like Dictations' Show menu.
-- [x] Settle spec §11's questions on the chip layout with drag and on the Add word dialog; write the answers in the commit message.
-- [x] Install; show the author the section next to mockup 5; change what the author asks before going on. The author went on without changes (2026-11-16).
-- [x] Commit `Shepit: Dictionary section in the new look`.
+- Tests first: `DictionaryRules` gives the number of terms that fit the prompt with a style prompt, without one, and with a term longer than the whole limit; `buildPrompt` uses the same count and keeps its tests.
+- Chips in a small wrapping `Layout`; "+ add" turns into a field, Enter adds at the end (a term already there is ignored); × on hover removes; drag changes the order through `setTerms`; terms past the limit are dimmed, with the hint.
+- Replace rows: two fields with → and −, sorted by what is heard; saved on Enter or when the focus leaves the row through `setRule(replacing:)`, which now refuses a heard phrase another rule has; a refusal puts the fields back and its reason shows in the window's banner at the top (as every refused write does), not under the row; the empty last row with +.
+- Drop phrases as chips with "+ add" and ×, no order.
+- Add word in the title row opens today's dialog with nothing selected: the window's button does not read the selection (`Paster.readSelection` would press ⌘C in Shepit itself).
+- Read only when `dictionaryIsReadOnly`, as now. Shorter hints under each label (spec §6). The grouped `Form` stays: its sections are mockup 5's label and group; Add word sits in a bar above it, like Dictations' Show menu.
+- Settle spec §11's questions on the chip layout with drag and on the Add word dialog; write the answers in the commit message.
+- Install; show the author the section next to mockup 5; change what the author asks before going on. The author went on without changes (2026-11-16).
+- Commit `Shepit: Dictionary section in the new look`.
 
 ### Task 6: Docs
 
-- [x] README: the Dictations section, Delete and Clear history…, `dictations.sqlite` under privacy and in the file list (and that `--purge` deletes it), "Lost text" pointing at Dictations, `history.log` from older versions can be deleted, the `saveHistory` row without `history.log`; a `databasesFolder` row, and that `--purge` keeps databases in a custom `databasesFolder` (as it keeps a custom `meetingsFolder`).
-- [x] `docs/manual-test-checklist.md`: D1–D9 from spec §9; D3 also goes through the Show menu's periods.
-- [x] The shell spec's Dictations and Dictionary rows get one line pointing to this spec.
-- [x] Commit `Docs: Dictations and Dictionary`.
+- README: the Dictations section, Delete and Clear history…, `dictations.sqlite` under privacy and in the file list (and that `--purge` deletes it), "Lost text" pointing at Dictations, `history.log` from older versions can be deleted, the `saveHistory` row without `history.log`; a `databasesFolder` row, and that `--purge` keeps databases in a custom `databasesFolder` (as it keeps a custom `meetingsFolder`).
+- `docs/manual-test-checklist.md`: D1–D9 from spec §9; D3 also goes through the Show menu's periods.
+- The shell spec's Dictations and Dictionary rows get one line pointing to this spec.
+- Commit `Docs: Dictations and Dictionary`.
 
 ### Task 7: GATE — the author's checks and reviews
 
-- [ ] D1–D9 with the author on the installed app. D3 done (2026-11-16); the rest left open (`docs/future-ideas.md`).
-- [x] The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks. The author picked points 1–4 of the thermo-nuclear review (commit b669249); the rest is in `docs/future-ideas.md`.
-- [x] Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`.
-- [x] Push the branch and open the pull request with a description (or, while `gh` is not logged in, merge locally); ask the author before merging into `main`. `gh` was not logged in: merged locally as one squashed commit, as the author agreed (2026-11-17).
+- D1–D9 with the author on the installed app. D3 done (2026-11-16); the rest left open (`docs/future-ideas.md`).
+- The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks. The author picked points 1–4 of the thermo-nuclear review (commit b669249); the rest is in `docs/future-ideas.md`.
+- Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`.
+- Push the branch and open the pull request with a description (or, while `gh` is not logged in, merge locally); ask the author before merging into `main`. `gh` was not logged in: merged locally as one squashed commit, as the author agreed (2026-11-17).
 
 ---
 

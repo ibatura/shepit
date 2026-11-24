@@ -4,7 +4,7 @@
 
 **Architecture:** The decisions are a pure state machine in `ShepitCore` (`CallOffer`), fed with events and settings and fully unit-tested. System code in `Shepit` stays thin: `CallWatch` turns Core Audio's per-process microphone flag into "took" and "released" events, `CallPanel` draws what the state machine says, and `AppHost+Calls` connects them to the existing meeting session.
 
-**Spec:** `docs/superpowers/specs/2026-11-12-call-offer-design.md` ("the spec"; section numbers refer to it). Panels and settings keys: `docs/superpowers/specs/2026-11-11-visual-style/visual-style.md` §5.7 Calls and §6, `mockups.html` screens 8 and 9.
+**Spec:** `docs/features/specs/2026-11-12-call-offer-design.md` ("the spec"; section numbers refer to it). Panels and settings keys: `docs/features/specs/2026-11-11-visual-style/visual-style.md` §5.7 Calls and §6, `mockups.html` screens 8 and 9.
 
 **Branch:** `call-offer`, cut from `ui-redesign` (which holds the specs). Ask the author before merging into `main` and before pushing.
 
@@ -60,8 +60,8 @@ app/Sources/Shepit/
 
 **Interfaces:** `Settings` gets `callOffer: Bool` (true), `callOfferSeconds: Int` (15), `callAutoStart: Bool` (false), `callAutoStartSeconds: Int` (5), `callAutoStopSeconds: Int` (10), `callApps: [String]` (`["Teams", "Zoom", "Meet"]`).
 
-- [ ] Tests: defaults; `callOfferSeconds` accepts 0 and 5–120, rejects 1–4, 121 and negatives; the two other ranges; `callApps` accepts any subset of Teams, Zoom, Meet (empty too), rejects other names and duplicates; unknown keys kept on update; a settings file without the new keys still loads. → FAIL → implement → PASS.
-- [ ] `examples/settings.json` and the README table get the keys with defaults. Commit `Shepit: call offer settings`.
+- Tests: defaults; `callOfferSeconds` accepts 0 and 5–120, rejects 1–4, 121 and negatives; the two other ranges; `callApps` accepts any subset of Teams, Zoom, Meet (empty too), rejects other names and duplicates; unknown keys kept on update; a settings file without the new keys still loads. → FAIL → implement → PASS.
+- `examples/settings.json` and the README table get the keys with defaults. Commit `Shepit: call offer settings`.
 
 ### Task 2: The decisions
 
@@ -90,7 +90,7 @@ public struct CallOffer {
 ```
 `tick` comes once a second while anything is pending; all timing is computed from `now`, so tests pass dates and never sleep.
 
-- [ ] Tests, one per rule:
+- Tests, one per rule:
   - bundle IDs: the three §4.1 processes, a Chrome helper, Edge, an unknown app, Shepit itself;
   - under 3 s of microphone gives nothing; at 3 s Teams and Zoom give the offer and `lookForName`;
   - a browser gives `lookForMeet`; no offer until `meetFound(true)`; `meetFound(false)` asks again after 10 s;
@@ -109,7 +109,7 @@ public struct CallOffer {
   - `sessionFinished(entries: 0)` for a call's session → `removeEmptyNote` and no `ready` panel; with entries → `ready`;
   - a process that already holds the microphone at launch behaves like one that just took it.
   → FAIL → implement → PASS.
-- [ ] Commit `Shepit: call offer decisions`.
+- Commit `Shepit: call offer decisions`.
 
 ### Task 3: GATE — watching the microphone (with the author)
 
@@ -118,20 +118,20 @@ public struct CallOffer {
 
 **Interfaces:** `final class CallWatch { init(onEvent: @escaping @MainActor (CallWatch.Change) -> Void); func start(); func stop() }`, where `Change` is `took(bundleID: String, pid: pid_t)` or `released(pid: pid_t)`. No filtering here: `CallApp.source` decides.
 
-- [ ] **Step 1:** Read the process list and `kAudioProcessPropertyIsRunningInput` as `tools/call-probe/probe.swift` does. Try listeners first (`AudioObjectAddPropertyListenerBlock` on the process list, and on each process object for the input flag). `call-watch` prints every change with a time, and whether it came from a listener or from a once-a-second check that runs beside it.
-- [ ] **Step 2 (author):** run `call-watch` during one call in each app. If the listener lines match the check's lines every time, keep listeners only; if any is missed, use the once-a-second check. Record which in the commit message.
-- [ ] **Step 3 (author, not blocking):** in the same run, join a Zoom and a Meet meeting by a link and wait on the pre-join screen, for spec §9.
-- [ ] Commit `Shepit: watch which app holds the microphone`.
+- **Step 1:** Read the process list and `kAudioProcessPropertyIsRunningInput` as `tools/call-probe/probe.swift` does. Try listeners first (`AudioObjectAddPropertyListenerBlock` on the process list, and on each process object for the input flag). `call-watch` prints every change with a time, and whether it came from a listener or from a once-a-second check that runs beside it.
+- **Step 2 (author):** run `call-watch` during one call in each app. If the listener lines match the check's lines every time, keep listeners only; if any is missed, use the once-a-second check. Record which in the commit message.
+- **Step 3 (author, not blocking):** in the same run, join a Zoom and a Meet meeting by a link and wait on the pre-join screen, for spec §9.
+- Commit `Shepit: watch which app holds the microphone`.
 
 ### Task 4: Start without the dialog; remove an empty transcript
 
 **Files:** `Shepit/AppHost+Meetings.swift`; `ShepitCore/MeetingSession.swift` if the entry count is not available yet; tests in `MeetingSessionTests.swift`.
 **Spec:** §5.4.
 
-- [ ] `startMeeting(title: String?, app: String?)`: the body of today's `startMeeting` after the name dialog, taking the name and app as given. Today's `startMeeting()` keeps the scan and the dialog and calls it. The mute button is found by `MuteWatch` on its own (it already looks when it has none).
-- [ ] The session reports how many entries it wrote (a count on `MeetingRecord`, or from its words). Test: a session with no phrases reports 0.
-- [ ] Removing an empty transcript: delete the note file, put back the earlier `last-meeting` value (it is written at Start), skip the statistics row and the name in `meeting-names.json`. Only called for a transcript that belongs to a call (Task 6).
-- [ ] Commit `Shepit: start a meeting transcript with a given name`.
+- `startMeeting(title: String?, app: String?)`: the body of today's `startMeeting` after the name dialog, taking the name and app as given. Today's `startMeeting()` keeps the scan and the dialog and calls it. The mute button is found by `MuteWatch` on its own (it already looks when it has none).
+- The session reports how many entries it wrote (a count on `MeetingRecord`, or from its words). Test: a session with no phrases reports 0.
+- Removing an empty transcript: delete the note file, put back the earlier `last-meeting` value (it is written at Start), skip the statistics row and the name in `meeting-names.json`. Only called for a transcript that belongs to a call (Task 6).
+- Commit `Shepit: start a meeting transcript with a given name`.
 
 ### Task 5: The panel
 
@@ -140,38 +140,38 @@ public struct CallOffer {
 
 **Interfaces:** `final class CallPanel { func show(_ panel: CallOffer.Panel, onMain: @escaping () -> Void, onOther: @escaping () -> Void); func hide() }`.
 
-- [ ] A borderless non-activating `NSPanel` (`.nonactivatingPanel`, floating level, joins all Spaces, shows over full-screen apps, `becomesKeyOnlyIfNeeded`), top right of the screen with the mouse, with a SwiftUI view: title, one status line, a thin progress bar when a countdown runs, the main button in the accent colour and one plain button. Standard controls and materials; light and dark from the system.
-- [ ] Texts and buttons per state exactly as visual style §6. The countdown text and bar are redrawn from the state machine's panel value each second; the panel keeps no timers of its own.
-- [ ] A `panel-test` command shows each state for a few seconds, for looking at it without a call.
-- [ ] Check by hand: typing in another app goes on while the panel is up; clicking a button doesn't bring Shepit to the front.
-- [ ] Commit `Shepit: floating call panel`.
+- A borderless non-activating `NSPanel` (`.nonactivatingPanel`, floating level, joins all Spaces, shows over full-screen apps, `becomesKeyOnlyIfNeeded`), top right of the screen with the mouse, with a SwiftUI view: title, one status line, a thin progress bar when a countdown runs, the main button in the accent colour and one plain button. Standard controls and materials; light and dark from the system.
+- Texts and buttons per state exactly as visual style §6. The countdown text and bar are redrawn from the state machine's panel value each second; the panel keeps no timers of its own.
+- A `panel-test` command shows each state for a few seconds, for looking at it without a call.
+- Check by hand: typing in another app goes on while the panel is up; clicking a button doesn't bring Shepit to the front.
+- Commit `Shepit: floating call panel`.
 
 ### Task 6: Wiring
 
 **Files:** Create `Shepit/AppHost+Calls.swift`; modify `AppHost.swift` (start the watch at launch, restart on settings change), `AppHost+Meetings.swift` (session start and finish tell the state machine).
 **Spec:** §5.2–5.4, §6.
 
-- [ ] `CallWatch` changes → `CallApp.source` → `CallOffer.handle`. A one-second timer sends `tick` only while the state machine has something pending, so nothing runs while no call app holds the microphone.
-- [ ] Effects: `lookForMeet` reads window and tab titles of that browser off the main thread (`MeetingApps`, titles only, no deep walk) and answers `meetFound`; `lookForName` runs `MeetingApps.scan(limit: 2)` up to 5 times a second apart, then `MeetingNames.repeating`, and answers `named`; `start` calls `startMeeting(title:app:)`; `stop` is today's Stop; `removeEmptyNote` is Task 4; `record` goes to statistics (Task 7; a no-op until then).
-- [ ] Session start (from the menu too) and finish send `sessionStarted` / `sessionFinished`. The `ready` panel replaces the "transcript ready" notice; "Name people" runs Rename speakers….
-- [ ] After wake from sleep the watch reads the flags again.
-- [ ] Install and try with a call to yourself in one app. Commit `Shepit: offer a transcript when a call starts`.
+- `CallWatch` changes → `CallApp.source` → `CallOffer.handle`. A one-second timer sends `tick` only while the state machine has something pending, so nothing runs while no call app holds the microphone.
+- Effects: `lookForMeet` reads window and tab titles of that browser off the main thread (`MeetingApps`, titles only, no deep walk) and answers `meetFound`; `lookForName` runs `MeetingApps.scan(limit: 2)` up to 5 times a second apart, then `MeetingNames.repeating`, and answers `named`; `start` calls `startMeeting(title:app:)`; `stop` is today's Stop; `removeEmptyNote` is Task 4; `record` goes to statistics (Task 7; a no-op until then).
+- Session start (from the menu too) and finish send `sessionStarted` / `sessionFinished`. The `ready` panel replaces the "transcript ready" notice; "Name people" runs Rename speakers….
+- After wake from sleep the watch reads the flags again.
+- Install and try with a call to yourself in one app. Commit `Shepit: offer a transcript when a call starts`.
 
 ### Task 7: Settings section, statistics rows, docs
 
 **Files:** Create `Shepit/Settings/CallsSection.swift`; modify `SettingsModel.swift`, `SettingsWindow.swift`, `ShepitCore/Stats.swift`, `StatsDatabase.swift`, `README.md`, `docs/manual-test-checklist.md`; tests in `StatsDatabaseTests.swift`, `SettingsModelTests.swift`.
 **Spec:** §5.6, §5.7, §7.
 
-- [ ] Calls section in the current Settings window, laid out as mockup screen 8: the offer switch, "Hide the panel after", automatic start and its seconds, stop seconds, and a switch per app. A line says Meet needs Accessibility when it is missing.
-- [ ] `offers` table: time, app, outcome. Insert and read back; existing databases get the table on open; `clear()` empties it; a schema test that it has no text column besides app and outcome. Written only when `collectStats` is on.
-- [ ] README: what the panel does, the settings, the known limits of spec §6, and that nothing starts by itself unless automatic start is on. Manual checklist: the spec §7 additions as C1–C10.
-- [ ] Commit `Shepit: call settings, offer statistics and docs`.
+- Calls section in the current Settings window, laid out as mockup screen 8: the offer switch, "Hide the panel after", automatic start and its seconds, stop seconds, and a switch per app. A line says Meet needs Accessibility when it is missing.
+- `offers` table: time, app, outcome. Insert and read back; existing databases get the table on open; `clear()` empties it; a schema test that it has no text column besides app and outcome. Written only when `collectStats` is on.
+- README: what the panel does, the settings, the known limits of spec §6, and that nothing starts by itself unless automatic start is on. Manual checklist: the spec §7 additions as C1–C10.
+- Commit `Shepit: call settings, offer statistics and docs`.
 
 ### Task 8: GATE — real calls and review (with the author)
 
-- [ ] Run C1–C10 with the author on real calls in Teams, Zoom and Meet.
-- [ ] The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks.
-- [ ] Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`. Ask the author before merging into `main`.
+- Run C1–C10 with the author on real calls in Teams, Zoom and Meet.
+- The end-of-branch reviews from the execution notes, and the whole diff against the Review focus list; fix what the author picks.
+- Update `docs/future-ideas.md` and "Where things stand" in `CLAUDE.md`. Ask the author before merging into `main`.
 
 ---
 
