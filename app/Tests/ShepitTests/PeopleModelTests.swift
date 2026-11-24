@@ -150,17 +150,46 @@ struct PeopleModelTests {
         #expect(model.suggestions.isEmpty) // Remember voices is off
         settings.rememberVoices = true
         model.reload()
-        #expect(model.suggestions.isEmpty) // until the prints are read, off the main thread
-        await model.reading?.value
+        #expect(model.suggestions.isEmpty) // until the voices and the prints are read, off the main thread
+        await settle(model)
         #expect(model.suggestions.map(\.key) == ["Person 1"])
+        model.reload()
+        #expect(model.suggestions.map(\.key) == ["Person 1"]) // a plain reload keeps them until the new read
+        await settle(model)
+        let olenaID = model.selection
         model.selection = nil
         #expect(model.suggestions.isEmpty)
-        model.selection = model.people.first { $0.name == "Olena" }?.id
-        #expect(model.reading == nil && model.suggestions.map(\.key) == ["Person 1"]) // the store didn't change: read once
+        model.selection = olenaID
+        #expect(model.suggestions.isEmpty) // a new choice starts empty
+        await model.suggesting?.value
+        #expect(model.reading == nil && model.suggestions.map(\.key) == ["Person 1"]) // the store didn't change: prints read once
+        // A read that ends after the choice changed shows nothing.
+        model.selection = nil
+        model.selection = olenaID
+        let read = model.suggesting
+        model.selection = nil
+        await read?.value
+        #expect(model.suggestions.isEmpty && model.suggesting == nil)
+        // ... or after Remember voices was turned off.
+        model.selection = olenaID
+        let unwanted = model.suggesting
+        settings.rememberVoices = false
+        await unwanted?.value
+        #expect(model.suggestions.isEmpty && model.suggesting == nil)
+        settings.rememberVoices = true
+        model.reload()
+        await settle(model)
         let olena = try #require(model.chosen)
         await model.name(olena, suggestions: model.suggestions, checked: [ids[1]])
         #expect(try store.people(ids[1])[0].person == olena.id)
+        #expect(model.suggestions.isEmpty) // at once, not after the next read
+        await settle(model)
         #expect(model.suggestions.isEmpty)
+    }
+
+    /// Until May also be in, and the prints it needs, are read.
+    private func settle(_ model: PeopleModel) async {
+        while let task = model.suggesting ?? model.reading { await task.value }
     }
 
     @Test func talkAndMeetingsFollowThePeriodWhichIsRemembered() throws {

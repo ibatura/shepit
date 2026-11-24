@@ -78,6 +78,12 @@ extension MeetingStore {
         return Dictionary(grouping: rows, by: \.meeting).mapValues { Dictionary(grouping: $0, by: \.key).mapValues { $0.map(\.sample) } }
     }
 
+    /// `suggestedVoices(for:)` read on a connection of its own, off the main thread: it reads every unnamed voice kept
+    /// (query plans design §7.5).
+    public static func suggestedVoices(in file: URL, for person: Int) async throws -> [Int: [String: [VoiceSample]]] {
+        try await Task.detached { try MeetingStore(file: file).suggestedVoices(for: person) }.value
+    }
+
     /// Name them (voices design §6): the suggested people (key by meeting) become `person`, in the notes too, unless they
     /// were named meanwhile; the `declined` ones aren't suggested for `person` again.
     public func nameSuggested(_ person: Int, named: [Int: String], declined: [Int: String]) throws {

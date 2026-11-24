@@ -22,6 +22,7 @@ final class PeopleModel {
         didSet {
             defaults.set(selection ?? 0, forKey: "peopleSelection")
             tally()
+            suggestions = [] // another person's
             suggest()
         }
     }
@@ -36,7 +37,8 @@ final class PeopleModel {
     private(set) var talk: [StatisticsPage.Tile] = []
     /// The chosen person's meetings in `period`, newest first.
     private(set) var meetingRows: [PeoplePage.MeetingRow] = []
-    /// May also be in, for the chosen person (voices design §6): read with the list and when the choice changes.
+    /// May also be in, for the chosen person (voices design §6): read off the main thread with the list and when the
+    /// choice changes; a reload keeps them until the new read.
     private(set) var suggestions: [PeoplePage.Suggestion] = []
     var question: Question?
     /// A change that could not be made, for an alert.
@@ -64,6 +66,8 @@ final class PeopleModel {
     @ObservationIgnored private var prints: (version: Int, prints: [Int: Voices.Print])?
     /// The read of `prints` under way.
     @ObservationIgnored private(set) var reading: Task<Void, Never>?
+    /// The read of the unnamed voices for `suggestions` under way.
+    @ObservationIgnored private(set) var suggesting: Task<Void, Never>?
 
     /// `settings`: your name, as it is now.
     init(store: MeetingStore, settings: @escaping () -> ShepitCore.Settings, defaults: UserDefaults = .standard) {
@@ -100,24 +104,33 @@ final class PeopleModel {
         meetingRows = presences.map { PeoplePage.meetings($0, meetings: meetings) } ?? []
     }
 
-    /// None for You, or while Remember voices is off: no voice is recognised then. The prints are needed only when there
-    /// is an unnamed voice to compare; until they are read, none are suggested.
+    /// None for You, or while Remember voices is off: no voice is recognised then. The unnamed voices are read off the main
+    /// thread (query plans design §7.5), one read at a time: a read that ends after the choice, the store or Remember
+    /// voices changed is not shown, and reads again. The prints are needed only when there is an unnamed voice to compare;
+    /// until they are read, none are suggested.
     private func suggest() {
         guard let person = chosen, !person.isYou, settings().rememberVoices else {
             suggestions = []
             return
         }
-        do {
-            let unnamed = try store.suggestedVoices(for: person.id)
-            guard !unnamed.isEmpty, let prints, prints.version == store.version else {
+        guard suggesting == nil else { return } // it checks the choice when it ends
+        let version = store.version, file = store.file
+        suggesting = Task {
+            let unnamed: [Int: [String: [VoiceSample]]]
+            do {
+                unnamed = try await MeetingStore.suggestedVoices(in: file, for: person.id)
+            } catch {
+                NSLog("Shepit suggestions: %@", String(describing: error))
+                unnamed = [:]
+            }
+            suggesting = nil
+            guard chosen?.id == person.id, store.version == version, settings().rememberVoices else { return suggest() }
+            guard !unnamed.isEmpty, let prints, prints.version == version else {
                 suggestions = []
                 if !unnamed.isEmpty { readPrints() }
                 return
             }
             suggestions = PeoplePage.suggestions(Voices.suggestions(person.id, unnamed: unnamed, prints: prints.prints), meetings: meetings)
-        } catch {
-            NSLog("Shepit suggestions: %@", String(describing: error))
-            suggestions = []
         }
     }
 
@@ -198,7 +211,10 @@ final class PeopleModel {
     @discardableResult private func apply(_ failed: String, notes: [MeetingStore.Meeting] = [], _ change: () throws -> Void) async -> Bool {
         let urls = notes.map { URL(fileURLWithPath: $0.path) }
         await Task.detached { for url in urls { _ = try? Data(contentsOf: url) } }.value
-        defer { reload() }
+        defer {
+            suggestions = [] // the change may have named or deleted them; read again
+            reload()
+        }
         do {
             try change()
             return true
