@@ -1,7 +1,7 @@
 # Every query on an index, every index used
 
 Date: 2026-11-24
-Status: Complete, for the author's approval (2026-11-24), with the decisions in §2.
+Status: Approved by the author on 2026-11-24, with the decisions in §2.
 Build order: item 13 in `docs/future-ideas.md` ("Planned, in this order"), item 3 of "Next". Branch `query-plans`. The version is agreed with the author before the pull request.
 Builds on: `2026-11-14-meetings-design.md` §4 (`meetings.sqlite`), `2026-11-17-voices-design.md` §4–§7 (persons, voice samples, `line_voices`), `2026-11-16-dictations-dictionary-design.md` §4 (`dictations.sqlite`), and `2026-11-17-statistics-design.md` (`stats.sqlite`, checked in that part).
 
