@@ -65,10 +65,10 @@ On a branch of its own (never on `main`), one task at a time:
 
 1. **Docs:** the README; `examples/settings.json` when keys changed; the part's manual checks in `docs/manual-test-checklist.md`; `docs/future-ideas.md` (the item built, "<Part>: left open"); the part in `docs/architecture.md`; "Now" in `CLAUDE.md`.
 2. **Version:** agreed with the author; `CFBundleShortVersionString` in `app/Resources/Info.plist` and the notes in `docs/releases/<version>.md`.
-3. **Reviews of the whole branch** (`git diff main...HEAD`):
-   - The author runs `/thermo-nuclear-code-quality-review`. Only the author can start it.
-   - Claude spawns the **code reviewer** and the **security reviewer** (§7) at the same time.
-   - All findings go to the author as one numbered list, by review, most severe first. The author picks; Claude fixes what was picked, `make test`, commits.
+3. **Reviews of the whole branch** (`git diff main...HEAD`), in this order:
+   1. Once the docs and the version are done, Claude spawns the **code reviewer** and the **security reviewer** (§7) at the same time, without waiting to be asked.
+   2. When both have reported, Claude writes its opinion on each finding (fix it or leave it, and why) and shows the author one numbered list, by review, most severe first. The author picks; Claude fixes what was picked, runs `make test` and commits.
+   3. Last, the author runs `/thermo-nuclear-code-quality-review`; only the author can start it. Its points go the same way: Claude's opinion on each, the author picks, Claude fixes.
 4. **Manual checks of the branch:** each one is marked ✅ or ❌, or moves to "Need to test later" with its reason, or is removed with the author's OK.
 
 ## 6. Pull request and release
