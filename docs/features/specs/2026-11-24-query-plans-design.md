@@ -1,7 +1,7 @@
 # Every query on an index, every index used
 
 Date: 2026-11-24
-Status: First draft, with the findings; §2 waits for the author's answers.
+Status: Complete, for the author's approval (2026-11-24), with the decisions in §2.
 Build order: item 13 in `docs/future-ideas.md` ("Planned, in this order"), item 3 of "Next". Branch `query-plans`. The version is agreed with the author before the pull request.
 Builds on: `2026-11-14-meetings-design.md` §4 (`meetings.sqlite`), `2026-11-17-voices-design.md` §4–§7 (persons, voice samples, `line_voices`), `2026-11-16-dictations-dictionary-design.md` §4 (`dictations.sqlite`), and `2026-11-17-statistics-design.md` (`stats.sqlite`, checked in that part).
 
@@ -23,26 +23,21 @@ What was found:
   - on `people (person)`: every read of one person's meetings scans every `people` row, and naming someone builds a temporary index on each call.
 - **Unused indexes:** none. Every index both files have is used, and each also enforces a key.
 
-Timed on a year of meetings, every query except a few full reads takes a millisecond or less. Those full reads are listed in §6.3. So the part is small: one upgrade of `meetings.sqlite`, plus the decisions in §2.
+Timed on a year of meetings, every query except a few full reads takes a millisecond or less. Those full reads are listed in §6.3.
+
+So the part is small:
+- one upgrade of `meetings.sqlite`;
+- the fill of old meetings' words goes, with its scan of every line;
+- a rule for new queries;
+- two reads that run on the main thread move off it.
 
 ## 2. Decided by the author
 
-- **Where a query scans or sorts, the index it needs is added; an index no query uses is dropped** (the author, 2026-11-15 and 2026-11-17).
-- Open, to ask in round 1:
-  - **Lines without words** (§7.2):
-    - drop the fill (recommended);
-    - a partial index;
-    - leave it as it is.
-  - **An index on `lines (meeting, current)`** (§7.3):
-    - not added (recommended);
-    - added.
-  - **Keeping it true** (§7.4):
-    - a rule for the task review (recommended);
-    - a test in `make test`;
-    - nothing.
-  - **The heavy reads on the main thread** (§6.3):
-    - left for later (recommended);
-    - taken into this part.
+- **Where a query scans or sorts, the index it needs is added; an index no query uses is dropped** (the author, 2026-11-15 and 2026-11-17). For this part that is `meetings (start)` and `people (person)` (§7.1); nothing is dropped (§6.4).
+- **Lines without words: the fill goes** (2026-11-24, recommended). `meetingsWithoutWords` and `fillWords` are removed, and with them the scan of every line (§7.2).
+- **No index on `lines (meeting, current)`** (2026-11-24, recommended). Those queries already search an index; the gain is 6–23 ms after a year (§7.3).
+- **Keeping it true: a rule for the task review** (2026-11-24, recommended). The task reviewer runs `EXPLAIN QUERY PLAN` on every new or changed query (§7.4).
+- **The two heavy reads on the main thread move off it in this part** (2026-11-24; I had recommended leaving them for later). They are May also be in and the forgetting of old unnamed voices (§7.5). The dictation hotkeys are handled on the main thread too, so a 60–70 ms read there can delay one.
 
 ## 3. Goals, non-goals, anti-goals
 
@@ -52,8 +47,8 @@ Timed on a year of meetings, every query except a few full reads takes a millise
 - The stores behave exactly as before.
 
 **Non-goals.**
-- Making the full reads by design faster (§6.3).
-- Moving reads off the main thread.
+- Making the full reads by design faster (§6.3); two of them only move off the main thread (§7.5).
+- Moving other reads off the main thread: People's list (`summaries`, 33 ms a year) and one meeting's reads stay where they are.
 - `ANALYZE` statistics: without them the planner already picks the indexes of §7.1.
 
 **Anti-goals.**
@@ -143,7 +138,7 @@ They read every row on purpose. An index can't make them read less.
 | `forgetUnnamedVoices` | every old sample is checked, on the main thread | 60 ms once nothing is left to forget |
 | `deleteAllVoices`, upgrade 2 | everything, once | |
 
-`suggestedVoices` and `forgetUnnamedVoices` run on the main thread, which also handles the dictation hotkeys. At a year they take 60–70 ms each, and more after that. Moving them off the main thread is a separate change (§2).
+`suggestedVoices` and `forgetUnnamedVoices` run on the main thread, which also handles the dictation hotkeys. At a year they take 60–70 ms each, and more after that. They move off the main thread (§7.5).
 
 ### 6.4 The indexes the file has
 
@@ -174,7 +169,8 @@ CREATE INDEX people_person ON people (person)
 
 The names follow `dictations_time` and `offers_time`.
 
-### 7.2 Lines without words (to decide)
+
+### 7.2 Lines without words: the fill goes
 
 **What it does now.**
 - `meetingsWithoutWords` finds meetings listed before 2026-11-20, whose lines have no word counts, and `fillWords` counts them from the notes.
@@ -182,59 +178,94 @@ The names follow `dictations_time` and `offers_time`.
 - To find them it scans every line: 132,000 rows a year, 5 ms.
 - The author's file has no such line left, and every meeting added since Voices has its words.
 
-**The choices.**
-- **Drop the fill (recommended).** Remove `meetingsWithoutWords`, `fillWords`, `PeopleModel.fillWords` and their tests.
-  - A version-1 file from before Voices would show those meetings' words as unknown, as it does today until People fills them.
-  - Only the author's Mac had such files, and they are filled.
-- **A partial index.** `CREATE INDEX lines_without_words ON lines (meeting) WHERE words IS NULL`, in upgrade 3.
-  - It is empty in the author's file, and no write touches it, since every new line has words.
-  - The scan goes and the code stays.
-- **Leave it as it is.** The scan stays, at 5 ms once per run.
+**What goes** (the author, 2026-11-24):
+- `MeetingStore.meetingsWithoutWords` and `fillWords`;
+- `PeopleModel.fillWords`, with its `wordsFilled` flag;
+- the `.task` in `PeopleView` that calls it;
+- their tests.
 
-### 7.3 An index on `lines (meeting, current)` (to decide)
+A version-1 file from before Voices would show those meetings' words as unknown, as it did before People filled them. Only the author's Mac had such files, and they are filled.
 
-**What it would change.** Today a person's lines in a meeting are found by reading that meeting's lines (about 165) through the primary key. The index would find them directly. On a year:
+The partial index `lines (meeting) WHERE words IS NULL` was the other way. It would have removed the scan and kept the code.
+
+### 7.3 No index on `lines (meeting, current)`
+
+**What it would have changed.** Today a person's lines in a meeting are found by reading that meeting's lines (about 165) through the primary key. The index would find them directly. On a year:
 
 | Query | Today | With the index |
 |---|---|---|
 | People's list (`summaries`) | 32 ms | 26 ms |
 | May also be in (`suggestedVoices`) | 69 ms | 46 ms |
 
-**The cost.**
+**What it would have cost.**
 - One index entry per line: the file grows by 1.6%.
 - An index write for every line added, and every time a line is given to another person.
 
-**Recommended: not added.** These queries already search an index, as the author's rule asks. The gain is 6–23 ms after a year.
+**Not added** (the author, 2026-11-24): these queries already search an index, as the author's rule asks.
 
-### 7.4 Keeping it true (to decide)
+### 7.4 Keeping it true: a rule for the task review
 
-- **A rule for the task review (recommended).** `docs/process.md`'s task reviewer runs `EXPLAIN QUERY PLAN` on every new or changed query, and reports a scan or a temporary sort that isn't a read by design.
-- **A test in `make test`.**
-  - `SQLiteFile` collects every statement the store tests prepare.
-  - A test explains each one, and fails on a scan or a temporary sort that isn't on a list of reads by design.
-  - It needs more code: a hook in `SQLiteFile`, and a list to keep up to date.
-- **Nothing.** This part's own tests (§9) keep the two indexes in use.
+`docs/process.md` §7, the task reviewer's brief, gains this line:
+
+> Run `EXPLAIN QUERY PLAN` on every SQL statement the task adds or changes, against a file made from the store's schema and upgrades, and report a scan of a whole table or a temporary B-tree that the code doesn't call a read by design.
+
+**Where "by design" is written.** A query that reads everything on purpose says so in its doc comment, as `knownNames` and `prints` already do.
+
+A test in `make test` was the other way. It was left out because it needs a hook in `SQLiteFile` and a list of allowed scans to keep up to date.
+
+### 7.5 Two reads off the main thread
+
+Both follow `prints(in:except:)`, which already runs on a connection of its own, off the main thread. Each connection opens the file with the schema, so it has `secure_delete` and the `line_voices` view. Both connections wait up to 5 s for each other (`sqlite3_busy_timeout`).
+
+**May also be in (`suggestedVoices`).**
+- `PeopleModel` reads the unnamed voices for the chosen person off the main thread. It reads the prints there too when its copy is older than the store, so the read and the prints become one step.
+- A read that comes back after the choice changed, or after the store changed, is dropped. A newer read for the person chosen now is under way by then.
+- Until a read is back, the person shows no suggestions. This is what happens today while the prints are being read.
+
+**Forgetting old unnamed voices (`forgetUnnamedVoices`).**
+- `AppHost` runs it off the main thread, at launch and after each meeting is listed, as it does now on the main thread.
+- One run at a time: a second request while one runs is skipped. The next meeting runs it again.
+- It deletes only samples that belong to nobody named. That means the prints, and People's counts of voices, don't change, so the main connection's `version` needs no bump.
+- A main-thread write that comes while it runs waits for it, up to the delete's own time (60 ms a year). Today that time blocks the main thread on every run.
 
 ## 8. Structure
 
-- **In `ShepitCore`:**
-  - `MeetingStore.upgrades` gets its second entry, which is upgrade 3;
-  - with the recommended §7.2, `MeetingStore+People.swift` loses `meetingsWithoutWords` and `fillWords`.
-- **In the app:** with the recommended §7.2, `PeopleModel.fillWords` and the `.task` in `PeopleView` that calls it go.
-- **Nothing else changes:** no setting, no text in the window, no change to the README beyond the database version.
+**In `ShepitCore`:**
+- `MeetingStore.upgrades` gets its second entry, which is upgrade 3 (§7.1).
+- `MeetingStore+People.swift` loses `meetingsWithoutWords` and `fillWords` (§7.2).
+- `MeetingStore+Voices.swift` gets `suggestedVoices(in:for:)` and `forgetUnnamedVoices(in:before:)`. These are static and async, beside `prints(in:except:)`, each on a `MeetingStore` of its own.
+
+**In the app:**
+- `PeopleModel.suggest()` reads off the main thread and replaces `readPrints()`; `PeopleModel.fillWords` goes.
+- `PeopleView` loses its `.task`.
+- `AppHost.forgetOldVoices()` runs its delete off the main thread.
+
+**Docs:**
+- the task reviewer's line in `docs/process.md` (§7.4);
+- `meetings.sqlite` (version 3) and the reads off the main thread in `docs/architecture.md`;
+- Q1–Q3 in `docs/manual-test-checklist.md`.
+
+Nothing changes in settings, in the window's texts or in the README beyond the database version.
 
 ## 9. Tests and manual checks
 
 **Tests.**
-- A version-2 file, made with upgrade 2's layout and a few rows, opens as version 3. It has both indexes and keeps its rows.
-- The plan of `meetings(limit:)` uses `meetings_start` with no temporary sort.
-- The plan of `meetings(of:)` searches `people_person`.
-- Both plan tests read `EXPLAIN QUERY PLAN` through the store's `SQLiteFile` (`@testable`).
-- With the recommended §7.2, the tests of `meetingsWithoutWords` and `fillWords` go.
+- **The upgrade.** A version-2 file, made with upgrade 2's layout and a few rows, opens as version 3. It has both indexes and keeps its rows.
+- **The plans.** These read `EXPLAIN QUERY PLAN` through the store's `SQLiteFile` (`@testable`):
+  - `meetings(limit:)` uses `meetings_start` with no temporary sort;
+  - `meetings(of:)` searches `people_person`.
+- **The reads of their own.**
+  - `suggestedVoices(in:for:)` gives what `suggestedVoices(for:)` gives.
+  - `forgetUnnamedVoices(in:before:)` deletes what the method on the store deletes. It also overwrites the deleted samples: `secure_delete` is on for that connection, checked with `PRAGMA secure_delete`.
+- **People.**
+  - `PeopleModelTests` shows suggestions once the read is back.
+  - A suggestion read for one person that returns after another person is chosen shows nothing for the new one.
+- **What goes.** The tests of `meetingsWithoutWords` and `fillWords`.
 
-**Manual checks**, as Q1–Q2 in `docs/manual-test-checklist.md`:
+**Manual checks**, as Q1–Q3 in `docs/manual-test-checklist.md`:
 - **Q1.** Install the build. On first launch, the author's `meetings.sqlite` becomes version 3 with `meetings_start` and `people_person`. Read it with `sqlite3 -readonly`: the version and the index names only.
-- **Q2.** Home's recent meetings, Meetings, People (a person, Who talked how much, May also be in) and Delete voice… work as before.
+- **Q2.** Home's recent meetings, Meetings, People (a person, Who talked how much) and Delete voice… work as before.
+- **Q3.** With Remember voices on, choosing a person in People shows May also be in as before. After a meeting is listed, dictation by hotkey works at once.
 
 ## 10. My calls (not confirmed one by one)
 
@@ -243,3 +274,9 @@ The names follow `dictations_time` and `offers_time`.
 **`EXPLAIN QUERY PLAN` runs on an empty file in the tests.** Without statistics the planner's choice doesn't depend on the number of rows.
 
 **Database version only.** `meetings.sqlite` goes to version 3. `dictations.sqlite` stays as it is.
+
+**The forget's skip.** A second forget while one runs is skipped, not queued. The next meeting, or the next launch, runs it again, and a sample kept a day longer than 30 days does no harm.
+
+**People's suggestions are dropped, not merged.** A read that came back after a change is not shown, even when it would have been right. The read the change started shows a moment later.
+
+**`summaries` stays on the main thread.** It takes 33 ms after a year and is read when People appears. The author's pick covered the two reads named in the question.
