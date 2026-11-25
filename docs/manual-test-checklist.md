@@ -245,7 +245,7 @@ Design: `docs/features/specs/2026-11-24-query-plans-design.md`. Q1 reads the aut
 |---|---|---|---|
 | Q1 | Install; launch Shepit; read `meetings.sqlite`'s version and indexes | Version 3; `meetings_start` and `people_person` beside the five key indexes | ✅ 2026-11-24: 0.4.1 (cb9910f), version 3 with both indexes; the row counts are the same as before the install |
 | Q2 | Home's recent meetings; Meetings; People: a person, Who talked how much, Delete voice… on someone | Everything as before | ✅ 2026-11-24 (the author) |
-| Q3 | With Remember voices on, choose a person with unnamed voices like theirs in People; after the next meeting is listed, dictate by hotkey at once | May also be in shows a moment after the choice; the dictation starts at once | ✅ 2026-11-24 (the author) |
+| Q3 | With Remember voices on, choose a person with unnamed voices like theirs in People; after the next meeting is listed, dictate by hotkey at once | May also be in shows a moment after the choice; the dictation starts at once | ✅ 2026-11-24 (the author); again ✅ 2026-11-25 on a3682cb, May also be in read in one step |
 
 ## Version
 

@@ -260,3 +260,4 @@ docs/process.md               the task reviewer's line (Task 1)
   - **No flag for the forget.** `AppHost.forgettingVoices` goes: a second run waits for the first on SQLite's lock and finds nothing. The only overlap is a launch that lists an interrupted transcript.
 
   Looked at and left: one helper for `BEGIN IMMEDIATE` in `transaction` and `upgrade` (it would hold the connection across the body, which `transaction` takes again for each statement), one generic helper for the static reads, and the SQL copied in the plan test (spec §7.4).
+- 2026-11-25: a3682cb installed; the author checked Q3 again: "everything is ok". The store is still version 3 with both indexes.
