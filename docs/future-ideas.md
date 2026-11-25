@@ -9,9 +9,9 @@ In this order unless the author says otherwise (written 2026-11-20; back and for
 1. The open checks of import names with the author: I4, I5, and I6 once the 29 Oct meeting has names (the author, 2026-11-23: on a day with calls, after the settings review has started). I3 and I7, with Zoom's files, are put off for long (the author, 2026-11-22). Teams `.docx` and the Meet `.txt` format are later parts.
 2. Left from the small fixes: look at L3 again with the author (Cancel on the merge question).
 
-The query plans of every database are checked on branch `query-plans` (2026-11-24): item 13 below.
+3. **App icon and name** (the author, 2026-11-25: next, after the query plans): on branch `icon-and-name`; see "App icon and name" under "New ideas". The check found "Shepit" taken by another Mac dictation app, so a new name is being looked for.
 
-The app icon and the check of the name are under "New ideas" (2026-11-22, not ordered).
+The query plans of every database (item 13 below) are merged into `main` on 2026-11-25 as release `v0.4.1`.
 
 ## Planned, in this order
 
@@ -31,7 +31,7 @@ Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-1
 12. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open". Task 9 of the settings review, on a real Meet call with the author. Done on branch `settings-review` (2026-11-23).
 13. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas".
     - `stats.sqlite` was checked in the Statistics part.
-    - `meetings.sqlite` and `dictations.sqlite` are checked on branch `query-plans` (2026-11-24). Spec `docs/features/specs/2026-11-24-query-plans-design.md`, plan `docs/features/plans/2026-11-24-query-plans.md`.
+    - `meetings.sqlite` and `dictations.sqlite` are checked on branch `query-plans` (2026-11-24). Spec `docs/features/specs/2026-11-24-query-plans-design.md`, plan `docs/features/plans/2026-11-24-query-plans.md`. Merged into `main` on 2026-11-25 as release `v0.4.1`.
       - `meetings.sqlite` version 3 adds indexes on `meetings (start)` and `people (person)`.
       - The fill of old meetings' words goes, with its scan of every line.
       - May also be in and the forgetting of old voices are read off the main thread.
