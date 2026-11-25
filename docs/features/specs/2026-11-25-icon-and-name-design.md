@@ -19,6 +19,7 @@
 - **This part comes next** (2026-11-25). The author picked it from the two proposed after the query plans; the other was cleaner transcripts.
 - **Keep looking for a name** (2026-11-25). The first four candidates were Hovir, Tykho, Vymova and Slukh. The author took none of them and said: "we need to keep looking for a name". The check had shown Shepit taken (§3), so the app is renamed.
 - **Look in mythology** (2026-11-25): Ukrainian mythology first, then the Celts'.
+- **Amergin is "not bad", but keep looking** (2026-11-25).
 
 ## 3. The name check (2026-11-25)
 
@@ -90,6 +91,20 @@ The check found no trademark record either way. It is "roughly unique", as the i
 | Ogma | The Irish god credited with the Ogham script. | Speech to writing, as in dictation. | Taken: "Ogma AI: Offline AI Chat", an iOS app. |
 | Fintan (mac Bóchra) | The Irish sage who lived for ages and remembered all of Ireland's history. | Meetings remembered. | An everyday Irish first name, not distinctive. |
 | Taliesin, Awen | The Welsh legendary bard, and the bards' inspiration. | | Taken by several apps. |
+
+**A second look** (2026-11-25, after "Amergin is not bad"). Checked the same way:
+
+| Name | Who or what | Fits because | Check |
+|---|---|---|---|
+| **Lirnyk** (лірник) | The wandering singer with a lira, who kept the dumy and psalms in memory and sang them from village to village. | He kept people's words by heart. | Free. |
+| Khovanets (хованець) | A house spirit of Galicia and the Hutsul region that keeps the household's wealth. Its name comes from "ховати", to keep or hide. | Keeping, at home. | Free, but hard to read in English. |
+| Zozulia (зозуля) | The cuckoo, whose voice counts out the years left. | A voice. | Free in both App Stores. |
+| Niavka, Polisun (нявка, полісун) | The Hutsul forest nymph, and the forest spirit of Polissia. | Nothing to do with speech. | Free. |
+| Kobzar (кобзар) | The kobza player. | | Free in the App Store, but the word means Shevchenko to every Ukrainian. |
+| **Gwydion** | In the Fourth Branch of the Mabinogi, a Welsh magician and "the best teller of tales in the world". | Stories told and kept. | Free. Gwyddion, with two d's, is a microscopy program. |
+| Seanchaí | The Irish keeper of lore and teller of tales. | The one who keeps what was said. | Free, but it is read "SHAN-a-kee", not as it is written. |
+| Oisín | The poet of the Fianna, who came back after three hundred years to tell their tales. | Tales kept. | An everyday Irish first name. |
+| Cairbre, Senchán, Pwyll, Llefelys | Irish and Welsh poets and sages. | | Free, but hard to read and with no clear meaning. |
 
 ## 4. What a new name touches (state today)
 
