@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Icon drawings</title>
+<style>
+:root { --surface-2:#fff; --border:rgba(0,0,0,.12); --border-accent:#0a84ff; --bg-accent:#e6f1fb; --text-accent:#0c447c;
+  --text-primary:#1d1d1f; --text-secondary:#6e6e73; --radius:8px; }
+@media (prefers-color-scheme: dark) {
+  :root { --surface-2:#1e1e20; --border:rgba(255,255,255,.14); --bg-accent:#0c2f52; --text-accent:#b5d4f4;
+    --text-primary:#f5f5f7; --text-secondary:#a1a1a6; }
+}
+body { margin:0; padding:24px 16px; background:var(--surface-2); color:var(--text-primary);
+  font:13px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+main { max-width:700px; margin:0 auto; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<main>
+<h1 style="font-size:17px;font-weight:600;margin:0 0 4px">App icon: round 1 (2026-11-25)</h1>
+<p style="color:var(--text-secondary);margin:0 0 8px">Four directions, none tied to the name. Each card: large, then 64, 32 and 16 px and the menu bar glyph, on a light and a dark background. Spec: <code>2026-11-25-icon-and-name-design.md</code> §5.</p>
+<!-- The fragment below is what was shown to the author. -->
+<style>
+.ig{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;padding:1rem 0}
+.io{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px}
+.io.rec{border:2px solid var(--border-accent)}
+.ih{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px;font-weight:500;color:var(--text-primary)}
+.ib{font-size:12px;font-weight:400;padding:2px 10px;border-radius:var(--radius);background:var(--bg-accent);color:var(--text-accent)}
+.ir{display:flex;gap:12px;align-items:center}
+.is{display:flex;flex-direction:column;gap:6px}
+.st{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:8px}
+.lt{background:#e8e8ea;color:#1d1d1f}.dk{background:#1e1e20;color:#f5f5f7}
+.mb{display:flex;align-items:center;padding:3px 6px;border-radius:4px}
+.lt .mb{background:rgba(255,255,255,.75)}.dk .mb{background:rgba(255,255,255,.1)}
+</style>
+<h2 class="sr-only">Four app icon directions, each shown large, at Dock and Finder sizes on light and dark backgrounds, and as a menu bar glyph.</h2>
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+<defs>
+<linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a9bff"/><stop offset="1" stop-color="#1a5fd8"/></linearGradient>
+<linearGradient id="gB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f2e8"/><stop offset="1" stop-color="#e6dcc8"/></linearGradient>
+<linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3b63"/><stop offset="1" stop-color="#141d33"/></linearGradient>
+<linearGradient id="gD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f72ff"/><stop offset="1" stop-color="#5638db"/></linearGradient>
+<pattern id="weave" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 4H8M4 0V8" stroke="#d6c9ae" stroke-width="1" opacity=".55"/></pattern>
+<pattern id="red" x="0" y="16" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M6 6L26 26" stroke="#8e1219" stroke-width="10" stroke-linecap="round"/><path d="M26 6L6 26" stroke="#d42a2f" stroke-width="10" stroke-linecap="round"/></pattern>
+<pattern id="blk" x="0" y="16" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M6 6L26 26" stroke="#0f0f0f" stroke-width="10" stroke-linecap="round"/><path d="M26 6L6 26" stroke="#3b3b3b" stroke-width="10" stroke-linecap="round"/></pattern>
+<clipPath id="vane"><path d="M552.5 587.5C755.9 563.7 789.7 450 800 250C628.5 331.8 538.3 404.1 552.5 587.5Z"/></clipPath>
+<symbol id="iA" viewBox="0 0 1024 1024">
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#gA)"/>
+<g fill="#fff"><rect x="200" y="422" width="52" height="180" rx="26"/><rect x="280" y="332" width="52" height="360" rx="26"/><rect x="360" y="382" width="52" height="260" rx="26"/><rect x="440" y="452" width="52" height="120" rx="26"/><rect x="540" y="374" width="300" height="52" rx="26"/><rect x="540" y="486" width="300" height="52" rx="26"/><rect x="540" y="598" width="190" height="52" rx="26"/></g>
+</symbol>
+<symbol id="iB" viewBox="0 0 1024 1024">
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#gB)"/>
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#weave)"/>
+<g fill="url(#red)"><rect x="192" y="464" width="64" height="96"/><rect x="288" y="368" width="64" height="288"/><rect x="384" y="432" width="64" height="160"/><rect x="480" y="304" width="64" height="416"/><rect x="576" y="400" width="64" height="224"/><rect x="672" y="336" width="64" height="352"/><rect x="768" y="464" width="64" height="96"/></g>
+<g fill="url(#blk)"><rect x="192" y="432" width="64" height="32"/><rect x="192" y="560" width="64" height="32"/><rect x="288" y="336" width="64" height="32"/><rect x="288" y="656" width="64" height="32"/><rect x="384" y="400" width="64" height="32"/><rect x="384" y="592" width="64" height="32"/><rect x="480" y="272" width="64" height="32"/><rect x="480" y="720" width="64" height="32"/><rect x="576" y="368" width="64" height="32"/><rect x="576" y="624" width="64" height="32"/><rect x="672" y="304" width="64" height="32"/><rect x="672" y="688" width="64" height="32"/><rect x="768" y="432" width="64" height="32"/><rect x="768" y="560" width="64" height="32"/></g>
+</symbol>
+<symbol id="iC" viewBox="0 0 1024 1024">
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#gC)"/>
+<path d="M190 700Q218 670 246 700Q274 750 302 700Q330 610 358 700Q386 780 414 700Q442 650 470 700" fill="none" stroke="#8fc1ff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M470 700L552.5 587.5" stroke="#f3ead7" stroke-width="18" stroke-linecap="round"/>
+<path d="M552.5 587.5C755.9 563.7 789.7 450 800 250C628.5 331.8 538.3 404.1 552.5 587.5Z" fill="#f3ead7"/>
+<g clip-path="url(#vane)" stroke-linecap="round"><path d="M552.5 587.5L790 266" stroke="#cbbd99" stroke-width="8"/><path d="M684 476L816 499M677 367L618 262" stroke="#1d2945" stroke-width="10"/></g>
+</symbol>
+<symbol id="iD" viewBox="0 0 1024 1024">
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#gD)"/>
+<g fill="#cfc3ff"><rect x="180" y="230" width="440" height="300" rx="90"/><path d="M270 500L230 610L350 520Z"/></g>
+<g fill="#5638db"><rect x="264" y="350" width="32" height="60" rx="16"/><rect x="324" y="310" width="32" height="140" rx="16"/><rect x="384" y="280" width="32" height="200" rx="16"/><rect x="444" y="320" width="32" height="120" rx="16"/><rect x="504" y="340" width="32" height="80" rx="16"/></g>
+<g fill="#fff"><rect x="400" y="440" width="440" height="320" rx="90"/><path d="M730 740L800 830L650 758Z"/></g>
+<g fill="#6a4ff0"><rect x="460" y="520" width="320" height="36" rx="18"/><rect x="460" y="584" width="320" height="36" rx="18"/><rect x="460" y="648" width="200" height="36" rx="18"/></g>
+</symbol>
+<symbol id="mA" viewBox="0 0 18 18"><g fill="currentColor"><rect x="1" y="6" width="2" height="6" rx="1"/><rect x="4" y="3" width="2" height="12" rx="1"/><rect x="7" y="5" width="2" height="8" rx="1"/><rect x="11" y="4.5" width="6" height="2" rx="1"/><rect x="11" y="8" width="6" height="2" rx="1"/><rect x="11" y="11.5" width="4" height="2" rx="1"/></g></symbol>
+<symbol id="mB" viewBox="0 0 18 18"><path fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" d="M1 6l3 3m0-3l-3 3M1 9l3 3m0-3l-3 3M5 3l3 3m0-3l-3 3M5 6l3 3m0-3l-3 3M5 9l3 3m0-3l-3 3M5 12l3 3m0-3l-3 3M9 1.5l3 3m0-3l-3 3M9 4.5l3 3m0-3l-3 3M9 7.5l3 3m0-3l-3 3M9 10.5l3 3m0-3l-3 3M9 13.5l3 3m0-3l-3 3M13 4.5l3 3m0-3l-3 3M13 7.5l3 3m0-3l-3 3M13 10.5l3 3m0-3l-3 3"/></symbol>
+<symbol id="mC" viewBox="170 230 660 560"><path d="M552.5 587.5C755.9 563.7 789.7 450 800 250C628.5 331.8 538.3 404.1 552.5 587.5Z" fill="currentColor"/><path d="M470 700L552.5 587.5" stroke="currentColor" stroke-width="26" stroke-linecap="round"/><path d="M190 700Q218 670 246 700Q274 750 302 700Q330 610 358 700Q386 780 414 700Q442 650 470 700" fill="none" stroke="currentColor" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="mD" viewBox="160 210 700 640"><rect x="180" y="230" width="440" height="300" rx="90" fill="none" stroke="currentColor" stroke-width="44"/><rect x="400" y="440" width="440" height="320" rx="90" fill="currentColor"/><path d="M730 740L800 830L650 758Z" fill="currentColor"/></symbol>
+</defs>
+</svg>
+<div class="ig">
+<div class="io"><div class="ih">A · Sound to text</div><div class="ir"><svg width="112" height="112"><use href="#iA"/></svg><div class="is"><div class="st lt"><svg width="64" height="64"><use href="#iA"/></svg><svg width="32" height="32"><use href="#iA"/></svg><svg width="16" height="16"><use href="#iA"/></svg><span class="mb"><svg width="16" height="16"><use href="#mA"/></svg></span></div><div class="st dk"><svg width="64" height="64"><use href="#iA"/></svg><svg width="32" height="32"><use href="#iA"/></svg><svg width="16" height="16"><use href="#iA"/></svg><span class="mb"><svg width="16" height="16"><use href="#mA"/></svg></span></div></div></div></div>
+<div class="io rec"><div class="ih">B · Cross-stitch wave <span class="ib">Recommended</span></div><div class="ir"><svg width="112" height="112"><use href="#iB"/></svg><div class="is"><div class="st lt"><svg width="64" height="64"><use href="#iB"/></svg><svg width="32" height="32"><use href="#iB"/></svg><svg width="16" height="16"><use href="#iB"/></svg><span class="mb"><svg width="16" height="16"><use href="#mB"/></svg></span></div><div class="st dk"><svg width="64" height="64"><use href="#iB"/></svg><svg width="32" height="32"><use href="#iB"/></svg><svg width="16" height="16"><use href="#iB"/></svg><span class="mb"><svg width="16" height="16"><use href="#mB"/></svg></span></div></div></div></div>
+<div class="io"><div class="ih">C · Scribe's quill</div><div class="ir"><svg width="112" height="112"><use href="#iC"/></svg><div class="is"><div class="st lt"><svg width="64" height="64"><use href="#iC"/></svg><svg width="32" height="32"><use href="#iC"/></svg><svg width="16" height="16"><use href="#iC"/></svg><span class="mb"><svg width="16" height="16"><use href="#mC"/></svg></span></div><div class="st dk"><svg width="64" height="64"><use href="#iC"/></svg><svg width="32" height="32"><use href="#iC"/></svg><svg width="16" height="16"><use href="#iC"/></svg><span class="mb"><svg width="16" height="16"><use href="#mC"/></svg></span></div></div></div></div>
+<div class="io"><div class="ih">D · Conversation</div><div class="ir"><svg width="112" height="112"><use href="#iD"/></svg><div class="is"><div class="st lt"><svg width="64" height="64"><use href="#iD"/></svg><svg width="32" height="32"><use href="#iD"/></svg><svg width="16" height="16"><use href="#iD"/></svg><span class="mb"><svg width="16" height="16"><use href="#mD"/></svg></span></div><div class="st dk"><svg width="64" height="64"><use href="#iD"/></svg><svg width="32" height="32"><use href="#iD"/></svg><svg width="16" height="16"><use href="#iD"/></svg><span class="mb"><svg width="16" height="16"><use href="#mD"/></svg></span></div></div></div></div>
+</div>
+</main>
+</body>
+</html>

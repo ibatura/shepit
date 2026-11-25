@@ -141,7 +141,13 @@ The check found no trademark record either way. It is "roughly unique", as the i
 
 **The menu bar** could keep its emoji, or get a template image that macOS tints for light and dark menu bars. The states (recording, transcribing, a problem, a transcript running) would then need a sign of their own.
 
-**Drawings come next.** The icon's look is shown in drawings once the name is chosen, since the icon may draw on it.
+**Drawings, round 1** (2026-11-25): `2026-11-25-icon-drawings.html` in this folder. The author asked for the drawings while the name is set aside, so none of them draws on the name: no letter, no figure from a myth. Each direction is shown large, at 64, 32 and 16 px on a light and a dark background, and as a menu bar glyph.
+
+- **No microphone.** shepit.app's logo is a gold studio microphone (seen on its site on 2026-11-25), and a microphone is what most dictation apps show.
+- **A · Sound to text.** Wave bars that turn into lines of text, white on blue. Says what Shepit does, but many transcription apps look like this.
+- **B · Cross-stitch wave** (recommended). A sound wave embroidered in red cross-stitch with black ends, on linen, as on a vyshyvanka. Unlike any app we found, and Ukrainian as the app is. At 16 px it reads as red bars on cream.
+- **C · Scribe's quill.** A quill that writes a sound wave, cream and light blue on ink blue: what is said is written down.
+- **D · Conversation.** Two speech bubbles: one with a wave, the other with lines of text. Speaks of meetings more than dictation.
 
 ## 6. Questions still open
 
