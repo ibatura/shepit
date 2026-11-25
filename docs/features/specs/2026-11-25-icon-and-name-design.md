@@ -23,6 +23,7 @@
 - **Amergin for now, as an interim choice** (2026-11-25, after the second look). The question of the name is set aside for later, to think of other options; there is nothing more to settle about it now. Nothing is renamed until the name is final.
 - **The icon is drawn now, without waiting for the name** (2026-11-25).
 - **The icon: B, the cross-stitch wave** (2026-11-26, recommended), from the four directions of round 1 (§5).
+- **Its finish: B2, the rhombus** (2026-11-26, recommended), from the four of round 2 (§5).
 
 ## 3. The name check (2026-11-25)
 
@@ -158,9 +159,22 @@ The check found no trademark record either way. It is "roughly unique", as the i
 - **B3 · Dark linen.** B1 on charcoal linen, with cream ends. It stands out on a light Dock and sinks into a dark one.
 - **B4 · Red only.** B1 without the black, on white linen. The plainest, but the least like a vyshyvanka.
 
+**The two ways, tried on this Mac** (2026-11-26, macOS 26.4, Xcode 26.6). B2 was drawn as plain SVG and built both ways into a test app bundle in a temporary folder. Then `NSWorkspace` was asked for the icon macOS shows for each:
+- **An `.icon`.** It was written by hand: `icon.json` with the linen's gradient as the fill, and two layers, the stitches and the weave. `xcrun actool` compiled it without an Xcode project, into `Assets.car` and a `B2.icns` for macOS 14 and 15, and gave the `Info.plist` keys (`CFBundleIconFile`, `CFBundleIconName`). macOS 26 shows it in its own shape, filled edge to edge, with a glass rim.
+- **An `.icns` only**, made with `iconutil` from the same drawing. macOS 26 shrinks it and sets it on a white rounded square.
+
+**Drawings, round 3** (2026-11-26), in the same file: the menu bar, in its five states (ready, recording, transcribing, a problem, a meeting transcript running), on a light and a dark menu bar.
+- **1 · Emoji, as today.** 🎙, 🔴, ⏳, 🎙⚠ and ⏺🎙.
+- **2 · Rhombus in place of 🎙.** A template image of the rhombus, which macOS tints for the menu bar; the other signs stay emoji.
+- **3 · Rhombus in every state** (recommended). The rhombus alone: red while recording, as the visual style keeps red for recording; faded while transcribing; an orange dot on it for a problem; a red dot before it while a meeting transcript runs. As menu bar apps on macOS look.
+
+## My calls (not confirmed one by one)
+
+- **The icon is an `.icon`, compiled by `actool`** (2026-11-26). macOS 26 shows a plain `.icns` on a white square (§5), and `actool` also writes the `.icns` that macOS 14 and 15 use. `build-app.sh` then needs Xcode's `actool`; Xcode 26.6 is this Mac's developer folder already. The `.icon` is kept as text (`icon.json` and SVG layers) in `app/Resources/`, so it can be changed without Icon Composer.
+
 ## 6. Questions still open
 
 1. The new name: Amergin for now (§2); set aside to think of other options.
 2. What the rename changes: what people see only (recommended), or the bundle id and the repository too.
-3. The icon's look, in drawings, and how it is made (`.icon` or `.icns`).
-4. The menu bar: keep the emoji, or a template image.
+3. The icon's look: B2, the rhombus (§2). How it is made: an `.icon`, my call (above).
+4. The menu bar: emoji, the rhombus in place of 🎙, or the rhombus in every state (round 3, §5).
