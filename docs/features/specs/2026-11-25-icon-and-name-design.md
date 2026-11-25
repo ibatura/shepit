@@ -18,6 +18,7 @@
 
 - **This part comes next** (2026-11-25). The author picked it from the two proposed after the query plans; the other was cleaner transcripts.
 - **Keep looking for a name** (2026-11-25). The first four candidates were Hovir, Tykho, Vymova and Slukh. The author took none of them and said: "we need to keep looking for a name". The check had shown Shepit taken (§3), so the app is renamed.
+- **Look in mythology** (2026-11-25): Ukrainian mythology first, then the Celts'.
 
 ## 3. The name check (2026-11-25)
 
@@ -69,6 +70,26 @@ The check found no trademark record either way. It is "roughly unique", as the i
 | Nyshkom | нишком | on the quiet | |
 | Chuyu | чую | I hear | |
 | Vukho | вухо | ear | |
+
+**Names from mythology.** These were checked the same way, on 2026-11-25. Ukrainian names come first, as the author asked.
+
+| Name | Who or what | Fits because | Check |
+|---|---|---|---|
+| **Domovyk** (домовик) | The house spirit. Ivan Nechuy-Levytsky describes him as the guardian of the family and the hearth, not an evil spirit. | He lives in the house, hears everything and keeps it at home, as Shepit keeps everything on the Mac. | Free in both App Stores. Domowik, a Polish-spelled offline home organizer for Android, is the nearest. |
+| Sheptun, sheptukha (шептун, шептуха) | The village healer who heals by whispering charms. | Keeps the whisper of "Shepit". | Free, but close enough to "Shepit" to be confused with shepit.app. |
+| Oberih (оберіг) | A charm that guards against harm. | Privacy. | Free. |
+| Chuhaister (чугайстер) | A kind Hutsul forest spirit. | Easy to remember, but nothing to do with speech. | Free. |
+| Znakhar (знахар) | "The one who knows", a healer. | | Free. |
+| Stryboh (Стрибог) | The god of the winds, which carry words. | | Free. |
+| Boyan (Боян) | The bard of The Tale of Igor's Campaign. | | Free in the App Store, but a busy name on GitHub, and "баян" is Russian slang for a stale joke. |
+| Mavka (мавка) | The forest nymph of "The Forest Song". | | Taken: two iOS apps, and the 2023 cartoon. |
+| Berehynia (берегиня) | The guardian of the home. | | Taken: an iOS app has the name. |
+| Veles (Велес) | The god of cattle and wealth, the patron of bards. | | Taken: an iOS game. |
+| **Amergin** (Amairgen) | The Irish druid-poet. His song is told as the first poem spoken in Ireland. | Spoken words that are kept. | Free. |
+| Ogmios | The Gaulish god of eloquence. Lucian describes his listeners chained by their ears to his tongue. | Speech to ears, as in a meeting. | Taken: a well-known developer tool for the Cardano blockchain. |
+| Ogma | The Irish god credited with the Ogham script. | Speech to writing, as in dictation. | Taken: "Ogma AI: Offline AI Chat", an iOS app. |
+| Fintan (mac Bóchra) | The Irish sage who lived for ages and remembered all of Ireland's history. | Meetings remembered. | An everyday Irish first name, not distinctive. |
+| Taliesin, Awen | The Welsh legendary bard, and the bards' inspiration. | | Taken by several apps. |
 
 ## 4. What a new name touches (state today)
 
