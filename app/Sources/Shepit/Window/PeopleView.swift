@@ -22,7 +22,6 @@ struct PeopleView: View {
             }
         }
         .onAppear { model.reload() }
-        .task { await model.fillWords() }
         .alert(model.question.map { text($0).title } ?? "",
                isPresented: Binding(get: { model.question != nil }, set: { if !$0 { model.question = nil } }),
                presenting: model.question) { question in

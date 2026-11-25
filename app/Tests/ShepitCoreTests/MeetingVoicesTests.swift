@@ -165,7 +165,7 @@ struct MeetingVoicesTests {
 
     /// Biometric data: every way out overwrites the sample, not only unlinks it (macOS's default `secure_delete = FAST`
     /// leaves freed pages as they were).
-    @Test func deletedVoicesLeaveNoTraceInTheFile() throws {
+    @Test func deletedVoicesLeaveNoTraceInTheFile() async throws {
         let (store, dir) = setUp()
         defer { try? FileManager.default.removeItem(at: dir) }
         let named = try meeting(store, dir, "a", start: start, labels: ["Person 1"], voices: ["Person 1": 1])
@@ -177,7 +177,9 @@ struct MeetingVoicesTests {
         func inFile(_ axis: Int) throws -> Bool { try Data(contentsOf: dir.appending(path: "meetings.sqlite")).range(of: voice(axis, 100).blob) != nil }
         #expect(try inFile(1) && inFile(2) && inFile(3) && inFile(4))
         try store.deleteVoice(try #require(try store.people(named.id)[0].person))
-        try store.forgetUnnamedVoices(before: start + 30 * 86_400)
+        // As the app forgets them: on a connection of its own (query plans design §7.5).
+        try await MeetingStore.forgetUnnamedVoices(in: dir.appending(path: "meetings.sqlite"), before: start + 30 * 86_400)
+        #expect(try !inFile(2) && !inFile(3)) // overwritten by that connection, before anything else runs on this one
         try store.remove(removed.id)
         #expect(try !inFile(1) && !inFile(2) && !inFile(3))
         #expect(try inFile(4))
@@ -320,9 +322,28 @@ struct MeetingVoicesTests {
         #expect(try counts(marko).isEmpty)
     }
 
+    /// Query plans design §7.5: the unnamed voices and, only when they are needed, the prints, in one read.
+    @Test func suggestionsInOneStepReadThePrintsOnlyWhenNeeded() async throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appending(path: "meetings.sqlite"), three = ["Person 1", "Person 1", "Person 1"]
+        let a = try meeting(store, dir, "a", start: start, labels: three, voices: ["Person 1": 1])
+        try name(store, a, "Person 1", "Olena")
+        let olena = try #require(try store.people(a.id)[0].person)
+        let alone = try await MeetingStore.suggestions(in: file, for: olena, prints: nil)
+        #expect(alone.found.isEmpty && alone.prints == nil) // no unnamed voice to compare: the prints aren't read
+
+        let b = try meeting(store, dir, "b", start: start + 86_400, labels: three, voices: ["Person 1": 1])
+        let read = try await MeetingStore.suggestions(in: file, for: olena, prints: nil)
+        #expect(read.found == [b.id: "Person 1"])
+        #expect(read.prints.map { Set($0.keys) } == [olena])
+        let given = try await MeetingStore.suggestions(in: file, for: olena, prints: [:])
+        #expect(given.found.isEmpty && given.prints?.isEmpty == true) // the given prints, not read again
+    }
+
     // MARK: Who talked how much (voices design §6)
 
-    @Test func presencesCountWordsAndTalkTimeAndOlderMeetingsGetTheirWords() throws {
+    @Test func presencesCountWordsAndTalkTime() throws {
         let (store, dir) = setUp()
         defer { try? FileManager.default.removeItem(at: dir) }
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -338,19 +359,5 @@ struct MeetingVoicesTests {
         #expect(try presences().map(\.words) == [3, 2]) // a line not recognised has no words
         #expect(try presences().map(\.seconds) == [2.5, 1.5])
         #expect(try presences().map(\.meetingWords) == [6, 6])
-
-        // A meeting listed before words were kept gets them from its note.
-        #expect(try store.meetingsWithoutWords().isEmpty)
-        try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
-        #expect(try presences().map(\.words) == [nil, nil])
-        #expect(try store.meetingsWithoutWords().map(\.id) == [id])
-        let entries = MeetingNote.parse(try String(contentsOf: file, encoding: .utf8)).entries
-        try store.fillWords(id, entries: entries)
-        #expect(try presences().map(\.words) == [3, 2])
-        #expect(try presences().map(\.meetingWords) == [6, 6])
-        #expect(try store.meetingsWithoutWords().isEmpty)
-        // Only where there are none: a note edited later doesn't change them.
-        try store.fillWords(id, entries: entries.map { var entry = $0; entry.text += " more"; return entry })
-        #expect(try presences().map(\.words) == [3, 2])
     }
 }

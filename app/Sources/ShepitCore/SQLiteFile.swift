@@ -80,14 +80,21 @@ final class SQLiteFile {
 
     /// Runs `body` as one change: all of it is kept, or none when it throws. Nests.
     func transaction<T>(_ body: () throws -> T) throws -> T {
-        try run("SAVEPOINT change")
+        // The outermost takes the write lock first: one that has only read so far gets SQLITE_BUSY at once, with no wait,
+        // while another connection writes (query plans design §7.5).
+        let outermost = db.map { sqlite3_get_autocommit($0) != 0 } ?? true
+        try run(outermost ? "BEGIN IMMEDIATE" : "SAVEPOINT change")
         do {
             let result = try body()
-            try run("RELEASE change")
+            try run(outermost ? "COMMIT" : "RELEASE change")
             return result
         } catch {
-            try? run("ROLLBACK TO change")
-            try? run("RELEASE change")
+            if outermost {
+                try? run("ROLLBACK")
+            } else {
+                try? run("ROLLBACK TO change")
+                try? run("RELEASE change")
+            }
             throw error
         }
     }

@@ -422,5 +422,8 @@ public final class MeetingStore {
             SELECT persons.id FROM persons WHERE persons.you = 0 AND name_key(persons.name) = name_key(COALESCE(people.name, people.key)))
           WHERE person IS NULL;
         UPDATE people SET name = NULL WHERE person IN (SELECT id FROM persons WHERE you = 0)
-        """]
+        """,
+        // Version 3 (query plans design §7.1): the list and Home read meetings by start; a person's reads find their rows.
+        "CREATE INDEX IF NOT EXISTS meetings_start ON meetings (start); CREATE INDEX IF NOT EXISTS people_person ON people (person)",
+    ]
 }

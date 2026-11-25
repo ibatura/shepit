@@ -78,6 +78,20 @@ extension MeetingStore {
         return Dictionary(grouping: rows, by: \.meeting).mapValues { Dictionary(grouping: $0, by: \.key).mapValues { $0.map(\.sample) } }
     }
 
+    /// May also be in for `person` in one step, on a connection of its own, off the main thread (query plans design §7.5):
+    /// it reads every unnamed voice kept. `found` is `Voices.suggestions`; `prints` are the ones it compared with: the
+    /// given ones, else everyone's, read here only when there is an unnamed voice to compare (still nil when there isn't).
+    public static func suggestions(in file: URL, for person: Int, prints: [Int: Voices.Print]?) async throws
+        -> (found: [Int: String], prints: [Int: Voices.Print]?) {
+        try await Task.detached {
+            let store = MeetingStore(file: file)
+            let unnamed = try store.suggestedVoices(for: person)
+            guard !unnamed.isEmpty else { return ([:], prints) }
+            let prints = try prints ?? store.prints()
+            return (Voices.suggestions(person, unnamed: unnamed, prints: prints), prints)
+        }.value
+    }
+
     /// Name them (voices design §6): the suggested people (key by meeting) become `person`, in the notes too, unless they
     /// were named meanwhile; the `declined` ones aren't suggested for `person` again.
     public func nameSuggested(_ person: Int, named: [Int: String], declined: [Int: String]) throws {
@@ -99,6 +113,12 @@ extension MeetingStore {
               SELECT 1 FROM line_voices AS named WHERE named.meeting = samples.meeting AND named.timestamp = samples.timestamp
                 AND named.ord = samples.ord AND named.person IS NOT NULL)
             """, [date.timeIntervalSince1970])
+    }
+
+    /// `forgetUnnamedVoices(before:)` on a connection of its own, off the main thread: it checks every old sample (query
+    /// plans design §7.5). Only samples of nobody named go, so prints and People's counts don't change.
+    public static func forgetUnnamedVoices(in file: URL, before date: Date) async throws {
+        try await Task.detached { try MeetingStore(file: file).forgetUnnamedVoices(before: date) }.value
     }
 
     /// Delete voice…: the samples of the lines that are `person`'s now. The person and their names stay.

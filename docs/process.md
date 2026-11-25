@@ -96,7 +96,7 @@ On a branch of its own (never on `main`), one task at a time:
 
 ### The task reviewer
 
-> Load the `ponytail` skill and review the task's diff by its rules: the smallest complete change, nothing nobody asked for, existing helpers used, nothing left half done (callers, tests, fixtures). Then check that the diff does what the task and the spec's sections say, find bugs (edge cases, wrong state, what breaks for a caller), check that new branches have tests, and go through the plan's review focus where it touches this task. On a task the plan marks risky, read every caller of what changed.
+> Load the `ponytail` skill and review the task's diff by its rules: the smallest complete change, nothing nobody asked for, existing helpers used, nothing left half done (callers, tests, fixtures). Then check that the diff does what the task and the spec's sections say, find bugs (edge cases, wrong state, what breaks for a caller), check that new branches have tests, and go through the plan's review focus where it touches this task. On a task the plan marks risky, read every caller of what changed. Run `EXPLAIN QUERY PLAN` on every SQL statement the task adds or changes, against a file made from the store's schema and upgrades, and report a scan of a whole table or a temporary B-tree that the code doesn't call a read by design.
 
 ### The code reviewer (end of branch)
 

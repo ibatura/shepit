@@ -22,6 +22,7 @@ final class PeopleModel {
         didSet {
             defaults.set(selection ?? 0, forKey: "peopleSelection")
             tally()
+            suggestions = [] // another person's
             suggest()
         }
     }
@@ -36,7 +37,8 @@ final class PeopleModel {
     private(set) var talk: [StatisticsPage.Tile] = []
     /// The chosen person's meetings in `period`, newest first.
     private(set) var meetingRows: [PeoplePage.MeetingRow] = []
-    /// May also be in, for the chosen person (voices design §6): read with the list and when the choice changes.
+    /// May also be in, for the chosen person (voices design §6): read off the main thread with the list and when the
+    /// choice changes; a reload keeps them until the new read.
     private(set) var suggestions: [PeoplePage.Suggestion] = []
     var question: Question?
     /// A change that could not be made, for an alert.
@@ -59,12 +61,11 @@ final class PeopleModel {
     @ObservationIgnored private let defaults: UserDefaults
     /// Every listed meeting, for the titles of the chosen person's meetings and suggestions.
     @ObservationIgnored private var meetings: [MeetingStore.Meeting] = []
-    /// Everyone's voice prints and the store's version they were read at; read off the main thread when a suggestion
-    /// needs them, since they need every sample kept, and again only once the store has changed.
+    /// Everyone's voice prints and the store's version they were read at; read with a suggestion that needs them, since
+    /// they need every sample kept, and again only once the store has changed.
     @ObservationIgnored private var prints: (version: Int, prints: [Int: Voices.Print])?
-    /// The read of `prints` under way.
-    @ObservationIgnored private(set) var reading: Task<Void, Never>?
-    @ObservationIgnored private var wordsFilled = false
+    /// The read of `suggestions` under way.
+    @ObservationIgnored private(set) var suggesting: Task<Void, Never>?
 
     /// `settings`: your name, as it is now.
     init(store: MeetingStore, settings: @escaping () -> ShepitCore.Settings, defaults: UserDefaults = .standard) {
@@ -87,25 +88,6 @@ final class PeopleModel {
         suggest()
     }
 
-    /// The words of meetings listed before they were kept (voices design §7), once per run when the section first
-    /// appears: each note is read off the main thread (a note in iCloud Drive may be downloaded), then the list again.
-    func fillWords() async {
-        guard !wordsFilled else { return }
-        wordsFilled = true
-        let older = (try? store.meetingsWithoutWords()) ?? []
-        guard !older.isEmpty else { return }
-        for meeting in older {
-            let note = URL(fileURLWithPath: meeting.path)
-            guard let text = await Task.detached(operation: { try? String(contentsOf: note, encoding: .utf8) }).value else { continue }
-            do {
-                try store.fillWords(meeting.id, entries: MeetingNote.parse(text).entries)
-            } catch {
-                NSLog("Shepit meeting words: %@", String(describing: error))
-            }
-        }
-        reload()
-    }
-
     /// The chosen person's lines are read for `period` only: You is in every meeting.
     private func tally() {
         var presences: [MeetingStore.Presence]?
@@ -120,40 +102,29 @@ final class PeopleModel {
         meetingRows = presences.map { PeoplePage.meetings($0, meetings: meetings) } ?? []
     }
 
-    /// None for You, or while Remember voices is off: no voice is recognised then. The prints are needed only when there
-    /// is an unnamed voice to compare; until they are read, none are suggested.
+    /// None for You, or while Remember voices is off: no voice is recognised then. Read off the main thread in one step,
+    /// the prints with them when ours are older than the store (query plans design §7.5), one read at a time: a read that
+    /// ends after the choice, the store or Remember voices changed is not shown, and reads again.
     private func suggest() {
         guard let person = chosen, !person.isYou, settings().rememberVoices else {
             suggestions = []
             return
         }
-        do {
-            let unnamed = try store.suggestedVoices(for: person.id)
-            guard !unnamed.isEmpty, let prints, prints.version == store.version else {
-                suggestions = []
-                if !unnamed.isEmpty { readPrints() }
-                return
-            }
-            suggestions = PeoplePage.suggestions(Voices.suggestions(person.id, unnamed: unnamed, prints: prints.prints), meetings: meetings)
-        } catch {
-            NSLog("Shepit suggestions: %@", String(describing: error))
-            suggestions = []
-        }
-    }
-
-    /// Everyone's prints, off the main thread, then the suggestions again. A failed read leaves none at this version.
-    private func readPrints() {
-        guard reading == nil else { return }
+        guard suggesting == nil else { return } // it checks the choice when it ends
         let version = store.version, file = store.file
-        reading = Task {
+        let known = prints.flatMap { $0.version == version ? $0.prints : nil }
+        suggesting = Task {
+            var found: [Int: String] = [:]
             do {
-                prints = (version, try await MeetingStore.prints(in: file))
+                let read = try await MeetingStore.suggestions(in: file, for: person.id, prints: known)
+                found = read.found
+                if let read = read.prints { prints = (version, read) }
             } catch {
-                NSLog("Shepit prints: %@", String(describing: error))
-                prints = (version, [:])
+                NSLog("Shepit suggestions: %@", String(describing: error))
             }
-            reading = nil
-            suggest()
+            suggesting = nil
+            guard chosen?.id == person.id, store.version == version, settings().rememberVoices else { return suggest() }
+            suggestions = PeoplePage.suggestions(found, meetings: meetings)
         }
     }
 
@@ -218,7 +189,10 @@ final class PeopleModel {
     @discardableResult private func apply(_ failed: String, notes: [MeetingStore.Meeting] = [], _ change: () throws -> Void) async -> Bool {
         let urls = notes.map { URL(fileURLWithPath: $0.path) }
         await Task.detached { for url in urls { _ = try? Data(contentsOf: url) } }.value
-        defer { reload() }
+        defer {
+            suggestions = [] // the change may have named or deleted them; read again
+            reload()
+        }
         do {
             try change()
             return true

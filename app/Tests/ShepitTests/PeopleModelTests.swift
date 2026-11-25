@@ -129,10 +129,10 @@ struct PeopleModelTests {
         #expect(model.notice == nil)
     }
 
-    @Test func suggestionsForTheChosenPersonWhileRememberVoicesIsOn() async throws {
+    /// Two meetings with Person 1's voice; Person 1 of the first is named Olena, so she may also be in the second.
+    private func olenaRig() throws -> (store: MeetingStore, ids: [Int], dir: URL) {
         let dir = FileManager.default.temporaryDirectory.appending(path: "people-model-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
         let store = MeetingStore(file: dir.appending(path: "meetings.sqlite"))
         let times = ["2026-07-31 10:00:01", "2026-07-31 10:00:02", "2026-07-31 10:00:03"]
         var ids: [Int] = []
@@ -143,24 +143,58 @@ struct PeopleModelTests {
             ids.append(try #require(try store.add(note: file, you: "Ivan", samples: samples)))
         }
         try store.setName(ids[0], person: "Person 1", to: "Olena")
+        return (store, ids, dir)
+    }
+
+    @Test func suggestionsForTheChosenPersonWhileRememberVoicesIsOn() async throws {
+        let (store, ids, dir) = try olenaRig()
+        defer { try? FileManager.default.removeItem(at: dir) }
         var settings = Settings.defaults
         let model = PeopleModel(store: store, settings: { settings }, defaults: try defaults())
         model.reload()
-        model.selection = try #require(model.people.first { $0.name == "Olena" }).id
+        let olenaID = try #require(model.people.first { $0.name == "Olena" }).id
+        model.selection = olenaID
         #expect(model.suggestions.isEmpty) // Remember voices is off
         settings.rememberVoices = true
         model.reload()
-        #expect(model.suggestions.isEmpty) // until the prints are read, off the main thread
-        await model.reading?.value
+        #expect(model.suggestions.isEmpty) // until they are read, off the main thread
+        await model.suggesting?.value
         #expect(model.suggestions.map(\.key) == ["Person 1"])
+        model.reload()
+        #expect(model.suggestions.map(\.key) == ["Person 1"]) // a plain reload keeps them until the new read
+        await model.suggesting?.value
         model.selection = nil
         #expect(model.suggestions.isEmpty)
-        model.selection = model.people.first { $0.name == "Olena" }?.id
-        #expect(model.reading == nil && model.suggestions.map(\.key) == ["Person 1"]) // the store didn't change: read once
+        model.selection = olenaID
+        #expect(model.suggestions.isEmpty) // a new choice starts empty
+        await model.suggesting?.value
+        #expect(model.suggestions.map(\.key) == ["Person 1"])
         let olena = try #require(model.chosen)
         await model.name(olena, suggestions: model.suggestions, checked: [ids[1]])
         #expect(try store.people(ids[1])[0].person == olena.id)
+        #expect(model.suggestions.isEmpty) // at once, not after the next read
+        await model.suggesting?.value
         #expect(model.suggestions.isEmpty)
+    }
+
+    @Test func aReadThatEndsAfterTheChoiceOrRememberVoicesChangedShowsNothing() async throws {
+        let (store, _, dir) = try olenaRig()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var settings = Settings.defaults
+        settings.rememberVoices = true
+        let model = PeopleModel(store: store, settings: { settings }, defaults: try defaults())
+        model.reload()
+        let olenaID = try #require(model.people.first { $0.name == "Olena" }).id
+        model.selection = olenaID
+        let read = model.suggesting
+        model.selection = nil
+        await read?.value
+        #expect(model.suggestions.isEmpty && model.suggesting == nil)
+        model.selection = olenaID
+        let unwanted = model.suggesting
+        settings.rememberVoices = false
+        await unwanted?.value
+        #expect(model.suggestions.isEmpty && model.suggesting == nil)
     }
 
     @Test func talkAndMeetingsFollowThePeriodWhichIsRemembered() throws {
@@ -176,20 +210,5 @@ struct PeopleModelTests {
         #expect(model.talk.map(\.value) == ["0", "–", "–", "–"])
         #expect(model.meetingRows.isEmpty)
         #expect(PeopleModel(store: store, settings: { .defaults }, defaults: defaults).period == .preset(.today))
-    }
-
-    @Test func wordsOfOlderMeetingsAreFilledOnce() async throws {
-        let (model, store, dir) = try rig(try defaults())
-        defer { try? FileManager.default.removeItem(at: dir) }
-        try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
-        model.reload()
-        model.selection = model.people[1].id
-        model.period = .preset(.all)
-        #expect(model.talk.map(\.value) == ["1", "–", "–", "–"])
-        await model.fillWords()
-        #expect(model.talk.map(\.value) == ["1", "–", "1", "33%"])
-        try SQLiteFile(file: dir.appending(path: "meetings.sqlite"), schema: []).run("UPDATE lines SET words = NULL")
-        await model.fillWords() // once per run
-        #expect(try store.meetingsWithoutWords().count == 1)
     }
 }
