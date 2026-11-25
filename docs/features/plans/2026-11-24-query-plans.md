@@ -254,3 +254,9 @@ docs/process.md               the task reviewer's line (Task 1)
   - the write lock taken on every open, and a failed `COMMIT` after notes were rewritten, are noted under "Query plans: left open".
 
   The rest were left with reasons: harmless, older than the branch, or accepted in the spec. One proposed fix, `journal_mode = TRUNCATE` or `PERSIST`, was wrong, since neither overwrites the journal's pages.
+- 2026-11-25, **Task 7**, the author's thermo-nuclear review. The author took all three points:
+  - **May also be in in one step**, as spec §7.5 and §8 had it. The plan review had kept the prints as a read of their own, so after every change of the store the unnamed voices were read, then the prints, then the unnamed voices again. Now `MeetingStore.suggestions(in:for:prints:)` reads the unnamed voices and, only when there is one to compare and `PeopleModel`'s prints are older than the store, the prints, then runs `Voices.suggestions`, all off the main thread. `readPrints()` and `reading` go. A failed read no longer keeps empty prints for that version, so the next reload tries again.
+  - **The suggestions test split in two**, as Task 3 had planned: `aReadThatEndsAfterTheChoiceOrRememberVoicesChangedShowsNothing` is its own test. That the given prints are used as they are is checked in the store's test (`suggestionsInOneStepReadThePrintsOnlyWhenNeeded`).
+  - **No flag for the forget.** `AppHost.forgettingVoices` goes: a second run waits for the first on SQLite's lock and finds nothing. The only overlap is a launch that lists an interrupted transcript.
+
+  Looked at and left: one helper for `BEGIN IMMEDIATE` in `transaction` and `upgrade` (it would hold the connection across the body, which `transaction` takes again for each statement), one generic helper for the static reads, and the SQL copied in the plan test (spec §7.4).

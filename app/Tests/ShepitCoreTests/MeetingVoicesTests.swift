@@ -322,6 +322,25 @@ struct MeetingVoicesTests {
         #expect(try counts(marko).isEmpty)
     }
 
+    /// Query plans design §7.5: the unnamed voices and, only when they are needed, the prints, in one read.
+    @Test func suggestionsInOneStepReadThePrintsOnlyWhenNeeded() async throws {
+        let (store, dir) = setUp()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appending(path: "meetings.sqlite"), three = ["Person 1", "Person 1", "Person 1"]
+        let a = try meeting(store, dir, "a", start: start, labels: three, voices: ["Person 1": 1])
+        try name(store, a, "Person 1", "Olena")
+        let olena = try #require(try store.people(a.id)[0].person)
+        let alone = try await MeetingStore.suggestions(in: file, for: olena, prints: nil)
+        #expect(alone.found.isEmpty && alone.prints == nil) // no unnamed voice to compare: the prints aren't read
+
+        let b = try meeting(store, dir, "b", start: start + 86_400, labels: three, voices: ["Person 1": 1])
+        let read = try await MeetingStore.suggestions(in: file, for: olena, prints: nil)
+        #expect(read.found == [b.id: "Person 1"])
+        #expect(read.prints.map { Set($0.keys) } == [olena])
+        let given = try await MeetingStore.suggestions(in: file, for: olena, prints: [:])
+        #expect(given.found.isEmpty && given.prints?.isEmpty == true) // the given prints, not read again
+    }
+
     // MARK: Who talked how much (voices design §6)
 
     @Test func presencesCountWordsAndTalkTime() throws {

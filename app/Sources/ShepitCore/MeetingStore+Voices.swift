@@ -78,10 +78,18 @@ extension MeetingStore {
         return Dictionary(grouping: rows, by: \.meeting).mapValues { Dictionary(grouping: $0, by: \.key).mapValues { $0.map(\.sample) } }
     }
 
-    /// `suggestedVoices(for:)` read on a connection of its own, off the main thread: it reads every unnamed voice kept
-    /// (query plans design §7.5).
-    public static func suggestedVoices(in file: URL, for person: Int) async throws -> [Int: [String: [VoiceSample]]] {
-        try await Task.detached { try MeetingStore(file: file).suggestedVoices(for: person) }.value
+    /// May also be in for `person` in one step, on a connection of its own, off the main thread (query plans design §7.5):
+    /// it reads every unnamed voice kept. `found` is `Voices.suggestions`; `prints` are the ones it compared with: the
+    /// given ones, else everyone's, read here only when there is an unnamed voice to compare (still nil when there isn't).
+    public static func suggestions(in file: URL, for person: Int, prints: [Int: Voices.Print]?) async throws
+        -> (found: [Int: String], prints: [Int: Voices.Print]?) {
+        try await Task.detached {
+            let store = MeetingStore(file: file)
+            let unnamed = try store.suggestedVoices(for: person)
+            guard !unnamed.isEmpty else { return ([:], prints) }
+            let prints = try prints ?? store.prints()
+            return (Voices.suggestions(person, unnamed: unnamed, prints: prints), prints)
+        }.value
     }
 
     /// Name them (voices design §6): the suggested people (key by meeting) become `person`, in the notes too, unless they

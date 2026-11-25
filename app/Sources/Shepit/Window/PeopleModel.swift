@@ -61,12 +61,10 @@ final class PeopleModel {
     @ObservationIgnored private let defaults: UserDefaults
     /// Every listed meeting, for the titles of the chosen person's meetings and suggestions.
     @ObservationIgnored private var meetings: [MeetingStore.Meeting] = []
-    /// Everyone's voice prints and the store's version they were read at; read off the main thread when a suggestion
-    /// needs them, since they need every sample kept, and again only once the store has changed.
+    /// Everyone's voice prints and the store's version they were read at; read with a suggestion that needs them, since
+    /// they need every sample kept, and again only once the store has changed.
     @ObservationIgnored private var prints: (version: Int, prints: [Int: Voices.Print])?
-    /// The read of `prints` under way.
-    @ObservationIgnored private(set) var reading: Task<Void, Never>?
-    /// The read of the unnamed voices for `suggestions` under way.
+    /// The read of `suggestions` under way.
     @ObservationIgnored private(set) var suggesting: Task<Void, Never>?
 
     /// `settings`: your name, as it is now.
@@ -104,10 +102,9 @@ final class PeopleModel {
         meetingRows = presences.map { PeoplePage.meetings($0, meetings: meetings) } ?? []
     }
 
-    /// None for You, or while Remember voices is off: no voice is recognised then. The unnamed voices are read off the main
-    /// thread (query plans design §7.5), one read at a time: a read that ends after the choice, the store or Remember
-    /// voices changed is not shown, and reads again. The prints are needed only when there is an unnamed voice to compare;
-    /// until they are read, none are suggested.
+    /// None for You, or while Remember voices is off: no voice is recognised then. Read off the main thread in one step,
+    /// the prints with them when ours are older than the store (query plans design §7.5), one read at a time: a read that
+    /// ends after the choice, the store or Remember voices changed is not shown, and reads again.
     private func suggest() {
         guard let person = chosen, !person.isYou, settings().rememberVoices else {
             suggestions = []
@@ -115,38 +112,19 @@ final class PeopleModel {
         }
         guard suggesting == nil else { return } // it checks the choice when it ends
         let version = store.version, file = store.file
+        let known = prints.flatMap { $0.version == version ? $0.prints : nil }
         suggesting = Task {
-            let unnamed: [Int: [String: [VoiceSample]]]
+            var found: [Int: String] = [:]
             do {
-                unnamed = try await MeetingStore.suggestedVoices(in: file, for: person.id)
+                let read = try await MeetingStore.suggestions(in: file, for: person.id, prints: known)
+                found = read.found
+                if let read = read.prints { prints = (version, read) }
             } catch {
                 NSLog("Shepit suggestions: %@", String(describing: error))
-                unnamed = [:]
             }
             suggesting = nil
             guard chosen?.id == person.id, store.version == version, settings().rememberVoices else { return suggest() }
-            guard !unnamed.isEmpty, let prints, prints.version == version else {
-                suggestions = []
-                if !unnamed.isEmpty { readPrints() }
-                return
-            }
-            suggestions = PeoplePage.suggestions(Voices.suggestions(person.id, unnamed: unnamed, prints: prints.prints), meetings: meetings)
-        }
-    }
-
-    /// Everyone's prints, off the main thread, then the suggestions again. A failed read leaves none at this version.
-    private func readPrints() {
-        guard reading == nil else { return }
-        let version = store.version, file = store.file
-        reading = Task {
-            do {
-                prints = (version, try await MeetingStore.prints(in: file))
-            } catch {
-                NSLog("Shepit prints: %@", String(describing: error))
-                prints = (version, [:])
-            }
-            reading = nil
-            suggest()
+            suggestions = PeoplePage.suggestions(found, meetings: meetings)
         }
     }
 

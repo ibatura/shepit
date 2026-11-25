@@ -90,7 +90,7 @@ A SwiftPM package in `app/`:
 - `Voices` (ShepitCore) makes prints, recognises and suggests; `PeoplePage` builds the section's list, a person, their talk and meetings.
 - Prints are read off the main thread with a connection of their own (`MeetingStore.prints(in:)`): at Stop, and by `PeopleModel`, which keeps them until the store's `version` changes.
 - So are the two other reads of every sample:
-  - May also be in (`suggestedVoices(in:for:)`), one read at a time. A read that ends after the choice, the store or Remember voices changed reads again.
+  - May also be in (`suggestions(in:for:prints:)`), one read at a time, with the prints in the same step when `PeopleModel`'s are older than the store. A read that ends after the choice, the store or Remember voices changed reads again.
   - Forgetting old unnamed voices (`forgetUnnamedVoices(in:before:)`), at launch and after each meeting is listed. It deletes only samples that belong to nobody named, so the prints don't change.
 - In the app, `PeopleModel` / `PeopleView`; `EditableTitle` (Controls) is a person's and a meeting's name, saved with Save or Enter.
 - **Settled:** the microphone's 10 minutes and recognition (mean, 0.7, margin 0.1; your voice only from the microphone) with `Shepit voices-check`. On 2026-11-20 it gave 11 recognised, 0 wrong, 2 missed at 0.7, so 0.7 stays until more people are in several meetings. A Teams `.vtt` of one call agreed with Shepit's speakers on 79–98% of each one's time. These numbers stay fixed, not settings (settings review, 2026-11-23).

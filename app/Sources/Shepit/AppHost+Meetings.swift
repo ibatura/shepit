@@ -70,11 +70,8 @@ extension AppHost {
     }
 
     /// The voices of people nobody named go 30 days after their meeting (voices design §4), on a connection of their own
-    /// off the main thread (query plans design §7.5). One run at a time: a request meanwhile is skipped, and the next
-    /// meeting or launch runs it again.
+    /// off the main thread (query plans design §7.5). A second run meanwhile waits for the first and finds nothing.
     private func forgetOldVoices() {
-        guard !forgettingVoices else { return }
-        forgettingVoices = true
         let file = meetingStore.file, before = Date().addingTimeInterval(-30 * 86_400)
         Task {
             do {
@@ -82,7 +79,6 @@ extension AppHost {
             } catch {
                 NSLog("Shepit voices: %@", String(describing: error))
             }
-            forgettingVoices = false
         }
     }
 

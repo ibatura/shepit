@@ -39,8 +39,6 @@ final class AppHost: ControllerHost {
     let callPanel = CallPanel()
     var callTicker: TimerBox?
     var callNameLookup: Task<Void, Never>?
-    /// Old unnamed voices are being forgotten, off the main thread (AppHost+Meetings.swift).
-    var forgettingVoices = false
     /// Start from the menu is under way (its scan, its name dialog): an automatic start stays out.
     var startingByHand = false
     private lazy var settingsModel = SettingsModel(store: settingsStore, dictionaryStore: dictionaryStore)

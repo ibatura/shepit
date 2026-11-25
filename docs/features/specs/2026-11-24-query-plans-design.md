@@ -226,7 +226,7 @@ Added after the plan review (2026-11-24): a transaction takes the write lock fir
 
 **Forgetting old unnamed voices (`forgetUnnamedVoices`).**
 - `AppHost` runs it off the main thread, at launch and after each meeting is listed, as it does now on the main thread.
-- One run at a time: a second request while one runs is skipped. The next meeting runs it again.
+- A second run while one runs waits for it on SQLite's lock, then finds nothing to delete. (Changed after the thermo-nuclear review, 2026-11-25: it was skipped with a flag.)
 - It deletes only samples that belong to nobody named. That means the prints, and People's counts of voices, don't change, so the main connection's `version` needs no bump.
 - A main-thread write that comes while it runs waits for it, up to the delete's own time (60 ms a year). Today that time blocks the main thread on every run.
 
@@ -235,7 +235,7 @@ Added after the plan review (2026-11-24): a transaction takes the write lock fir
 **In `ShepitCore`:**
 - `MeetingStore.upgrades` gets its second entry, which is upgrade 3 (§7.1).
 - `MeetingStore+People.swift` loses `meetingsWithoutWords` and `fillWords` (§7.2).
-- `MeetingStore+Voices.swift` gets `suggestedVoices(in:for:)` and `forgetUnnamedVoices(in:before:)`. These are static and async, beside `prints(in:except:)`, each on a `MeetingStore` of its own.
+- `MeetingStore+Voices.swift` gets `suggestions(in:for:prints:)` (the unnamed voices, the prints when the given ones are nil, and `Voices.suggestions`, in one step) and `forgetUnnamedVoices(in:before:)`. These are static and async, beside `prints(in:except:)`, each on a `MeetingStore` of its own.
 
 **In the app:**
 - `PeopleModel.suggest()` reads off the main thread and replaces `readPrints()`; `PeopleModel.fillWords` goes.
@@ -257,7 +257,7 @@ Nothing changes in settings, in the window's texts or in the README beyond the d
   - `meetings(limit:)` uses `meetings_start` with no temporary sort;
   - `meetings(of:)` searches `people_person`.
 - **The reads of their own.**
-  - `suggestedVoices(in:for:)` gives what `suggestedVoices(for:)` gives.
+  - `suggestions(in:for:prints:)` reads the prints only when there is an unnamed voice to compare, and uses the given ones as they are.
   - `forgetUnnamedVoices(in:before:)` deletes what the method on the store deletes. It also overwrites the deleted samples: `secure_delete` is on for that connection, checked with `PRAGMA secure_delete`.
 - **People.**
   - `PeopleModelTests` shows suggestions once the read is back.
@@ -277,7 +277,7 @@ Nothing changes in settings, in the window's texts or in the README beyond the d
 
 **Database version only.** `meetings.sqlite` goes to version 3. `dictations.sqlite` stays as it is.
 
-**The forget's skip.** A second forget while one runs is skipped, not queued. The next meeting, or the next launch, runs it again, and a sample kept a day longer than 30 days does no harm.
+**A second forget waits.** A second forget while one runs waits for it on SQLite's lock, then finds nothing to delete. It was skipped with a flag on `AppHost` until the thermo-nuclear review (2026-11-25), which found that the flag protected nothing.
 
 **People's suggestions are dropped, not merged.** A read that came back after a change is not shown, even when it would have been right. The read the change started shows a moment later.
 
