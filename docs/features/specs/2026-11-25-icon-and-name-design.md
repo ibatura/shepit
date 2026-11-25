@@ -1,7 +1,7 @@
 # App icon and name: design
 
 - **Date:** 2026-11-25
-- **Status:** first draft. It has the name check; the new name and the icon are still to be decided with the author.
+- **Status:** first draft. It has the name check and Amergin as the interim name (§2); the final name and the icon are still to be decided with the author.
 - **Place in the build order:** "Next" item 3 in `docs/future-ideas.md`. The author chose it on 2026-11-25, after the query plans, from the "New ideas" item "App icon and name".
 - **Builds on:**
   - the window shell spec, which left the icon out ("The Dock shows the generic icon until the author supplies one");
@@ -20,6 +20,7 @@
 - **Keep looking for a name** (2026-11-25). The first four candidates were Hovir, Tykho, Vymova and Slukh. The author took none of them and said: "we need to keep looking for a name". The check had shown Shepit taken (§3), so the app is renamed.
 - **Look in mythology** (2026-11-25): Ukrainian mythology first, then the Celts'.
 - **Amergin is "not bad", but keep looking** (2026-11-25).
+- **Amergin for now, as an interim choice** (2026-11-25, after the second look). The question of the name is set aside for later, to think of other options; there is nothing more to settle about it now. Nothing is renamed until the name is final.
 
 ## 3. The name check (2026-11-25)
 
@@ -144,7 +145,7 @@ The check found no trademark record either way. It is "roughly unique", as the i
 
 ## 6. Questions still open
 
-1. The new name.
+1. The new name: Amergin for now (§2); set aside to think of other options.
 2. What the rename changes: what people see only (recommended), or the bundle id and the repository too.
 3. The icon's look, in drawings, and how it is made (`.icon` or `.icns`).
 4. The menu bar: keep the emoji, or a template image.
