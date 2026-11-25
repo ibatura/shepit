@@ -21,6 +21,8 @@
 - **Look in mythology** (2026-11-25): Ukrainian mythology first, then the Celts'.
 - **Amergin is "not bad", but keep looking** (2026-11-25).
 - **Amergin for now, as an interim choice** (2026-11-25, after the second look). The question of the name is set aside for later, to think of other options; there is nothing more to settle about it now. Nothing is renamed until the name is final.
+- **The icon is drawn now, without waiting for the name** (2026-11-25).
+- **The icon: B, the cross-stitch wave** (2026-11-26, recommended), from the four directions of round 1 (§5).
 
 ## 3. The name check (2026-11-25)
 
@@ -148,6 +150,13 @@ The check found no trademark record either way. It is "roughly unique", as the i
 - **B · Cross-stitch wave** (recommended). A sound wave embroidered in red cross-stitch with black ends, on linen, as on a vyshyvanka. Unlike any app we found, and Ukrainian as the app is. At 16 px it reads as red bars on cream.
 - **C · Scribe's quill.** A quill that writes a sound wave, cream and light blue on ink blue: what is said is written down.
 - **D · Conversation.** Two speech bubbles: one with a wave, the other with lines of text. Speaks of meetings more than dictation.
+
+**Drawings, round 2** (2026-11-26), in the same file: four ways to finish B.
+
+- **B1 · As drawn.** Seven bars of an uneven wave, two stitches wide, red with black ends, on linen.
+- **B2 · Rhombus** (recommended). The wave rises to the middle and falls again, so the black ends draw a rhombus, with a smaller black rhombus at its heart: the oldest motif of Ukrainian embroidery, made of a sound wave. It is still a wave, and at 16 px it reads as a red rhombus.
+- **B3 · Dark linen.** B1 on charcoal linen, with cream ends. It stands out on a light Dock and sinks into a dark one.
+- **B4 · Red only.** B1 without the black, on white linen. The plainest, but the least like a vyshyvanka.
 
 ## 6. Questions still open
 
