@@ -47,10 +47,9 @@ struct MenuModelTests {
     }
 
     @Test func onlyReadyAndTranscribingWithoutAMeetingArePlain() {
-        for mark in MenuIcon.Mark.allCases {
-            for meeting in [false, true] {
-                #expect(MenuIcon(mark: mark, meeting: meeting).isPlain == (!meeting && [.ready, .transcribing].contains(mark)), "\(mark) \(meeting)")
-            }
+        #expect(Set(MenuIcon.allCases).count == 8)
+        for icon in MenuIcon.allCases {
+            #expect(icon.isPlain == (!icon.meeting && [.ready, .transcribing].contains(icon.mark)), "\(icon)")
         }
     }
 

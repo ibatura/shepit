@@ -57,7 +57,7 @@ A SwiftPM package in `app/`:
 ### Window shell
 
 - `AppHost.snapshot()` builds an `AppSnapshot` (ShepitCore) from live state plus cached `Lookups` (devices, downloads, history, permissions; gathered when the menu or window opens and by the 2-s poll).
-- `MenuModel` builds the menu and the menu bar's `MenuIcon`, which `MenuController` draws (a template when plain, so macOS tints it), and `HomeModel` builds Home from it; `MainWindow` pulls Home through a closure. Actions are `AppAction`.
+- `MenuModel` builds the menu and the menu bar's `MenuIcon`, which `MenuIcon.image` draws (`MenuIcon+Image.swift`; a template when plain, so macOS tints it) and `MenuController` shows, and `HomeModel` builds Home from it; `MainWindow` pulls Home through a closure. Actions are `AppAction`.
 - Window code: `app/Sources/Shepit/Window/` and `AppHost+Window.swift`.
 
 ### Meetings
@@ -107,7 +107,7 @@ A SwiftPM package in `app/`:
 ### Version and About
 
 - `app/Resources/Info.plist` holds the version; `scripts/build-app.sh` writes the commit as `CFBundleVersion`; About Shepit is in the menu bar menu and the app menu.
-- The app icon is `app/Resources/AppIcon.icon`, an Icon Composer file kept as text. `scripts/build-icon.sh`, which `build-app.sh` calls, compiles it with `actool` into the bundle's `Assets.car` and `AppIcon.icns`; without Xcode 26's `actool`, or when it fails, the build goes on without the icon and says why.
+- The app icon is `app/Resources/AppIcon.icon`, an Icon Composer file kept as text, which `scripts/make-icon.py` writes. `scripts/build-icon.sh`, which `build-app.sh` calls, compiles it with `actool` into the bundle's `Assets.car` and `AppIcon.icns`; without Xcode 26's `actool`, or when it fails, the build goes on without the icon and says why.
 - `.github/workflows/release.yml` makes the tag and the release when a merge into `main` raises the version.
 
 ### Back and forward

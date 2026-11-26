@@ -13,6 +13,9 @@ fail() { echo "FAIL: $*" >&2; [[ ! -f "$T/out" ]] || cat "$T/out" >&2; exit 1; }
 stale() { mkdir -p "$1"; touch "$1/AppIcon.icns" "$1/Assets.car"; }
 no_icon() { [[ ! -e "$1/AppIcon.icns" && ! -e "$1/Assets.car" ]]; }
 
+python3 -I "$REPO/scripts/make-icon.py" "$T/made.icon"
+diff -r "$T/made.icon" "$icon" >"$T/out" || fail "app/Resources/AppIcon.icon isn't what scripts/make-icon.py writes"
+
 if xcrun --find actool >/dev/null 2>&1; then
     built "$icon" "$T/good" || fail "AppIcon.icon didn't compile"
     [[ -s "$T/good/AppIcon.icns" && -s "$T/good/Assets.car" ]] || fail "no AppIcon.icns or Assets.car"

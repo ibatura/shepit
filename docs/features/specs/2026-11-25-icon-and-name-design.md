@@ -260,7 +260,7 @@ The author liked G1 and asked for a little 3D:
 - **The ground:** B2's linen, the gradient and the weave.
 
 **What is built:**
-- `app/Resources/AppIcon.icon/`: `icon.json` and three SVG layers. `Assets/bars.svg` has the glass and a neutral shadow; `Assets/shadow.svg` and `Assets/weave.svg` have no glass. The SVG is plain text, written by a script from the numbers above; the script isn't kept, as the numbers are here. It opens in Icon Composer too.
+- `app/Resources/AppIcon.icon/`: `icon.json` and three SVG layers. `Assets/bars.svg` has the glass and a neutral shadow; `Assets/shadow.svg` and `Assets/weave.svg` have no glass. `scripts/make-icon.py` writes them from the numbers above, and `tests/icon_test.sh` checks that the committed icon is what it writes. The SVG is plain text and opens in Icon Composer too.
 - `build-app.sh` compiles it with `xcrun actool` into the bundle's `Contents/Resources` (`Assets.car` and `AppIcon.icns`).
 - `Info.plist` gets `CFBundleIconFile` and `CFBundleIconName`, both `AppIcon`.
 - **Without `actool`** (the Command Line Tools only), **or when it fails** (an Xcode older than 26 doesn't know `.icon` files), the build goes on without the icon and says why; the app works as before, with the generic icon. `make test` checks that the repository's icon compiles, so a broken icon is caught there, not at install. (Changed after the end-of-branch review: the build used to fail when `actool` failed, which would stop an install with an older Xcode.)
@@ -307,8 +307,8 @@ The author liked G1 and asked for a little 3D:
 - `MenuIcon` is a value: the dictation's mark (`ready`, `recording`, `transcribing`, `problem`) and whether a meeting transcript runs. The rules that pick it are today's. It also says whether the icon is plain, drawn as a template (§6).
 
 **The app**
-- **`MenuController`** sets the status item's image from `MenuIcon` instead of its title, and draws the rhombus with AppKit (§6). The tooltip and VoiceOver label come from `MenuModel.iconLabel`.
-- **`Shepit menubar-test`**, a debug command beside `panel-test`, shows each icon in the menu bar for a moment, without installing.
+- **`MenuIcon.image`** (`MenuIcon+Image.swift`) draws the rhombus with AppKit (§6), and **`MenuController`** sets it as the status item's image instead of its title. The tooltip and VoiceOver label come from `MenuModel.iconLabel`.
+- **`Shepit menubar-test`**, a debug command beside `panel-test` and beside the drawing, shows each icon in the menu bar for a moment, without installing.
 - **`app/Resources/AppIcon.icon/`**, compiled by `scripts/build-icon.sh`, which `scripts/build-app.sh` calls (§5).
 - **`app/Resources/Info.plist`** gets the two icon keys.
 
@@ -329,7 +329,7 @@ The author liked G1 and asked for a little 3D:
 - only ready and transcribing without a meeting are plain.
 
 **Also tested** (added after the plan review, 2026-11-26):
-- **The drawing** (`MenuControllerTests`): each of the eight images is drawn from a background queue, as AppKit may draw it, and has something in it, at its size.
+- **The drawing** (`MenuIconImageTests`): each of the eight images is drawn from a background queue, as AppKit may draw it, and has something in it, at its size.
 - **The icon's build** (`tests/icon_test.sh`, in `make test`):
   - `build-icon.sh` compiles the icon;
   - on a broken `icon.json`, and when `actool` writes nothing, it says why, goes on, and leaves no icon, also where an older build left one;

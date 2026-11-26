@@ -174,7 +174,6 @@ Found by the reviews of the branch and not changed: the author had all five poin
 - **The rename** (spec §4), set aside with the name. A new name changes `CFBundleName`, the README and the window's texts, and perhaps the bundle id; a new bundle id means granting Accessibility, Microphone and System Audio Recording again.
 - **SPT's letter logo** (spec §7, drawings round 4), set aside with the name.
 - **G6:** the `.icns` on a Mac with macOS 14 or 15 (in "Need to test later" in the checklist).
-- **The icon's SVG layers** were written by a script from the numbers in spec §5, and the script isn't kept. A change to the colours or the shape means writing them again from those numbers.
 
 ### New ideas (the author, 2026-11-15; not ordered yet)
 

@@ -24,7 +24,7 @@ public struct MenuItem: Equatable, Sendable {
 }
 
 /// The menu bar's rhombus (icon and name design §6): the dictation's mark, and a dot while a meeting transcript runs.
-public struct MenuIcon: Hashable, Sendable {
+public struct MenuIcon: Hashable, Sendable, CaseIterable {
     public enum Mark: CaseIterable, Sendable { case ready, recording, transcribing, problem }
     public var mark: Mark
     public var meeting: Bool
@@ -33,6 +33,9 @@ public struct MenuIcon: Hashable, Sendable {
         self.mark = mark
         self.meeting = meeting
     }
+
+    /// Every mark, alone and with the meeting's dot.
+    public static let allCases = Mark.allCases.flatMap { mark in [false, true].map { MenuIcon(mark: mark, meeting: $0) } }
 
     /// No colour: drawn as a template, which macOS tints for any menu bar.
     public var isPlain: Bool { !meeting && (mark == .ready || mark == .transcribing) }
