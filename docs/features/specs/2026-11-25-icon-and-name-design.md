@@ -1,7 +1,7 @@
 # App icon and name: design
 
 - **Date:** 2026-11-25
-- **Status:** first draft. The icon (B2) and the menu bar (the rhombus in every state) are chosen. The name is set aside, with Amergin for now; the author proposed SPT and a letter logo for it, drawn in round 4 (§7). The spec is complete once the letter logo is chosen or set aside with the name.
+- **Status:** complete, for the author's approval. This part builds the icon (B2, §5) and the menu bar (the rhombus in every state, §6). The name is set aside, with Amergin for now, and SPT's letter logo (§7) with it.
 - **Place in the build order:** "Next" item 3 in `docs/future-ideas.md`. The author chose it on 2026-11-25, after the query plans, from the "New ideas" item "App icon and name".
 - **Builds on:**
   - the window shell spec, which left the icon out ("The Dock shows the generic icon until the author supplies one");
@@ -28,6 +28,7 @@
 - **The menu bar: the rhombus in every state** (2026-11-26, recommended), from the three of round 3 (§6).
 - **SPT, proposed by the author** (2026-11-26): "Shepit" without its vowels. With it, a letter logo of SPT made of rhombuses, beside the rhombus icon, which stays. The letter logo is drawn in round 4 (§7); the name is checked in §4.
 - **Look further in Ukrainian folklore and tales, and in Kyivan Rus' before and after its baptism** (2026-11-26): the third look, §4.
+- **None of these; the name is set aside, and the icon is built now** (2026-11-26). The author: "I like none of these. Let's set the name aside for now and make the icons; I'll read what you wrote about the names." The letter logo is set aside with the name.
 
 ## 3. Goals, non-goals, anti-goals
 
@@ -264,7 +265,7 @@ Not checked, as the App Store's search slowed down and they have little to do wi
 - **W3 · Rushnyk band.** W1's letters between two rows of small rhombuses, as on an embroidered towel. The richest, but at 20 px the band turns to dots.
 - **W4 · S ◆ P ◆ T.** W1's letters with a small B2 rhombus between each two. The rhombuses say it is read letter by letter, and tie it to the icon; it is the widest.
 
-**Where it goes:** nowhere yet. It is a logo for the name SPT, so it waits for the name (§2).
+**Where it goes:** nowhere yet. It is a logo for the name SPT, so it is set aside with the name (§2).
 
 ## 8. Structure
 
@@ -321,4 +322,4 @@ The drawing and `actool` have no test. `build-app.sh` fails when `actool` fails 
 
 1. **The name:** Amergin for now (§2); SPT proposed by the author (§4); the third look (§4). Set aside.
 2. **What the rename changes:** what people see only (recommended), or the bundle id and the repository too. Set aside with the name.
-3. **The letter logo:** W1 to W4 (round 4, §7), and where it goes once the name is settled.
+3. **The letter logo:** W1 to W4 (round 4, §7), and where it goes. Set aside with the name.
