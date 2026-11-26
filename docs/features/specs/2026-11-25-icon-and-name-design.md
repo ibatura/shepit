@@ -147,7 +147,33 @@ The author's proposal: "Shepit" without its vowels, which also makes a short let
 
 ### A third look (2026-11-26)
 
-<!-- THIRD LOOK -->
+Ukrainian folklore and tales, and Kyivan Rus' before and after its baptism, as the author asked.
+
+**How it was checked:**
+- Apple's search API: the Mac App Store, and the iOS App Store of the US and of Ukraine;
+- for the first four, a web search and GitHub too.
+
+| Name | Who or what | Fits because | Check |
+|---|---|---|---|
+| **Viche** (віче) | The assembly of a city of Kyivan Rus', where its people decided their matters aloud. | Meetings, said aloud and kept. | Free in the App Stores and the web search. On GitHub, viche.ai, a protocol for AI agents to talk to each other (28 stars). Moara Veche, a Romanian app, is the other spelling. |
+| **Pysalo** (писало) | The bone or metal stylus people of Rus' wrote with on birch bark and wax. | What writes speech down, as dictation does. | Free everywhere. Psallo, a Christian music app, is the nearest. English readers may see "pie-salo". |
+| Tsera (цера) | The wax tablet Rus' wrote on, and wiped to write again. | Writing kept close at hand. | Free in the App Stores and the web search. TSERA on GitHub (3 stars). The "ts" is hard to start an English word with. |
+| Hramota (грамота) | A written letter; the birch-bark letters of Rus' are its everyday notes. | Speech put in writing. | Free. Two GitHub repositories with no stars. |
+| Izbornyk (ізборник) | Sviatoslav's Izbornyk (1073, 1076), a collection of writings copied in Kyiv. | Collected words. | Free, but hard to read in English. |
+| Byrych (бирич) | The herald of Kyivan Rus', who called out the prince's word in the marketplace. | Speech, though outward. | Free. |
+| Kazkar (казкар) | A teller of tales. | Speech. | Free. |
+| Shchedryk (щедрик) | The carol of the swallow that tells of a rich year, sung worldwide as "Carol of the Bells". | A voice that brings news. | Free, but hard to read in English. |
+| Lastivka (ластівка) | The swallow, the messenger of "Shchedryk". | A messenger. | Free. |
+| Rushnyk (рушник) | The embroidered ritual towel. | Needlework, as the icon. | Free. |
+| Rukavychka (рукавичка) | "The Mitten", the tale where animal after animal moves into a lost mitten. | Many voices in one small home. | Free, but long. |
+| Volkhv, Vishchun (волхв, віщун) | A pre-Christian priest and seer; a soothsayer ("віщий" is what The Tale of Igor's Campaign calls Boyan). | | Free, but hard to read in English. |
+| Kotyhoroshko, Didukh, Lybid, Rarog, Svaroh | The tale's hero born of a pea; the Christmas sheaf; the sister of Kyiv's founders; a fire-bird spirit; the god of the sky and the forge. | Nothing to do with speech. | Free. |
+| Beresta (береста) | Birch bark, which Rus' wrote its everyday notes on. | Notes. | Taken: "Beresta: Library & Highlights", a Mac and iOS app for notes from books. |
+| Nestor (Нестор) | Nestor the Chronicler, the Kyiv monk of The Tale of Bygone Years. | He wrote down what happened. | Taken: several iOS apps. |
+| Mokosh (Мокош) | The goddess of spinning and weaving, the only goddess in Volodymyr's pantheon in Kyiv (980). | Needlework, as the icon. | Taken: Mokosh Studio, an iOS app. |
+| Kazka (казка) | A tale. | | Taken: several iOS apps. |
+
+Not checked, as the App Store's search slowed down and they have little to do with speech: Telesyk, Vyrii, Perun, Dazhboh, Khors, Simargl, Lada, Kupalo, Zoria.
 
 ### What a new name touches (state today)
 
