@@ -54,9 +54,9 @@ fi
 
 cat <<'EOF'
 
-Done. Shepit is in ~/Applications and in the menu bar (🎙); it starts at login.
+Done. Shepit is in ~/Applications and in the menu bar (the rhombus); it starts at login.
   1. System Settings → Privacy & Security → Accessibility → turn on Shepit (needed to paste).
   2. Click into any text field, press ⌥Space, speak, press ⌥Space again.
      macOS asks for Microphone access for Shepit the first time → Allow.
-Settings: 🎙 → Settings… (⌘,)   Help: README.md
+Settings: the menu bar icon → Settings… (⌘,)   Help: README.md
 EOF

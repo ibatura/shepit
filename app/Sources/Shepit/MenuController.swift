@@ -1,32 +1,31 @@
 import AppKit
 import ShepitCore
 
-/// The status item: title from MenuModel, menu rebuilt from MenuModel each time it opens.
+/// The status item: the rhombus from MenuModel.icon, the menu rebuilt from MenuModel each time it opens.
 @MainActor
 final class MenuController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
     private let currentView: () -> AppSnapshot
-    private let titleView: () -> AppSnapshot
+    private let iconView: () -> AppSnapshot
     private let perform: (AppAction) -> Void
     private var actions: [AppAction] = [] // indexed by NSMenuItem.tag
+    private var shown: MenuIcon? // the meeting's clock refreshes every second; the image is drawn again only when it changes
 
-    /// `view` is called when the menu opens and looks devices and files up again; `title` is refreshed often and reuses them.
-    init(view: @escaping () -> AppSnapshot, title: @escaping () -> AppSnapshot, perform: @escaping (AppAction) -> Void) {
+    /// `view` is called when the menu opens and looks devices and files up again; `icon` is refreshed often and reuses them.
+    init(view: @escaping () -> AppSnapshot, icon: @escaping () -> AppSnapshot, perform: @escaping (AppAction) -> Void) {
         currentView = view
-        titleView = title
+        iconView = icon
         self.perform = perform
         super.init()
         menu.delegate = self
         menu.autoenablesItems = false
         statusItem.menu = menu
-        refreshTitle()
+        refreshIcon()
     }
 
-    func refreshTitle() {
-        let view = titleView()
-        statusItem.button?.title = MenuModel.title(view)
-        statusItem.button?.toolTip = "Shepit: \(view.statusLine)"
+    func refreshIcon() {
+        show(iconView())
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -34,7 +33,19 @@ final class MenuController: NSObject, NSMenuDelegate {
         actions = []
         menu.removeAllItems()
         for item in MenuModel.build(view) { menu.addItem(make(item)) }
-        statusItem.button?.title = MenuModel.title(view)
+        show(view)
+    }
+
+    private func show(_ view: AppSnapshot) {
+        guard let button = statusItem.button else { return }
+        let icon = MenuModel.icon(view)
+        if icon != shown {
+            shown = icon
+            button.image = icon.image
+        }
+        let status = MenuModel.iconLabel(view)
+        button.toolTip = status
+        button.setAccessibilityLabel(status) // the button has no title to read
     }
 
     private func make(_ item: MenuItem) -> NSMenuItem {

@@ -8,7 +8,7 @@ Shepit is a native menu-bar app. It also transcribes Teams, Zoom and Google Meet
 
 - Mac with Apple Silicon (M1 or newer), macOS 14.2 or later; 16 GB RAM or more recommended
 - About 3 GB of free disk space (the default model + build)
-- Xcode or just the Command Line Tools: run `xcode-select --install` in Terminal if you have neither
+- Xcode or just the Command Line Tools: run `xcode-select --install` in Terminal if you have neither. Shepit's icon needs Xcode 26: with an older Xcode or only the Command Line Tools, Shepit is built without it
 - `cmake`: if it's missing, the installer installs it with [Homebrew](https://brew.sh), so install Homebrew first or run `brew install cmake` yourself
 - The optional Apple speech engine needs macOS 26
 - Meeting transcripts record the call through a Core Audio process tap (macOS 14.2+); headphones give the cleanest result
@@ -34,7 +34,7 @@ It takes several minutes: it builds the app and downloads about 1.6 GB. It is sa
 - creates `~/.config/dictation/settings.json` and `dictionary.json` if they don't exist
 - opens Shepit; it also starts at login (Settings → General)
 
-When it finishes, a 🎙 icon appears in the menu bar at the top right of the screen. On a MacBook with a notch the icon can be hidden behind it if the menu bar is full; close a few menu-bar apps to see it.
+When it finishes, Shepit's icon, a rhombus of bars, appears in the menu bar at the top right of the screen. On a MacBook with a notch the icon can be hidden behind it if the menu bar is full; close a few menu-bar apps to see it.
 
 Other engines are optional and can also be downloaded later in **Settings → Engines and models**: `scripts/install.sh --with-whisperkit --with-parakeet`.
 
@@ -61,7 +61,7 @@ While you speak, a small panel shows **🔴 Слухаю**, a timer, a frequency
 - Your clipboard is restored about a second after pasting (some apps read it late).
 - Every result is saved to the history (`dictations.sqlite`) before it's pasted, so text is never lost. The window's **Dictations** section shows it.
 
-### The 🎙 menu
+### The menu bar menu
 
 The menu has the quick actions, in groups for meetings, dictation and Shepit itself; everything else is in [the window](#the-window).
 
@@ -83,7 +83,7 @@ The menu has the quick actions, in groups for meetings, dictation and Shepit its
 
 Mode and the engines are in Settings (Hotkeys, Engines and models).
 
-Icon: 🎙 ready · 🔴 recording · ⏳ transcribing · 🎙⚠ problem (open the menu to see it) · ⏺ in front while a meeting transcript runs.
+Icon: the rhombus when ready · red while recording · faded while transcribing · an orange dot for a problem (open the menu to see it) · a red dot in front while a meeting transcript runs.
 
 ### The window
 
@@ -128,9 +128,9 @@ Only meetings recorded while statistics were on count: notes added with **Add no
 
 Shepit can write a transcript of a Teams, Meet or any other call into a Markdown note — for example straight into your Obsidian vault.
 
-1. Join the call, then 🎙 → **Start meeting transcript**. A dialog asks for the meeting name, prefilled with the one found in the Teams call window or on the Google Meet page (a meeting from a calendar; a quick meet.new call has no name). Zoom shows no topic, so there the note only records "Zoom". When the app gives no name, a meeting that ran at this time before (same weekday last weeks, or daily) gets the name you gave it then. ▾ in the field lists names you used recently; they are kept only on this Mac, in `~/.local/share/dictation/meeting-names.json`. If the call window was still loading, the name appears in the dialog a second or two later. Enter to accept, empty for none, Cancel to not start.
+1. Join the call, then the menu bar icon → **Start meeting transcript**. A dialog asks for the meeting name, prefilled with the one found in the Teams call window or on the Google Meet page (a meeting from a calendar; a quick meet.new call has no name). Zoom shows no topic, so there the note only records "Zoom". When the app gives no name, a meeting that ran at this time before (same weekday last weeks, or daily) gets the name you gave it then. ▾ in the field lists names you used recently; they are kept only on this Mac, in `~/.local/share/dictation/meeting-names.json`. If the call window was still loading, the name appears in the dialog a second or two later. Enter to accept, empty for none, Cancel to not start.
 2. The note appears at once and fills a few seconds behind the conversation. You can keep it open in Obsidian.
-3. 🎙 → **Stop meeting transcript** when the call ends. The last phrases are finished, then remote voices are told apart: `[Співрозмовники]` becomes `[Person 1]`, `[Person 2]`, … ("Meeting: detecting speakers…" in the menu meanwhile).
+3. The menu bar icon → **Stop meeting transcript** when the call ends. The last phrases are finished, then remote voices are told apart: `[Співрозмовники]` becomes `[Person 1]`, `[Person 2]`, … ("Meeting: detecting speakers…" in the menu meanwhile).
 4. Name the people in the window: **Meetings** (or **Name people** on the "Transcript ready" panel). See below.
 
 ### Meetings in the window
@@ -355,14 +355,14 @@ Settings → Meetings shows a live example as you type.
 
 | Problem | Fix |
 |---|---|
-| Nothing happens on the hotkey | Open the 🎙 menu: "Hotkey taken" means another app uses the same shortcut — change it in Settings → Hotkeys |
+| Nothing happens on the hotkey | Open the menu bar menu: "Hotkey taken" means another app uses the same shortcut — change it in Settings → Hotkeys |
 | `brew: command not found` during install | Install [Homebrew](https://brew.sh), or install cmake another way, then run `scripts/install.sh` again |
 | Text isn't pasted, "Text copied — allow Accessibility" | System Settings → Privacy & Security → Accessibility → turn on Shepit. If it's on but doesn't work: remove Shepit with **−**, add it again with **+** from `~/Applications`. The text is on the clipboard and in history meanwhile |
 | "no microphone access" | System Settings → Privacy & Security → Microphone → turn on Shepit |
-| 🎙⚠ in the menu bar | Open the menu to read the error. "Not downloaded" → Settings → Engines and models → Download; otherwise quit Shepit and open it again |
+| An orange dot on the menu bar icon | Open the menu to read the error. "Not downloaded" → Settings → Engines and models → Download; otherwise quit Shepit and open it again |
 | No draft text in the panel | The draft engine isn't downloaded (Settings → Engines and models), or Settings → Dictation → Live draft is off |
 | English words come out in Cyrillic | Add them to `terms` and a `replace` rule (see Dictionary) |
-| First words cut off / worse recognition with Bluetooth headphones | Using their microphone switches Bluetooth to a low-quality headset mode, which also takes ~0.5 s to start. Choose MacBook Pro Microphone on Home (🎙 → Open Shepit) or in Settings → Dictation; your music stays in high quality |
+| First words cut off / worse recognition with Bluetooth headphones | Using their microphone switches Bluetooth to a low-quality headset mode, which also takes ~0.5 s to start. Choose MacBook Pro Microphone in Settings → Dictation; your music stays in high quality |
 | Meeting note has only your voice | System Settings → Privacy & Security → Screen & System Audio Recording → turn on Shepit (Shepit says so after 2 min of your speech with a silent call) |
 | "Start meeting transcript (download the model in Settings)" | Settings → Meetings → Download voice detection, and the meetings engine in Engines and models |
 | Speakers stay `[Співрозмовники]` | Settings → Meetings → Download speaker detection; it applies to the next meeting |

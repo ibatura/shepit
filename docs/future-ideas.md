@@ -9,9 +9,9 @@ In this order unless the author says otherwise (written 2026-11-20; back and for
 1. The open checks of import names with the author: I4, I5, and I6 once the 29 Oct meeting has names (the author, 2026-11-23: on a day with calls, after the settings review has started). I3 and I7, with Zoom's files, are put off for long (the author, 2026-11-22). Teams `.docx` and the Meet `.txt` format are later parts.
 2. Left from the small fixes: look at L3 again with the author (Cancel on the merge question).
 
-The query plans of every database are checked on branch `query-plans` (2026-11-24): item 13 below.
+3. **App icon** (the author, 2026-11-25: next, after the query plans): built on branch `icon-and-name` (2026-11-26), version 0.4.2. The app icon is H1, the menu bar's rhombus in convex bars, black to red, on linen; the menu bar shows the rhombus in every state instead of emoji. Spec `docs/features/specs/2026-11-25-icon-and-name-design.md`, plan `docs/features/plans/2026-11-26-icon.md`. The name is set aside: see "The name" under "Set aside". Left: the list under "Icon and name: left open" below.
 
-The app icon and the check of the name are under "New ideas" (2026-11-22, not ordered).
+The query plans of every database (item 13 below) are merged into `main` on 2026-11-25 as release `v0.4.1`.
 
 ## Planned, in this order
 
@@ -31,7 +31,7 @@ Build order agreed on 2026-11-11; items 8–13 ordered with the author on 2026-1
 12. **Fix: no call offer for Google Meet in Chrome** (found by the author on 2026-11-17): see the last item under "Call offer: left open". Task 9 of the settings review, on a real Meet call with the author. Done on branch `settings-review` (2026-11-23).
 13. **Every database query on an index, every index used** (the author, 2026-11-17): see the item under "New ideas".
     - `stats.sqlite` was checked in the Statistics part.
-    - `meetings.sqlite` and `dictations.sqlite` are checked on branch `query-plans` (2026-11-24). Spec `docs/features/specs/2026-11-24-query-plans-design.md`, plan `docs/features/plans/2026-11-24-query-plans.md`.
+    - `meetings.sqlite` and `dictations.sqlite` are checked on branch `query-plans` (2026-11-24). Spec `docs/features/specs/2026-11-24-query-plans-design.md`, plan `docs/features/plans/2026-11-24-query-plans.md`. Merged into `main` on 2026-11-25 as release `v0.4.1`.
       - `meetings.sqlite` version 3 adds indexes on `meetings (start)` and `people (person)`.
       - The fill of old meetings' words goes, with its scan of every line.
       - May also be in and the forgetting of old voices are read off the main thread.
@@ -169,6 +169,12 @@ Found by the reviews of the branch and not changed: the author had all five poin
 - **Every open of a connection takes the write lock for a moment.** The schema's `INSERT INTO schema_version … WHERE NOT EXISTS` does this even when it inserts nothing. A background read (the prints, May also be in) that opens while a main-thread change holds the lock for more than 5 s fails. That can happen when a note in iCloud is slow, and the read then shows nothing until the next reload. This was already true for the prints. A `SELECT` before the `INSERT` would make an open of a current file read-only (end-of-branch review, 2026-11-24).
 - **A failed `COMMIT`** after `change` rewrote the notes doesn't put the notes back: only a throw from the body does. It needs a reader to hold the file for more than 5 s.
 
+### Icon and name: left open (2026-11-26)
+
+- **The rename** (spec §4), set aside with the name. A new name changes `CFBundleName`, the README and the window's texts, and perhaps the bundle id; a new bundle id means granting Accessibility, Microphone and System Audio Recording again.
+- **SPT's letter logo** (spec §7, drawings round 4), set aside with the name.
+- **G6:** the `.icns` on a Mac with macOS 14 or 15 (in "Need to test later" in the checklist).
+
 ### New ideas (the author, 2026-11-15; not ordered yet)
 
 - **Version and About Shepit** (the author, 2026-11-21; next to build, the highest priority). Shepit must show which version it is: an About Shepit item, perhaps in the 🎙 menu, with the version. The version is kept on GitHub too, so each installed build can be found there. Checking for a new version with a request to GitHub is in question: it would be the first network call that isn't a model download the user asked for ("Everything stays local" in `CLAUDE.md`), so at most a button that asks GitHub only when clicked; to decide with the author in the spec.
@@ -226,7 +232,7 @@ From a team call of 2026-11-13 (colleagues' questions, and how Shepit wrote that
       - Engines and models with every model, the voice and speaker detection models included, each saying what it is for.
       - History and privacy names its parts after what they keep: Dictations, Meetings, Statistics, Voices.
 - **Owner-only permissions for the data** (the security review of `query-plans`, 2026-11-24; the author agreed to note it). The databases (`meetings.sqlite` holds voice prints), the notes' state and the folder `~/.local/share/dictation` are created with macOS's defaults: files `0644`, folders `0755`. Only the home folder (`0750`) keeps other users out. A small change for a later branch: create the folder with `0700`, and set the files to `0600` when they are created (`SQLiteFile.open`, the other writers under the data folder).
-- **App icon and name** (the author, 2026-11-22; not ordered yet: maybe a part of its own, or to think over more). Shepit has no proper icon, and that isn't nice. Today `app/Resources/` holds only `Info.plist`, with no `.icns` and no asset catalogue, and `Info.plist` has no `CFBundleIconFile`; so the Dock and ⌘Tab (while the window is open), Finder and the About panel show macOS's generic app icon. The window shell spec left it out on purpose ("The Dock shows the generic icon until the author supplies one"). The menu bar shows no image either: the status item's title is text, 🎙 when ready, 🔴 while recording, ⏳ while transcribing, 🎙⚠ with a problem, and ⏺ in front while a transcript runs (`MenuModel.title`, set as `statusItem.button?.title` in `MenuController`).
+- **~~App icon~~ and name** (the author, 2026-11-22). The icon is done on branch `icon-and-name` (2026-11-26): H1 and the rhombus in the menu bar. The name is set aside ("The name" under "Set aside"). As written before the branch: Shepit has no proper icon, and that isn't nice. Today `app/Resources/` holds only `Info.plist`, with no `.icns` and no asset catalogue, and `Info.plist` has no `CFBundleIconFile`; so the Dock and ⌘Tab (while the window is open), Finder and the About panel show macOS's generic app icon. The window shell spec left it out on purpose ("The Dock shows the generic icon until the author supplies one"). The menu bar shows no image either: the status item's title is text, 🎙 when ready, 🔴 while recording, ⏳ while transcribing, 🎙⚠ with a problem, and ⏺ in front while a transcript runs (`MenuModel.title`, set as `statusItem.button?.title` in `MenuController`).
   - An icon is to be generated and discussed with the author: the app icon (an `.icns` that `build-app.sh` copies into the bundle, named by `CFBundleIconFile`), and maybe a template image for the menu bar in place of the emoji, which macOS tints for light and dark menu bars.
   - The name: check whether "Shepit" is already used by another app, in the Mac App Store or elsewhere, so that it is at least roughly unique. If it is taken, find a new name. Not checked yet. A new name changes `CFBundleName` and perhaps the bundle id `dev.shepit.Shepit`; a new bundle id means granting Accessibility, Microphone and System Audio Recording again. The data folders (`~/.config/dictation`, `~/.local/share/dictation`) don't carry the name.
 - **The same controls look and sit the same everywhere** (the author, 2026-11-22). Done on branch `settings-review` (2026-11-23): one period menu, number settings as menus, text settings with Save, Clear… as sheets; see "Settings review: left open". The window should feel like one app: where a section has the same kind of control as another, it looks the same and is in the same place. The period menu, which the author noticed first, is different in each of three sections:
@@ -319,6 +325,10 @@ From the meeting transcription design (`docs/features/specs/2026-10-17-meeting-t
 - **Echo cancellation**, so speakers (not headphones) give clean attribution. *Why not now:* headphones solve it, and mic phrases that repeat the call within 5 s are dropped by their words (Test4: 17 of 19 repeats).
 - **Names from a screenshot of Teams' speaker timeline** (the author, 2026-11-20). *Why not:* Shepit has no vision model, only speech models; it would need Apple's Vision text recognition for the names plus its own reading of the coloured bars by pixel, which breaks with any change of Teams' layout, zoom, theme or scroll, and a `.vtt` gives the same names with exact times. The author doubted it would work; set aside in the import names spec (`docs/features/specs/2026-11-20-import-names-design.md` §2). Worth another look only for meetings with the timeline and no transcript.
 - **Finishing an interrupted session** after a quit or crash. *Why not now:* audio is deleted on purpose; the note keeps what was written.
+
+### The name
+
+- **A new name for Shepit** (2026-11-26). "Shepit" is taken by another Mac dictation app (icon and name spec §4). *Why not now:* none of three looks pleased the author: mythology, Ukrainian and Celtic; a second look; folklore, tales and Kyivan Rus'. SPT, the author's own idea, is weak as a name. Amergin stays the interim choice, and nothing is renamed until the name is final.
 
 ### Security and housekeeping
 

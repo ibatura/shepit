@@ -257,6 +257,22 @@ Date: 2026-11-21
 | A2 | The same after version 0.3.0 is installed | "Version 0.3.0 (…)" | |
 | A3 | The same after version 0.4.0 is installed | "Version 0.4.0 (…)" | |
 
+## App icon and menu bar
+
+Date: 2026-11-26
+
+Design: `docs/features/specs/2026-11-25-icon-and-name-design.md` §5, §6 and §9.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| G1 | Install; Finder (`~/Applications`), About Shepit, Spotlight, and the Dock and ⌘Tab with the window open | The icon fills macOS's shape, with no white square | ✅ 2026-11-26 (the author) on c1735d2, with H1. B2, the first icon, looked dated here (spec §5, round 5) |
+| G2 | System Settings → Appearance → Icon & widget style: Dark, Clear, Tinted | The rhombus reads in each | ✅ 2026-11-26 (the author) |
+| G3 | Privacy & Security → Accessibility and Microphone; then a dictation | Shepit with its icon in the lists; the dictation pastes | ✅ 2026-11-26 (the author) |
+| G4 | The menu bar: ready, recording, transcribing, a meeting transcript, a dictation during one; a hotkey another app holds (Settings → Hotkeys), then set back; Shepit's theme against the system's; the menu open | The rhombus: plain when ready, red recording, faded transcribing; an orange dot for the problem; a red dot before it during a meeting; it follows the menu bar, not Shepit's theme | ✅ 2026-11-26 (the author); before the install, the eight icons with `Shepit menubar-test` |
+| G5 | The tooltip of the menu bar icon; VoiceOver on it | Both say "Shepit:" and the status line; with a taken hotkey or a meeting transcript, also that | ✅ 2026-11-26: both "Shepit: Ready — whisper.cpp large-v3-turbo", read with the accessibility API. The hotkey and meeting parts, added after the end-of-branch review, are checked by `MenuModelTests` |
+
+G6, macOS 14 and 15, needs another Mac: see "Need to test later" at the bottom.
+
 ## Need to test later
 
 Checks the author put off, each with its reason. Each keeps its number from its section above.
@@ -293,3 +309,11 @@ The author, 2026-11-22: Zoom will be used to check importing names some day, but
 |---|---|---|---|
 | I3 | Import names… with a `.vtt` that has no names (Zoom's `.cc.vtt`) | "This transcript has no speaker names." | 2026-11-21: "doesn't line up" came, most likely from Zoom's `.transcript.vtt` of the same recording (it has names); both `.cc.vtt` files give "no speaker names" in the parser. Try again with the `.cc` one |
 | I7 | A Zoom `.vtt` of a Zoom call | As I1 | Waits for a Zoom call: the store has no Zoom meeting with its file |
+
+### On macOS 14 or 15 (put off on 2026-11-26)
+
+This Mac has only macOS 26.
+
+| # | Scenario | Expected | Result |
+|---|---|---|---|
+| G6 | On a Mac with macOS 14 or 15: install; Finder and the Dock | The icon from `AppIcon.icns`: H1's drawing, with no white square | 2026-11-26: Quick Look of the built `AppIcon.icns` shows H1 on macOS 26 |

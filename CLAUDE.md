@@ -27,11 +27,12 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 ## Code
 
 - SwiftPM package in `app/`: `ShepitCore` (pure logic with tests), `ShepitEngines` (the speech engines), `Shepit` (the app). Details in `docs/architecture.md`.
-- `make test` runs everything: Swift tests, installer and signing tests, accuracy tools. It must stay green (679 Swift tests on 2026-11-25).
+- `make test` runs everything: Swift tests, installer, icon and signing tests, accuracy tools. It must stay green (682 Swift tests on 2026-11-26).
 
-## Now (2026-11-24)
+## Now (2026-11-26)
 
 - The settings review is merged into `main` (2026-11-24, release `v0.4.0`); its manual checks R6–R8 are open.
-- Branch `query-plans` (2026-11-24) puts every query of `meetings.sqlite` on an index (version 3). It also reads May also be in and the forgetting of old voices off the main thread, and makes a transaction take the write lock first. Q1–Q3 passed and the end-of-branch reviews are done (the thermo-nuclear one on 2026-11-25); it waits for the pull request.
+- The query plans are merged into `main` (2026-11-25, release `v0.4.1`): every query of `meetings.sqlite` on an index (version 3), May also be in and the forgetting of old voices off the main thread.
+- Branch `icon-and-name` (2026-11-26), version 0.4.2: the app icon H1 (the menu bar's rhombus in convex bars, black to red, on linen), compiled from `app/Resources/AppIcon.icon` by `scripts/build-icon.sh`, and the rhombus in the menu bar in every state. Spec `docs/features/specs/2026-11-25-icon-and-name-design.md`, plan `docs/features/plans/2026-11-26-icon.md`; manual checks G1–G5 pass. The name is set aside (Amergin for now), and SPT's letter logo with it.
 - What comes next: "Next" in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy on GitLab (`local-dictation-tool`) is no longer updated.
