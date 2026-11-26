@@ -271,16 +271,17 @@ Not checked, as the App Store's search slowed down and they have little to do wi
 
 **ShepitCore**
 - `MenuModel.title(_:) -> String` becomes `MenuModel.icon(_:) -> MenuIcon`.
-- `MenuIcon` is a value: the dictation's mark (`ready`, `recording`, `transcribing`, `problem`) and whether a meeting transcript runs. The rules that pick it are today's.
+- `MenuIcon` is a value: the dictation's mark (`ready`, `recording`, `transcribing`, `problem`) and whether a meeting transcript runs. The rules that pick it are today's. It also says whether the icon is plain, drawn as a template (§6).
 
 **The app**
 - **`MenuController`** sets the status item's image from `MenuIcon` instead of its title, and draws the rhombus with AppKit (§6). The tooltip is as today.
-- **`app/Resources/AppIcon.icon/`**, compiled by `scripts/build-app.sh` (§5).
+- **`Shepit menubar-test`**, a debug command beside `panel-test`, shows each icon in the menu bar for a moment, without installing.
+- **`app/Resources/AppIcon.icon/`**, compiled by `scripts/build-icon.sh`, which `scripts/build-app.sh` calls (§5).
 - **`app/Resources/Info.plist`** gets the two icon keys.
 
 **Docs**
 - **README:** the requirements say what Xcode adds (the icon); "the 🎙 menu" becomes "the menu bar menu"; the icon's line lists the rhombus's states.
-- **`docs/architecture.md`:** "Version and About" says where the icon is and how it is built.
+- **`docs/architecture.md`:** "Version and About" says where the icon is and how it is built; "Debug commands" gets `menubar-test`.
 - **The manual checks** of §9.
 
 ## 9. Tests and manual checks
@@ -290,13 +291,19 @@ Not checked, as the App Store's search slowed down and they have little to do wi
 - a problem from a model that failed to load, and from a taken hotkey;
 - recording;
 - transcribing, while a model loads too;
-- a meeting that records, finishes or detects speakers adds the meeting's dot, with recording too;
-- a finished meeting doesn't.
+- a meeting that records, finishes or detects speakers adds the meeting's dot, with recording and a problem too;
+- a meeting that is idle, done or interrupted doesn't;
+- only ready and transcribing without a meeting are plain.
 
-The drawing and `actool` have no test. `build-app.sh` fails when `actool` fails on the file.
+**Also tested** (added after the plan review, 2026-11-26):
+- **The drawing** (`MenuControllerTests`): each of the eight images is drawn from a background queue, as AppKit may draw it, and has something in it, at its size.
+- **The icon's build** (`tests/icon_test.sh`, in `make test`):
+  - `build-icon.sh` compiles the icon;
+  - it fails on a broken `icon.json`, and when `actool` writes nothing, also after a good build into the same folder;
+  - without `actool` it says so and writes nothing.
 
 **Manual checks**, on the installed app:
-1. **Where macOS shows the icon:** Finder, About Shepit, and the Dock and ⌘Tab while the window is open. B2 fills the shape, with no white square.
+1. **Where macOS shows the icon:** Finder, About Shepit, Spotlight, and the Dock and ⌘Tab while the window is open. B2 fills the shape, with no white square.
 2. **macOS 26's looks:** in System Settings → Appearance, the icon's dark, clear and tinted looks. The stitches still read.
 3. **The grants are kept:** Shepit has the icon in Privacy & Security's lists, and a dictation still pastes after the install.
 4. **The menu bar on a light and a dark menu bar:**
@@ -305,7 +312,9 @@ The drawing and `actool` have no test. `build-app.sh` fails when `actool` fails 
    - transcribing: faded;
    - a problem, a hotkey another app has: the orange dot;
    - a meeting transcript: the red dot before the rhombus;
-   - a dictation during a meeting.
+   - a dictation during a meeting;
+   - with Shepit's theme set against the system's;
+   - while its menu is open.
 5. **The tooltip** shows the status, and VoiceOver reads it on the icon.
 6. **The `.icns` for macOS 14 and 15:** this Mac has only macOS 26, so Quick Look of the built `AppIcon.icns` shows B2. On a Mac with 14 or 15 it moves to "Need to test later".
 
