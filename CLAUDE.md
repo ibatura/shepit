@@ -27,7 +27,7 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 ## Code
 
 - SwiftPM package in `app/`: `ShepitCore` (pure logic with tests), `ShepitEngines` (the speech engines), `Shepit` (the app). Details in `docs/architecture.md`.
-- `make test` runs everything: Swift tests, installer, icon and signing tests, accuracy tools. It must stay green (681 Swift tests on 2026-11-26).
+- `make test` runs everything: Swift tests, installer, icon and signing tests, accuracy tools. It must stay green (682 Swift tests on 2026-11-26).
 
 ## Now (2026-11-26)
 

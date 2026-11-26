@@ -8,7 +8,7 @@ Shepit is a native menu-bar app. It also transcribes Teams, Zoom and Google Meet
 
 - Mac with Apple Silicon (M1 or newer), macOS 14.2 or later; 16 GB RAM or more recommended
 - About 3 GB of free disk space (the default model + build)
-- Xcode or just the Command Line Tools: run `xcode-select --install` in Terminal if you have neither. With only the Command Line Tools Shepit has no icon of its own, as its icon is compiled by Xcode's `actool`
+- Xcode or just the Command Line Tools: run `xcode-select --install` in Terminal if you have neither. Shepit's icon needs Xcode 26: with an older Xcode or only the Command Line Tools, Shepit is built without it
 - `cmake`: if it's missing, the installer installs it with [Homebrew](https://brew.sh), so install Homebrew first or run `brew install cmake` yourself
 - The optional Apple speech engine needs macOS 26
 - Meeting transcripts record the call through a Core Audio process tap (macOS 14.2+); headphones give the cleanest result

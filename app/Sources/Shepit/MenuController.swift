@@ -43,7 +43,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             shown = icon
             button.image = Self.image(icon)
         }
-        let status = "Shepit: \(view.statusLine)"
+        let status = MenuModel.iconLabel(view)
         button.toolTip = status
         button.setAccessibilityLabel(status) // the button has no title to read
     }

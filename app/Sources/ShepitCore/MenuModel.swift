@@ -46,6 +46,15 @@ public enum MenuModel {
         MenuIcon(mark: mark(view), meeting: view.meeting?.state.isActive == true)
     }
 
+    /// The icon's tooltip and VoiceOver label: the status line, then what its dots show. No meeting title: it changes every call.
+    public static func iconLabel(_ view: AppSnapshot) -> String {
+        let icon = icon(view)
+        var parts = ["Shepit: \(view.statusLine)"]
+        if icon.mark == .problem, let hotkey = view.hotkeyProblem { parts.append(hotkey) } // a failed load is in the status line
+        if icon.meeting { parts.append("Meeting transcript running") }
+        return parts.joined(separator: " · ")
+    }
+
     /// The meeting's line under the status line (window shell design §7); nil when no meeting runs.
     public static func meetingLine(_ state: MeetingState, title: String? = nil) -> String? {
         switch state {

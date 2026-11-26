@@ -35,6 +35,17 @@ struct MenuModelTests {
         #expect(MenuModel.icon(view { $0.state = .transcribing; $0.load = .loading }) == MenuIcon(mark: .transcribing, meeting: false))
     }
 
+    // The tooltip and VoiceOver say what the icon's dots show, as the emoji title did.
+    @Test func iconLabelSaysWhatTheDotsShow() {
+        #expect(MenuModel.iconLabel(view()) == "Shepit: Ready — whisper.cpp large-v3-turbo")
+        #expect(MenuModel.iconLabel(view { $0.hotkeyProblem = "Hotkey taken" }) == "Shepit: Ready — whisper.cpp large-v3-turbo · Hotkey taken")
+        #expect(MenuModel.iconLabel(view { $0.state = .recording; $0.hotkeyProblem = "Hotkey taken" }) == "Shepit: Recording… (Esc to cancel)")
+        let recording = MeetingState.recording(elapsed: 5, waiting: 0)
+        #expect(MenuModel.iconLabel(view { $0.meeting = .init(state: recording, title: "Weekly sync") })
+                == "Shepit: Ready — whisper.cpp large-v3-turbo · Meeting transcript running")
+        #expect(MenuModel.iconLabel(view { $0.meeting = .init(state: .done(speakers: 2)) }) == "Shepit: Ready — whisper.cpp large-v3-turbo")
+    }
+
     @Test func onlyReadyAndTranscribingWithoutAMeetingArePlain() {
         for mark in MenuIcon.Mark.allCases {
             for meeting in [false, true] {

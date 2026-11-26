@@ -265,11 +265,11 @@ Design: `docs/features/specs/2026-11-25-icon-and-name-design.md` §5, §6 and §
 
 | # | Scenario | Expected | Result |
 |---|---|---|---|
-| G1 | Install; Finder (`~/Applications`), About Shepit, Spotlight, and the Dock and ⌘Tab with the window open | The icon fills macOS's shape, with no white square | ✅ 2026-11-26 (the author) on 5f79a60, with H1. B2, the first icon, looked dated here (spec §5, round 5) |
+| G1 | Install; Finder (`~/Applications`), About Shepit, Spotlight, and the Dock and ⌘Tab with the window open | The icon fills macOS's shape, with no white square | ✅ 2026-11-26 (the author) on c1735d2, with H1. B2, the first icon, looked dated here (spec §5, round 5) |
 | G2 | System Settings → Appearance → Icon & widget style: Dark, Clear, Tinted | The rhombus reads in each | ✅ 2026-11-26 (the author) |
 | G3 | Privacy & Security → Accessibility and Microphone; then a dictation | Shepit with its icon in the lists; the dictation pastes | ✅ 2026-11-26 (the author) |
 | G4 | The menu bar: ready, recording, transcribing, a meeting transcript, a dictation during one; a hotkey another app holds (Settings → Hotkeys), then set back; Shepit's theme against the system's; the menu open | The rhombus: plain when ready, red recording, faded transcribing; an orange dot for the problem; a red dot before it during a meeting; it follows the menu bar, not Shepit's theme | ✅ 2026-11-26 (the author); before the install, the eight icons with `Shepit menubar-test` |
-| G5 | The tooltip of the menu bar icon; VoiceOver on it | Both say "Shepit:" and the status line | ✅ 2026-11-26: both "Shepit: Ready — whisper.cpp large-v3-turbo", read with the accessibility API |
+| G5 | The tooltip of the menu bar icon; VoiceOver on it | Both say "Shepit:" and the status line; with a taken hotkey or a meeting transcript, also that | ✅ 2026-11-26: both "Shepit: Ready — whisper.cpp large-v3-turbo", read with the accessibility API. The hotkey and meeting parts, added after the end-of-branch review, are checked by `MenuModelTests` |
 
 G6, macOS 14 and 15, needs another Mac: see "Need to test later" at the bottom.
 

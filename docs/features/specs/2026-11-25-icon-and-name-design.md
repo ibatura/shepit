@@ -263,7 +263,7 @@ The author liked G1 and asked for a little 3D:
 - `app/Resources/AppIcon.icon/`: `icon.json` and three SVG layers. `Assets/bars.svg` has the glass and a neutral shadow; `Assets/shadow.svg` and `Assets/weave.svg` have no glass. The SVG is plain text, written by a script from the numbers above; the script isn't kept, as the numbers are here. It opens in Icon Composer too.
 - `build-app.sh` compiles it with `xcrun actool` into the bundle's `Contents/Resources` (`Assets.car` and `AppIcon.icns`).
 - `Info.plist` gets `CFBundleIconFile` and `CFBundleIconName`, both `AppIcon`.
-- **Without `actool`** (the Command Line Tools only), the build goes on without the icon and says so in one line; the app works as before, with the generic icon. When `actool` is there and fails, the build fails.
+- **Without `actool`** (the Command Line Tools only), **or when it fails** (an Xcode older than 26 doesn't know `.icon` files), the build goes on without the icon and says why; the app works as before, with the generic icon. `make test` checks that the repository's icon compiles, so a broken icon is caught there, not at install. (Changed after the end-of-branch review: the build used to fail when `actool` failed, which would stop an install with an older Xcode.)
 
 ## 6. The menu bar
 
@@ -287,7 +287,7 @@ The author liked G1 and asked for a little 3D:
 - Each state comes in the same cases as today; only the mark changes.
 - **The glyph** is B2's rhombus in 18×18 points: seven bars, with a gap where B2 has its black heart. It has no stitches, which blur at this size.
 - **Template when plain.** Ready and transcribing without a meeting are a template image, which macOS tints for any menu bar. Red, the orange dot and the meeting's dot need colour, so those images are drawn with the rhombus in the menu bar's text colour.
-- **The tooltip** stays "Shepit: " and the status line, and VoiceOver reads the same text, as the icon has no title now.
+- **The tooltip** is "Shepit: " and the status line, then what the dots show: the taken hotkey's problem, and "Meeting transcript running" (not the meeting's title). VoiceOver reads the same text, as the icon has no title now, so it hears what the emoji's ⚠ and ⏺ said. `MenuModel.iconLabel` builds it.
 - The menu itself doesn't change.
 
 ## 7. The letter logo
@@ -307,7 +307,7 @@ The author liked G1 and asked for a little 3D:
 - `MenuIcon` is a value: the dictation's mark (`ready`, `recording`, `transcribing`, `problem`) and whether a meeting transcript runs. The rules that pick it are today's. It also says whether the icon is plain, drawn as a template (§6).
 
 **The app**
-- **`MenuController`** sets the status item's image from `MenuIcon` instead of its title, and draws the rhombus with AppKit (§6). The tooltip is as today.
+- **`MenuController`** sets the status item's image from `MenuIcon` instead of its title, and draws the rhombus with AppKit (§6). The tooltip and VoiceOver label come from `MenuModel.iconLabel`.
 - **`Shepit menubar-test`**, a debug command beside `panel-test`, shows each icon in the menu bar for a moment, without installing.
 - **`app/Resources/AppIcon.icon/`**, compiled by `scripts/build-icon.sh`, which `scripts/build-app.sh` calls (§5).
 - **`app/Resources/Info.plist`** gets the two icon keys.
@@ -332,8 +332,8 @@ The author liked G1 and asked for a little 3D:
 - **The drawing** (`MenuControllerTests`): each of the eight images is drawn from a background queue, as AppKit may draw it, and has something in it, at its size.
 - **The icon's build** (`tests/icon_test.sh`, in `make test`):
   - `build-icon.sh` compiles the icon;
-  - it fails on a broken `icon.json`, and when `actool` writes nothing, also after a good build into the same folder;
-  - without `actool` it says so and writes nothing.
+  - on a broken `icon.json`, and when `actool` writes nothing, it says why, goes on, and leaves no icon, also where an older build left one;
+  - without `actool` it says so, writes nothing, and doesn't try to run it.
 
 **Manual checks**, on the installed app:
 1. **Where macOS shows the icon:** Finder, About Shepit, Spotlight, and the Dock and ⌘Tab while the window is open. H1 fills the shape, with no white square.
@@ -348,13 +348,13 @@ The author liked G1 and asked for a little 3D:
    - a dictation during a meeting;
    - with Shepit's theme set against the system's;
    - while its menu is open.
-5. **The tooltip** shows the status, and VoiceOver reads it on the icon.
+5. **The tooltip** shows the status, and VoiceOver reads it on the icon; with a taken hotkey or a meeting transcript, both say so.
 6. **The `.icns` for macOS 14 and 15:** this Mac has only macOS 26, so Quick Look of the built `AppIcon.icns` shows H1. On a Mac with 14 or 15 it moves to "Need to test later".
 
 ## My calls (not confirmed one by one)
 
 - **The icon is an `.icon`, compiled by `actool`** (2026-11-26). macOS 26 shows a plain `.icns` on a white square (§5), and `actool` also writes the `.icns` that macOS 14 and 15 use. The `.icon` is kept as text in `app/Resources/`.
-- **Without `actool`, the build goes on without the icon**, so the Command Line Tools alone still build Shepit, as the README promises.
+- **Without `actool`, or when it fails, the build goes on without the icon**, so the Command Line Tools alone, or an older Xcode, still build Shepit, as the README promises.
 - **`Info.plist` carries the icon keys itself**, instead of merging the ones `actool` writes, as the names don't change.
 - **The menu bar's rhombus has no stitches**, and is a template image when it has no colour (§6).
 - **"The 🎙 menu" becomes "the menu bar menu"** in the README and the new checks. The old checks keep their words.

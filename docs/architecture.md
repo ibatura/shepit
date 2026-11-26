@@ -107,7 +107,7 @@ A SwiftPM package in `app/`:
 ### Version and About
 
 - `app/Resources/Info.plist` holds the version; `scripts/build-app.sh` writes the commit as `CFBundleVersion`; About Shepit is in the menu bar menu and the app menu.
-- The app icon is `app/Resources/AppIcon.icon`, an Icon Composer file kept as text. `scripts/build-icon.sh`, which `build-app.sh` calls, compiles it with `actool` into the bundle's `Assets.car` and `AppIcon.icns`; without Xcode the build goes on without the icon.
+- The app icon is `app/Resources/AppIcon.icon`, an Icon Composer file kept as text. `scripts/build-icon.sh`, which `build-app.sh` calls, compiles it with `actool` into the bundle's `Assets.car` and `AppIcon.icns`; without Xcode 26's `actool`, or when it fails, the build goes on without the icon and says why.
 - `.github/workflows/release.yml` makes the tag and the release when a merge into `main` raises the version.
 
 ### Back and forward

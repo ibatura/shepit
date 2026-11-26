@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Compile the app icon, an Icon Composer file, into a bundle's Contents/Resources as Assets.car and
-# AppIcon.icns (icon and name design §5). actool comes with Xcode: without it Shepit is built without its icon.
+# AppIcon.icns (icon and name design §5). It needs Xcode 26's actool: without it, or when it fails
+# (an older Xcode doesn't know .icon files), Shepit is built without its icon. `make test` checks the icon compiles.
 # Usage: build-icon.sh <the AppIcon.icon folder> <a Contents/Resources folder>
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -9,10 +10,12 @@ icon="$1" resources="$2"
 mkdir -p "$resources"
 # build/Shepit.app is never cleaned: an icon an older build left must not pass for this one.
 rm -f "$resources/Assets.car" "$resources/AppIcon.icns"
-if ! xcrun --find actool >/dev/null 2>&1; then
-    echo "No actool (it comes with Xcode): Shepit is built without its icon" >&2
+without() {
+    echo "$1: Shepit is built without its icon" >&2
+    rm -f "$resources/Assets.car" "$resources/AppIcon.icns"
     exit 0
-fi
+}
+xcrun --find actool >/dev/null 2>&1 || without "No actool (it comes with Xcode)"
 partial="$(mktemp -d)"
 trap '/bin/rm -rf "$partial"' EXIT
 minimum="$(plutil -extract LSMinimumSystemVersion raw "$REPO/app/Resources/Info.plist")"
@@ -21,6 +24,6 @@ minimum="$(plutil -extract LSMinimumSystemVersion raw "$REPO/app/Resources/Info.
 if ! out="$(xcrun actool "$icon" --compile "$resources" --platform macosx --app-icon AppIcon \
     --minimum-deployment-target "$minimum" --output-partial-info-plist "$partial/AppIcon.plist" 2>&1)"; then
     echo "$out" >&2
-    exit 1
+    without "actool failed (the icon needs Xcode 26)"
 fi
-[[ -f "$resources/AppIcon.icns" ]] || { echo "actool wrote no AppIcon.icns from $icon" >&2; exit 1; }
+[[ -f "$resources/AppIcon.icns" ]] || without "actool wrote no AppIcon.icns from $icon"
