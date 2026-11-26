@@ -25,12 +25,22 @@ private func entry(_ text: String, _ time: Date) -> DictationStore.Entry {
 
 // Ported from tests/test_menubar.lua, with the native menu changes from 03-dictation.md §7.
 struct MenuModelTests {
-    @Test func titleReflectsStateAndProblems() {
-        #expect(MenuModel.title(view()) == "🎙")
-        #expect(MenuModel.title(view { $0.load = .failed("x") }) == "🎙⚠")
-        #expect(MenuModel.title(view { $0.hotkeyProblem = "Hotkey taken" }) == "🎙⚠")
-        #expect(MenuModel.title(view { $0.state = .recording }) == "🔴")
-        #expect(MenuModel.title(view { $0.state = .transcribing; $0.load = .loading }) == "⏳")
+    // Icon and name design §6: the rhombus's mark, in the cases the emoji title had.
+    @Test func iconReflectsStateAndProblems() {
+        #expect(MenuModel.icon(view()) == MenuIcon(mark: .ready, meeting: false))
+        #expect(MenuModel.icon(view { $0.load = .failed("x") }) == MenuIcon(mark: .problem, meeting: false))
+        #expect(MenuModel.icon(view { $0.hotkeyProblem = "Hotkey taken" }) == MenuIcon(mark: .problem, meeting: false))
+        #expect(MenuModel.icon(view { $0.state = .recording }) == MenuIcon(mark: .recording, meeting: false))
+        #expect(MenuModel.icon(view { $0.state = .recording; $0.hotkeyProblem = "Hotkey taken" }) == MenuIcon(mark: .recording, meeting: false))
+        #expect(MenuModel.icon(view { $0.state = .transcribing; $0.load = .loading }) == MenuIcon(mark: .transcribing, meeting: false))
+    }
+
+    @Test func onlyReadyAndTranscribingWithoutAMeetingArePlain() {
+        for mark in MenuIcon.Mark.allCases {
+            for meeting in [false, true] {
+                #expect(MenuIcon(mark: mark, meeting: meeting).isPlain == (!meeting && [.ready, .transcribing].contains(mark)), "\(mark) \(meeting)")
+            }
+        }
     }
 
     @Test func statusLineForEachSituation() {
@@ -161,11 +171,16 @@ struct MenuModelTests {
 
     // Meetings (spec §5.6)
 
-    @Test func meetingMarkInTheTitleWhileASessionRuns() {
-        #expect(MenuModel.title(view { $0.meeting = .init(state: .recording(elapsed: 5, waiting: 0)) }) == "⏺🎙")
-        #expect(MenuModel.title(view { $0.meeting = .init(state: .recording(elapsed: 5, waiting: 0)); $0.state = .recording }) == "⏺🔴")
-        #expect(MenuModel.title(view { $0.meeting = .init(state: .detectingSpeakers) }) == "⏺🎙")
-        #expect(MenuModel.title(view { $0.meeting = .init(state: .done(speakers: 2)) }) == "🎙")
+    @Test func meetingDotWhileASessionRuns() {
+        for state: MeetingState in [.recording(elapsed: 5, waiting: 0), .finishing(left: 1), .detectingSpeakers] {
+            #expect(MenuModel.icon(view { $0.meeting = .init(state: state) }) == MenuIcon(mark: .ready, meeting: true), "\(state)")
+        }
+        for state: MeetingState in [.idle, .done(speakers: 2), .interrupted] {
+            #expect(MenuModel.icon(view { $0.meeting = .init(state: state) }) == MenuIcon(mark: .ready, meeting: false), "\(state)")
+        }
+        let recording = MeetingState.recording(elapsed: 5, waiting: 0)
+        #expect(MenuModel.icon(view { $0.meeting = .init(state: recording); $0.state = .recording }) == MenuIcon(mark: .recording, meeting: true))
+        #expect(MenuModel.icon(view { $0.meeting = .init(state: recording); $0.hotkeyProblem = "Hotkey taken" }) == MenuIcon(mark: .problem, meeting: true))
     }
 
     @Test func meetingStatusLines() {

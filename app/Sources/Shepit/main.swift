@@ -29,6 +29,8 @@ case "call-watch":
     CallWatchTest.run()
 case "panel-test":
     CallPanelTest.run()
+case "menubar-test":
+    MenuBarTest.run()
 case "voices-check":
     exit(VoicesCheck.run())
 case "login-item":

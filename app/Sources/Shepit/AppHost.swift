@@ -96,7 +96,7 @@ final class AppHost: ControllerHost {
             transcribe: { [unowned self] samples in try await models.transcribe(.preview, self.request(samples)) },
             process: { [unowned self] in DictionaryRules.process($0, self.dictionaryStore.dictionary).text },
             onText: { [unowned self] in self.panel.preview($0) }))
-        menu = MenuController(view: { [unowned self] in self.gatherLookups(); return self.snapshot() }, title: { [unowned self] in self.snapshot() },
+        menu = MenuController(view: { [unowned self] in self.gatherLookups(); return self.snapshot() }, icon: { [unowned self] in self.snapshot() },
                               perform: { [unowned self] in self.perform($0) })
         hotkeys.onDictationDown = { [unowned self] in self.controller.hotkeyDown() }
         hotkeys.onDictationUp = { [unowned self] in self.controller.hotkeyUp() }

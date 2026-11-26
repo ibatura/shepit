@@ -23,12 +23,27 @@ public struct MenuItem: Equatable, Sendable {
     }
 }
 
+/// The menu bar's rhombus (icon and name design §6): the dictation's mark, and a dot while a meeting transcript runs.
+public struct MenuIcon: Hashable, Sendable {
+    public enum Mark: CaseIterable, Sendable { case ready, recording, transcribing, problem }
+    public var mark: Mark
+    public var meeting: Bool
+
+    public init(mark: Mark, meeting: Bool) {
+        self.mark = mark
+        self.meeting = meeting
+    }
+
+    /// No colour: drawn as a template, which macOS tints for any menu bar.
+    public var isPlain: Bool { !meeting && (mark == .ready || mark == .transcribing) }
+}
+
 /// Menu bar icon and dropdown as data (port of menubar.lua); the app turns it into an NSMenu.
 public enum MenuModel {
     static let recentLabelChars = 60
 
-    public static func title(_ view: AppSnapshot) -> String {
-        view.meeting?.state.isActive == true ? "⏺" + dictationTitle(view) : dictationTitle(view)
+    public static func icon(_ view: AppSnapshot) -> MenuIcon {
+        MenuIcon(mark: mark(view), meeting: view.meeting?.state.isActive == true)
     }
 
     /// The meeting's line under the status line (window shell design §7); nil when no meeting runs.
@@ -54,13 +69,13 @@ public enum MenuModel {
         }
     }
 
-    private static func dictationTitle(_ view: AppSnapshot) -> String {
+    private static func mark(_ view: AppSnapshot) -> MenuIcon.Mark {
         switch view.state {
-        case .recording: return "🔴"
-        case .transcribing: return "⏳"
+        case .recording: return .recording
+        case .transcribing: return .transcribing
         case .idle:
-            if case .failed = view.load { return "🎙⚠" }
-            return view.hotkeyProblem == nil ? "🎙" : "🎙⚠"
+            if case .failed = view.load { return .problem }
+            return view.hotkeyProblem == nil ? .ready : .problem
         }
     }
 

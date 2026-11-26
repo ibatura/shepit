@@ -85,7 +85,7 @@ extension AppHost {
     /// The running transcript for the window, from the session's memory; nil when none runs.
     func liveMeeting() -> LiveMeeting? {
         guard let session = meeting, session.state.isActive else { return nil }
-        // The menu-bar title asks every second; only the open window shows the entries.
+        // The menu-bar icon asks every second; only the open window shows the entries.
         return LiveMeeting(state: session.state, title: session.title, app: session.app, words: session.wordCount, muted: meetingMuted,
                            entries: mainWindow.isOpen ? session.liveEntries : [], note: session.config.noteFile.path)
     }

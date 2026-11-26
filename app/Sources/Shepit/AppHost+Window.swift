@@ -10,9 +10,9 @@ extension AppHost {
     }
 
     /// After a change of state (a dictation, the meeting clock every second, a call, a settings write): the menu-bar
-    /// title and the open window, with the lookups they have. No device or disk lookups here.
+    /// icon and the open window, with the lookups they have. No device or disk lookups here.
     func refreshStatus() {
-        menu?.refreshTitle()
+        menu?.refreshIcon()
         mainWindow.refresh()
     }
 
