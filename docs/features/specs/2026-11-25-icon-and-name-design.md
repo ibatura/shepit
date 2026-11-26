@@ -1,7 +1,7 @@
 # App icon and name: design
 
 - **Date:** 2026-11-25
-- **Status:** complete, for the author's approval. This part builds the icon (B2, §5) and the menu bar (the rhombus in every state, §6). The name is set aside, with Amergin for now, and SPT's letter logo (§7) with it.
+- **Status:** approved by the author on 2026-11-26. This part builds the icon (B2, §5) and the menu bar (the rhombus in every state, §6). The name is set aside, with Amergin for now, and SPT's letter logo (§7) with it.
 - **Place in the build order:** "Next" item 3 in `docs/future-ideas.md`. The author chose it on 2026-11-25, after the query plans, from the "New ideas" item "App icon and name".
 - **Builds on:**
   - the window shell spec, which left the icon out ("The Dock shows the generic icon until the author supplies one");
@@ -29,6 +29,7 @@
 - **SPT, proposed by the author** (2026-11-26): "Shepit" without its vowels. With it, a letter logo of SPT made of rhombuses, beside the rhombus icon, which stays. The letter logo is drawn in round 4 (§7); the name is checked in §4.
 - **Look further in Ukrainian folklore and tales, and in Kyivan Rus' before and after its baptism** (2026-11-26): the third look, §4.
 - **None of these; the name is set aside, and the icon is built now** (2026-11-26). The author: "I like none of these. Let's set the name aside for now and make the icons; I'll read what you wrote about the names." The letter logo is set aside with the name.
+- **Version 0.4.2** (2026-11-26), as what Shepit does doesn't change. The spec and the plan are approved.
 
 ## 3. Goals, non-goals, anti-goals
 
