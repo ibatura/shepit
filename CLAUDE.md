@@ -33,6 +33,6 @@ Shepit is a macOS menu-bar app: local dictation (Ukrainian and English) and meet
 
 - The settings review is merged into `main` (2026-11-24, release `v0.4.0`); its manual checks R6–R8 are open.
 - The query plans are merged into `main` (2026-11-25, release `v0.4.1`): every query of `meetings.sqlite` on an index (version 3), May also be in and the forgetting of old voices off the main thread.
-- Branch `icon-and-name` (2026-11-25): the app icon and a new name, since "Shepit" is taken by another Mac dictation app. The spec is being written: `docs/features/specs/2026-11-25-icon-and-name-design.md`. The branch builds the icon (B2, a cross-stitch rhombus) and the menu bar (the rhombus in every state). The name is set aside for later (Amergin for now), and SPT's letter logo with it.
+- Branch `icon-and-name` (2026-11-25): the app icon and a new name, since "Shepit" is taken by another Mac dictation app. The spec is being written: `docs/features/specs/2026-11-25-icon-and-name-design.md`. The branch builds the icon (H1: the menu bar's rhombus in convex bars, black to red, on linen) and the menu bar (the rhombus in every state). The name is set aside for later (Amergin for now), and SPT's letter logo with it.
 - What comes next: "Next" in `docs/future-ideas.md`.
 - This repository (GitHub `ibatura/shepit`) is where work continues. The older copy on GitLab (`local-dictation-tool`) is no longer updated.

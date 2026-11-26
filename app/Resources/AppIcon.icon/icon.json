@@ -9,8 +9,8 @@
     {
       "layers": [
         {
-          "image-name": "stitches.svg",
-          "name": "stitches"
+          "image-name": "bars.svg",
+          "name": "bars"
         }
       ],
       "shadow": {
@@ -21,6 +21,15 @@
         "enabled": false,
         "value": 0.5
       }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "shadow.svg",
+          "name": "shadow",
+          "glass": false
+        }
+      ]
     },
     {
       "layers": [

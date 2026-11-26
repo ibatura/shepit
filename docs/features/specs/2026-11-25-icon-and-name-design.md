@@ -1,13 +1,13 @@
 # App icon and name: design
 
 - **Date:** 2026-11-25
-- **Status:** approved by the author on 2026-11-26. This part builds the icon (B2, §5) and the menu bar (the rhombus in every state, §6). The name is set aside, with Amergin for now, and SPT's letter logo (§7) with it.
+- **Status:** approved by the author on 2026-11-26. This part builds the icon (H1, §5) and the menu bar (the rhombus in every state, §6). The name is set aside, with Amergin for now, and SPT's letter logo (§7) with it.
 - **Place in the build order:** "Next" item 3 in `docs/future-ideas.md`. The author chose it on 2026-11-25, after the query plans, from the "New ideas" item "App icon and name".
 - **Builds on:**
   - the window shell spec, which left the icon out ("The Dock shows the generic icon until the author supplies one");
   - the visual style, `docs/features/specs/2026-11-11-visual-style/`;
   - the version and About Shepit, from the import names branch.
-- **Drawings:** `2026-11-25-icon-drawings.html` in this folder, rounds 1 to 4.
+- **Drawings:** `2026-11-25-icon-drawings.html` in this folder, rounds 1 to 4. Round 5 was rendered by macOS from Icon Composer files, and is described in §5.
 
 ## 1. Intent
 
@@ -30,11 +30,14 @@
 - **Look further in Ukrainian folklore and tales, and in Kyivan Rus' before and after its baptism** (2026-11-26): the third look, §4.
 - **None of these; the name is set aside, and the icon is built now** (2026-11-26). The author: "I like none of these. Let's set the name aside for now and make the icons; I'll read what you wrote about the names." The letter logo is set aside with the name.
 - **Version 0.4.2** (2026-11-26), as what Shepit does doesn't change. The spec and the plan are approved.
+- **B2 looks dated once installed; round 5** (2026-11-26, at the gate). The author: "In the menu bar it looks really good. But in Applications it looks like anything at all, like an icon from the 2000s, Web 1.0. Very inexpressive. It needs redoing, more beautiful."
+- **B2 in E1's style** (2026-11-26): E1's bars, from black to red with a black heart, on B2's linen. G1 is "not bad, it looks good".
+- **A little 3D: H1, convex** (2026-11-26, recommended). The author asked for it as the icons in their Applications are convex.
 
 ## 3. Goals, non-goals, anti-goals
 
 **Goals**
-- Shepit has an icon of its own, B2, wherever macOS shows an app's icon: Finder, the Dock and ⌘Tab while the window is open, the About panel, Spotlight, and the lists in System Settings → Privacy & Security.
+- Shepit has an icon of its own, H1, wherever macOS shows an app's icon: Finder, the Dock and ⌘Tab while the window is open, the About panel, Spotlight, and the lists in System Settings → Privacy & Security.
 - On macOS 26 the icon fills the system's shape and has its light, dark and tinted looks. macOS 14 and 15 show it as an `.icns`.
 - The menu bar shows the rhombus instead of emoji, and still tells every state it tells today: ready, recording, transcribing, a problem, a meeting transcript running.
 
@@ -221,14 +224,43 @@ Not checked, as the App Store's search slowed down and they have little to do wi
 - **B3 · Dark linen.** B1 on charcoal linen, with cream ends. It stands out on a light Dock and sinks into a dark one.
 - **B4 · Red only.** B1 without the black, on white linen. The plainest, but the least like a vyshyvanka.
 
-**B2, as built.** On a 1024 canvas, the body is the rounded square 824 wide. Seven bars, each two stitches wide (a stitch is 32), 3, 9, 15, 21, 15, 9 and 3 stitches high, centred. Each bar's top and bottom stitches are black, and so is the heart: 7 stitches of the middle bar and 1 of each bar beside it. The ground is linen, a gradient from #f7f2e8 to #e6dcc8 with a fine weave.
+**B2, as first built.** On a 1024 canvas, the body is the rounded square 824 wide. Seven bars, each two stitches wide (a stitch is 32), 3, 9, 15, 21, 15, 9 and 3 stitches high, centred. Each bar's top and bottom stitches are black, and so is the heart: 7 stitches of the middle bar and 1 of each bar beside it. The ground is linen, a gradient from #f7f2e8 to #e6dcc8 with a fine weave.
 
 **The two ways, tried on this Mac** (2026-11-26, macOS 26.4, Xcode 26.6). B2 was drawn as plain SVG and built both ways into a test app bundle in a temporary folder. Then `NSWorkspace` was asked for the icon macOS shows for each:
 - **An Icon Composer file (`.icon`).** It was written by hand: `icon.json` with the linen's gradient as the fill, and two layers, the stitches and the weave. `xcrun actool` compiled it without an Xcode project, into `Assets.car` and an `.icns` for macOS 14 and 15, and gave the `Info.plist` keys (`CFBundleIconFile`, `CFBundleIconName`). macOS 26 shows it in its own shape, filled edge to edge, with a glass rim, and makes its dark and tinted looks from the layers.
 - **An `.icns` only**, made with `iconutil` from the same drawing. It needs no Xcode, but macOS 26 shrinks it and sets it on a white rounded square.
 
+**Drawings, round 5** (2026-11-26, at the gate). Installed, B2 looked dated in Finder (§2):
+- the beige linen with its weave;
+- hundreds of small crosses, which blur the shape;
+- a flat drawing under macOS 26's glass.
+
+The menu bar's rhombus, in solid bars, looked right. So round 5 draws the icon from that glyph. Each option is an Icon Composer file, compiled by `actool` and rendered by macOS (`NSWorkspace`), large and at 64, 32 and 16 px on light and dark:
+- **E1 · Red ground** (recommended). White bars on red, with a black heart.
+- **E2 · White ground.** Red bars on white glass.
+- **E3 · Night.** Red bars on near-black, with a cream heart. It sinks into a dark Dock.
+- **E4 · Big stitches.** B2's rhombus in 25 big red crosses with a black heart, on white.
+- **E5 · White stitches.** E4 in white on red. The black heart is lost on the red.
+
+The author asked for B2 in E1's style: E1's bars with B2's colours and linen. Each bar goes from black at the rhombus's edge to red, and back to black at the heart:
+- **G1 · Softer** (recommended). Red, with black at the ends and in the heart.
+- **F1 · Stronger.** More black; the red glows in a ring around the heart.
+- **G2.** G1 without the weave. The difference shows only when large.
+
+The author liked G1 and asked for a little 3D:
+- **H1 · Convex** (recommended). Each bar is a round, glossy rod, lit from the top left, with a soft shadow on the linen.
+- **H2 · Rising to the centre.** Longer shadows toward the middle. Seen only when large.
+- **H3 · Pillars.** Bars that stand up, with dark sides. Too heavy at 32 px and smaller.
+
+**H1, as built.**
+- **The glyph:** on the 1024 canvas, the menu bar's glyph (§6) at 40 px a point, centred: the 10 bars, each 64 px wide with corners of 25.6, and a heart in the middle column's gap, 4.2 points high.
+- **The colour** comes from a point's distance to the centre, d = (|dx| + |dy|) / 8.5 points, so the bars' ends lie on d = 1. It is black (#161616) up to d = 0.3, red (#d42a2f) from 0.42 to 0.7, and black again at 0.97, blended between.
+- **The rod:** over the colour, a shading lighter on the left and darker on the right, lighter at the top end and darker at the bottom.
+- **The shadow:** ten faint copies of each bar, falling 18 px down and 6 px right.
+- **The ground:** B2's linen, the gradient and the weave.
+
 **What is built:**
-- `app/Resources/AppIcon.icon/`: `icon.json` and two SVG layers, `Assets/stitches.svg` and `Assets/weave.svg`, as tried. It is text, so it can be changed without Icon Composer, and opened in Icon Composer too.
+- `app/Resources/AppIcon.icon/`: `icon.json` and three SVG layers. `Assets/bars.svg` has the glass and a neutral shadow; `Assets/shadow.svg` and `Assets/weave.svg` have no glass. The SVG is plain text, written by a script from the numbers above; the script isn't kept, as the numbers are here. It opens in Icon Composer too.
 - `build-app.sh` compiles it with `xcrun actool` into the bundle's `Contents/Resources` (`Assets.car` and `AppIcon.icns`).
 - `Info.plist` gets `CFBundleIconFile` and `CFBundleIconName`, both `AppIcon`.
 - **Without `actool`** (the Command Line Tools only), the build goes on without the icon and says so in one line; the app works as before, with the generic icon. When `actool` is there and fails, the build fails.
@@ -304,8 +336,8 @@ Not checked, as the App Store's search slowed down and they have little to do wi
   - without `actool` it says so and writes nothing.
 
 **Manual checks**, on the installed app:
-1. **Where macOS shows the icon:** Finder, About Shepit, Spotlight, and the Dock and ⌘Tab while the window is open. B2 fills the shape, with no white square.
-2. **macOS 26's looks:** in System Settings → Appearance, the icon's dark, clear and tinted looks. The stitches still read.
+1. **Where macOS shows the icon:** Finder, About Shepit, Spotlight, and the Dock and ⌘Tab while the window is open. H1 fills the shape, with no white square.
+2. **macOS 26's looks:** in System Settings → Appearance, the icon's dark, clear and tinted looks. The rhombus still reads.
 3. **The grants are kept:** Shepit has the icon in Privacy & Security's lists, and a dictation still pastes after the install.
 4. **The menu bar on a light and a dark menu bar:**
    - ready;
@@ -317,7 +349,7 @@ Not checked, as the App Store's search slowed down and they have little to do wi
    - with Shepit's theme set against the system's;
    - while its menu is open.
 5. **The tooltip** shows the status, and VoiceOver reads it on the icon.
-6. **The `.icns` for macOS 14 and 15:** this Mac has only macOS 26, so Quick Look of the built `AppIcon.icns` shows B2. On a Mac with 14 or 15 it moves to "Need to test later".
+6. **The `.icns` for macOS 14 and 15:** this Mac has only macOS 26, so Quick Look of the built `AppIcon.icns` shows H1. On a Mac with 14 or 15 it moves to "Need to test later".
 
 ## My calls (not confirmed one by one)
 
