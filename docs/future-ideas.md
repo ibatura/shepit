@@ -9,7 +9,7 @@ In this order unless the author says otherwise (written 2026-11-20; back and for
 1. The open checks of import names with the author: I4, I5, and I6 once the 29 Oct meeting has names (the author, 2026-11-23: on a day with calls, after the settings review has started). I3 and I7, with Zoom's files, are put off for long (the author, 2026-11-22). Teams `.docx` and the Meet `.txt` format are later parts.
 2. Left from the small fixes: look at L3 again with the author (Cancel on the merge question).
 
-3. **App icon and name** (the author, 2026-11-25: next, after the query plans): on branch `icon-and-name`; see "App icon and name" under "New ideas". The check found "Shepit" taken by another Mac dictation app, so a new name is being looked for. Amergin is the interim choice (the author, 2026-11-25); the name is set aside for later, to think of other options.
+3. **App icon and name** (the author, 2026-11-25: next, after the query plans): on branch `icon-and-name`; see "App icon and name" under "New ideas". The check found "Shepit" taken by another Mac dictation app, so a new name is being looked for. Amergin is the interim choice (the author, 2026-11-25); the name is set aside for later, to think of other options. The author proposed SPT (2026-11-26), with a letter logo of rhombuses beside the icon.
 
 The query plans of every database (item 13 below) are merged into `main` on 2026-11-25 as release `v0.4.1`.
 

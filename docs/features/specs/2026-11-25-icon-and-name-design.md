@@ -1,31 +1,54 @@
 # App icon and name: design
 
 - **Date:** 2026-11-25
-- **Status:** first draft. It has the name check and Amergin as the interim name (§2); the final name and the icon are still to be decided with the author.
+- **Status:** first draft. The icon (B2) and the menu bar (the rhombus in every state) are chosen. The name is set aside, with Amergin for now; the author proposed SPT and a letter logo for it, drawn in round 4 (§7). The spec is complete once the letter logo is chosen or set aside with the name.
 - **Place in the build order:** "Next" item 3 in `docs/future-ideas.md`. The author chose it on 2026-11-25, after the query plans, from the "New ideas" item "App icon and name".
 - **Builds on:**
   - the window shell spec, which left the icon out ("The Dock shows the generic icon until the author supplies one");
   - the visual style, `docs/features/specs/2026-11-11-visual-style/`;
   - the version and About Shepit, from the import names branch.
+- **Drawings:** `2026-11-25-icon-drawings.html` in this folder, rounds 1 to 4.
 
 ## 1. Intent
 
 **The icon.** Shepit has no icon of its own. The Dock and ⌘Tab (while the window is open), Finder and the About panel all show macOS's generic app icon. The menu bar shows text, not an image: 🎙, 🔴, ⏳, 🎙⚠ or ⏺.
 
-**The name.** The name check found "Shepit" already taken by another Mac dictation app (§3). This part gives Shepit a name of its own and an icon that goes with it.
+**The name.** The name check found "Shepit" already taken by another Mac dictation app (§4). This part gives Shepit a name of its own and an icon that goes with it. The icon comes first; the name is set aside for now.
 
 ## 2. Decided by the author
 
 - **This part comes next** (2026-11-25). The author picked it from the two proposed after the query plans; the other was cleaner transcripts.
-- **Keep looking for a name** (2026-11-25). The first four candidates were Hovir, Tykho, Vymova and Slukh. The author took none of them and said: "we need to keep looking for a name". The check had shown Shepit taken (§3), so the app is renamed.
+- **Keep looking for a name** (2026-11-25). The first four candidates were Hovir, Tykho, Vymova and Slukh. The author took none of them and said: "we need to keep looking for a name". The check had shown Shepit taken (§4), so the app is renamed.
 - **Look in mythology** (2026-11-25): Ukrainian mythology first, then the Celts'.
 - **Amergin is "not bad", but keep looking** (2026-11-25).
 - **Amergin for now, as an interim choice** (2026-11-25, after the second look). The question of the name is set aside for later, to think of other options; there is nothing more to settle about it now. Nothing is renamed until the name is final.
 - **The icon is drawn now, without waiting for the name** (2026-11-25).
 - **The icon: B, the cross-stitch wave** (2026-11-26, recommended), from the four directions of round 1 (§5).
 - **Its finish: B2, the rhombus** (2026-11-26, recommended), from the four of round 2 (§5).
+- **The menu bar: the rhombus in every state** (2026-11-26, recommended), from the three of round 3 (§6).
+- **SPT, proposed by the author** (2026-11-26): "Shepit" without its vowels. With it, a letter logo of SPT made of rhombuses, beside the rhombus icon, which stays. The letter logo is drawn in round 4 (§7); the name is checked in §4.
+- **Look further in Ukrainian folklore and tales, and in Kyivan Rus' before and after its baptism** (2026-11-26): the third look, §4.
 
-## 3. The name check (2026-11-25)
+## 3. Goals, non-goals, anti-goals
+
+**Goals**
+- Shepit has an icon of its own, B2, wherever macOS shows an app's icon: Finder, the Dock and ⌘Tab while the window is open, the About panel, Spotlight, and the lists in System Settings → Privacy & Security.
+- On macOS 26 the icon fills the system's shape and has its light, dark and tinted looks. macOS 14 and 15 show it as an `.icns`.
+- The menu bar shows the rhombus instead of emoji, and still tells every state it tells today: ready, recording, transcribing, a problem, a meeting transcript running.
+
+**Non-goals**
+- **The rename.** The name is set aside (§2), so nothing is renamed in this part. The letter logo is drawn now and used once the name is settled.
+- **The panels' marks.** The dictation panel's 🔴 Слухаю and ⏳ Розпізнаю…, and the menu's ⚠ and ⏺ lines, stay as they are.
+- **A Dock icon while the window is closed.** Shepit stays a menu bar app (`LSUIElement`).
+
+**Anti-goals**
+- No new setting: the icon is not a choice.
+- Nothing fetched over the network: the icon and the menu bar's rhombus are drawn in the repository.
+- No change to the bundle id or the signing certificate, so the Accessibility, Microphone and System Audio Recording grants stay.
+
+## 4. The name
+
+### The name check (2026-11-25)
 
 **How it was checked:**
 - Apple's search API, for both the Mac App Store and the iOS App Store;
@@ -76,7 +99,9 @@ The check found no trademark record either way. It is "roughly unique", as the i
 | Chuyu | чую | I hear | |
 | Vukho | вухо | ear | |
 
-**Names from mythology.** These were checked the same way, on 2026-11-25. Ukrainian names come first, as the author asked.
+### Names from mythology (2026-11-25)
+
+These were checked the same way. Ukrainian names come first, as the author asked.
 
 | Name | Who or what | Fits because | Check |
 |---|---|---|---|
@@ -96,7 +121,9 @@ The check found no trademark record either way. It is "roughly unique", as the i
 | Fintan (mac Bóchra) | The Irish sage who lived for ages and remembered all of Ireland's history. | Meetings remembered. | An everyday Irish first name, not distinctive. |
 | Taliesin, Awen | The Welsh legendary bard, and the bards' inspiration. | | Taken by several apps. |
 
-**A second look** (2026-11-25, after "Amergin is not bad"). Checked the same way:
+### A second look (2026-11-25, after "Amergin is not bad")
+
+Checked the same way:
 
 | Name | Who or what | Fits because | Check |
 |---|---|---|---|
@@ -110,14 +137,26 @@ The check found no trademark record either way. It is "roughly unique", as the i
 | Oisín | The poet of the Fianna, who came back after three hundred years to tell their tales. | Tales kept. | An everyday Irish first name. |
 | Cairbre, Senchán, Pwyll, Llefelys | Irish and Welsh poets and sages. | | Free, but hard to read and with no clear meaning. |
 
-## 4. What a new name touches (state today)
+### SPT (2026-11-26)
+
+The author's proposal: "Shepit" without its vowels, which also makes a short letter logo.
+- **Mac App Store:** no app of that name.
+- **iOS App Store (US):** an app named "SPT", and seven more whose names start with it, among them SPT Plus, SPT IntelliView, SPT PADEL and "SPT - Simple Public Transit".
+- **The web:** many unrelated products use "SPT": an energy storage app, an asset management system, a hospital triage app. None of them is a dictation app.
+- **What it costs:** three letters are hard to find by search, and it is unclear how to say them, "es-pee-tee" or "spit". In Ukrainian, too, it does not read as a word.
+
+### A third look (2026-11-26)
+
+<!-- THIRD LOOK -->
+
+### What a new name touches (state today)
 
 "Shepit" appears 871 times, in 181 files.
 
 **Things people see:**
 - `CFBundleName` and the executable (`Shepit`);
 - `/Applications/Shepit.app`;
-- About Shepit, the 🎙 menu ("Open Shepit", "Quit Shepit"), and the texts in the window and on the panels;
+- About Shepit, the menu bar menu ("Open Shepit", "Quit Shepit"), and the texts in the window and on the panels;
 - the README and the docs;
 - the GitHub repository `ibatura/shepit` and its releases `v0.2.0` to `v0.4.1`.
 
@@ -129,22 +168,17 @@ The check found no trademark record either way. It is "roughly unique", as the i
 
 **Not affected:** the data folders `~/.config/dictation` and `~/.local/share/dictation`, which don't carry the name.
 
-**Recommended:** change only what people see, and keep the bundle id, the certificate, the modules and the labels. Then nothing needs granting again and no preference is lost. GitHub redirects a renamed repository. Not decided yet: the author didn't answer this question on 2026-11-25.
+**Recommended:** change only what people see, and keep the bundle id, the certificate, the modules and the labels. Then nothing needs granting again and no preference is lost. GitHub redirects a renamed repository. Not decided yet: set aside with the name.
 
-## 5. The icon (state today)
+## 5. The icon
 
+**State today:**
 - `app/Resources/` holds only `Info.plist`. It has no `.icns`, no asset catalogue and no `CFBundleIconFile`.
 - `LSUIElement` is true, so the Dock shows Shepit only while its window is open.
 - Shepit runs on macOS 14.2 and later (`LSMinimumSystemVersion`). This Mac has macOS 26.4 and Xcode 26.6, with Icon Composer and `actool`.
+- `scripts/build-app.sh` builds with SwiftPM and copies the binary, `Info.plist` and the models' manifests into the bundle. It uses no Xcode tool, and the README asks only for "Xcode or just the Command Line Tools".
 
-**Two ways to make it, to choose in the next round:**
-
-1. **An Icon Composer file (`.icon`).** Its layers get macOS 26's Liquid Glass look (light, dark and tinted). `actool` compiles it into `Assets.car` and also writes an `.icns` for macOS 14 and 15. `build-app.sh` would then need Xcode's `actool`, which it doesn't use today.
-2. **An `.icns` only**, drawn as layered images and put together with `iconutil`. It needs no Xcode. macOS 26 shows it as drawn, without Liquid Glass. It has been reported that an icon that doesn't fill the rounded square is set on a grey square.
-
-**The menu bar** could keep its emoji, or get a template image that macOS tints for light and dark menu bars. The states (recording, transcribing, a problem, a transcript running) would then need a sign of their own.
-
-**Drawings, round 1** (2026-11-25): `2026-11-25-icon-drawings.html` in this folder. The author asked for the drawings while the name is set aside, so none of them draws on the name: no letter, no figure from a myth. Each direction is shown large, at 64, 32 and 16 px on a light and a dark background, and as a menu bar glyph.
+**Drawings, round 1** (2026-11-25). The author asked for the drawings while the name is set aside, so none of them draws on the name: no letter, no figure from a myth. Each direction is shown large, at 64, 32 and 16 px on a light and a dark background, and as a menu bar glyph.
 
 - **No microphone.** shepit.app's logo is a gold studio microphone (seen on its site on 2026-11-25), and a microphone is what most dictation apps show.
 - **A · Sound to text.** Wave bars that turn into lines of text, white on blue. Says what Shepit does, but many transcription apps look like this.
@@ -152,29 +186,113 @@ The check found no trademark record either way. It is "roughly unique", as the i
 - **C · Scribe's quill.** A quill that writes a sound wave, cream and light blue on ink blue: what is said is written down.
 - **D · Conversation.** Two speech bubbles: one with a wave, the other with lines of text. Speaks of meetings more than dictation.
 
-**Drawings, round 2** (2026-11-26), in the same file: four ways to finish B.
+**Drawings, round 2** (2026-11-26): four ways to finish B.
 
 - **B1 · As drawn.** Seven bars of an uneven wave, two stitches wide, red with black ends, on linen.
 - **B2 · Rhombus** (recommended). The wave rises to the middle and falls again, so the black ends draw a rhombus, with a smaller black rhombus at its heart: the oldest motif of Ukrainian embroidery, made of a sound wave. It is still a wave, and at 16 px it reads as a red rhombus.
 - **B3 · Dark linen.** B1 on charcoal linen, with cream ends. It stands out on a light Dock and sinks into a dark one.
 - **B4 · Red only.** B1 without the black, on white linen. The plainest, but the least like a vyshyvanka.
 
-**The two ways, tried on this Mac** (2026-11-26, macOS 26.4, Xcode 26.6). B2 was drawn as plain SVG and built both ways into a test app bundle in a temporary folder. Then `NSWorkspace` was asked for the icon macOS shows for each:
-- **An `.icon`.** It was written by hand: `icon.json` with the linen's gradient as the fill, and two layers, the stitches and the weave. `xcrun actool` compiled it without an Xcode project, into `Assets.car` and a `B2.icns` for macOS 14 and 15, and gave the `Info.plist` keys (`CFBundleIconFile`, `CFBundleIconName`). macOS 26 shows it in its own shape, filled edge to edge, with a glass rim.
-- **An `.icns` only**, made with `iconutil` from the same drawing. macOS 26 shrinks it and sets it on a white rounded square.
+**B2, as built.** On a 1024 canvas, the body is the rounded square 824 wide. Seven bars, each two stitches wide (a stitch is 32), 3, 9, 15, 21, 15, 9 and 3 stitches high, centred. Each bar's top and bottom stitches are black, and so is the heart: 7 stitches of the middle bar and 1 of each bar beside it. The ground is linen, a gradient from #f7f2e8 to #e6dcc8 with a fine weave.
 
-**Drawings, round 3** (2026-11-26), in the same file: the menu bar, in its five states (ready, recording, transcribing, a problem, a meeting transcript running), on a light and a dark menu bar.
+**The two ways, tried on this Mac** (2026-11-26, macOS 26.4, Xcode 26.6). B2 was drawn as plain SVG and built both ways into a test app bundle in a temporary folder. Then `NSWorkspace` was asked for the icon macOS shows for each:
+- **An Icon Composer file (`.icon`).** It was written by hand: `icon.json` with the linen's gradient as the fill, and two layers, the stitches and the weave. `xcrun actool` compiled it without an Xcode project, into `Assets.car` and an `.icns` for macOS 14 and 15, and gave the `Info.plist` keys (`CFBundleIconFile`, `CFBundleIconName`). macOS 26 shows it in its own shape, filled edge to edge, with a glass rim, and makes its dark and tinted looks from the layers.
+- **An `.icns` only**, made with `iconutil` from the same drawing. It needs no Xcode, but macOS 26 shrinks it and sets it on a white rounded square.
+
+**What is built:**
+- `app/Resources/AppIcon.icon/`: `icon.json` and two SVG layers, `Assets/stitches.svg` and `Assets/weave.svg`, as tried. It is text, so it can be changed without Icon Composer, and opened in Icon Composer too.
+- `build-app.sh` compiles it with `xcrun actool` into the bundle's `Contents/Resources` (`Assets.car` and `AppIcon.icns`).
+- `Info.plist` gets `CFBundleIconFile` and `CFBundleIconName`, both `AppIcon`.
+- **Without `actool`** (the Command Line Tools only), the build goes on without the icon and says so in one line; the app works as before, with the generic icon. When `actool` is there and fails, the build fails.
+
+## 6. The menu bar
+
+**State today:** `MenuModel.title` gives the status item's text: 🎙 ready; 🔴 recording; ⏳ transcribing; 🎙⚠ when idle with a model that failed to load or a hotkey that is taken; and ⏺ in front while a meeting transcript records, finishes or detects speakers. The tooltip is "Shepit: " and the status line.
+
+**Drawings, round 3** (2026-11-26): the five states on a light and a dark menu bar.
 - **1 · Emoji, as today.** 🎙, 🔴, ⏳, 🎙⚠ and ⏺🎙.
 - **2 · Rhombus in place of 🎙.** A template image of the rhombus, which macOS tints for the menu bar; the other signs stay emoji.
-- **3 · Rhombus in every state** (recommended). The rhombus alone: red while recording, as the visual style keeps red for recording; faded while transcribing; an orange dot on it for a problem; a red dot before it while a meeting transcript runs. As menu bar apps on macOS look.
+- **3 · Rhombus in every state** (recommended, chosen). The rhombus alone, as menu bar apps on macOS look.
+
+**What is built (3):**
+
+| State | Today | The rhombus |
+|---|---|---|
+| Ready | 🎙 | in the menu bar's own colour |
+| Recording | 🔴 | red, as the visual style keeps red for recording |
+| Transcribing | ⏳ | faded, at 40% |
+| A problem | 🎙⚠ | an orange dot at its top right |
+| A meeting transcript running | ⏺ in front | a red dot before it, whatever the rhombus shows |
+
+- Each state comes in the same cases as today; only the mark changes.
+- **The glyph** is B2's rhombus in 18×18 points: seven bars, with a gap where B2 has its black heart. It has no stitches, which blur at this size.
+- **Template when plain.** Ready and transcribing without a meeting are a template image, which macOS tints for any menu bar. Red, the orange dot and the meeting's dot need colour, so those images are drawn with the rhombus in the menu bar's text colour.
+- **The tooltip** stays "Shepit: " and the status line, and VoiceOver reads the same text, as the icon has no title now.
+- The menu itself doesn't change.
+
+## 7. The letter logo
+
+**Drawings, round 4** (2026-11-26). The author asked for a letter logo of SPT, made of rhombuses like the icon, beside the icon, which stays. Each way is shown on linen and on dark, at 20 px, and next to B2. The letters are a 5×7 alphabet, two stitches thick as B2's bars are, and each stroke ends in black (cream on dark) as B2's bars do. On dark the red is a step lighter, as B2's dark red sinks there.
+- **W1 · Cross-stitch letters.** Red cross-stitch, as the icon. At 20 px the crosses blur and the letters turn pale.
+- **W2 · Rhombus letters** (recommended). Every stitch is a small rhombus, so the letters are a lattice of rhombuses. It is what the author asked for most directly, and of the four it reads best at 20 px and beside the icon.
+- **W3 · Rushnyk band.** W1's letters between two rows of small rhombuses, as on an embroidered towel. The richest, but at 20 px the band turns to dots.
+- **W4 · S ◆ P ◆ T.** W1's letters with a small B2 rhombus between each two. The rhombuses say it is read letter by letter, and tie it to the icon; it is the widest.
+
+**Where it goes:** nowhere yet. It is a logo for the name SPT, so it waits for the name (§2).
+
+## 8. Structure
+
+**ShepitCore**
+- `MenuModel.title(_:) -> String` becomes `MenuModel.icon(_:) -> MenuIcon`.
+- `MenuIcon` is a value: the dictation's mark (`ready`, `recording`, `transcribing`, `problem`) and whether a meeting transcript runs. The rules that pick it are today's.
+
+**The app**
+- **`MenuController`** sets the status item's image from `MenuIcon` instead of its title, and draws the rhombus with AppKit (§6). The tooltip is as today.
+- **`app/Resources/AppIcon.icon/`**, compiled by `scripts/build-app.sh` (§5).
+- **`app/Resources/Info.plist`** gets the two icon keys.
+
+**Docs**
+- **README:** the requirements say what Xcode adds (the icon); "the 🎙 menu" becomes "the menu bar menu"; the icon's line lists the rhombus's states.
+- **`docs/architecture.md`:** "Version and About" says where the icon is and how it is built.
+- **The manual checks** of §9.
+
+## 9. Tests and manual checks
+
+**Tests** (`MenuModelTests`): `MenuModel.icon` in each case today's title tests cover, which they replace:
+- ready;
+- a problem from a model that failed to load, and from a taken hotkey;
+- recording;
+- transcribing, while a model loads too;
+- a meeting that records, finishes or detects speakers adds the meeting's dot, with recording too;
+- a finished meeting doesn't.
+
+The drawing and `actool` have no test. `build-app.sh` fails when `actool` fails on the file.
+
+**Manual checks**, on the installed app:
+1. **Where macOS shows the icon:** Finder, About Shepit, and the Dock and ⌘Tab while the window is open. B2 fills the shape, with no white square.
+2. **macOS 26's looks:** in System Settings → Appearance, the icon's dark, clear and tinted looks. The stitches still read.
+3. **The grants are kept:** Shepit has the icon in Privacy & Security's lists, and a dictation still pastes after the install.
+4. **The menu bar on a light and a dark menu bar:**
+   - ready;
+   - recording: red;
+   - transcribing: faded;
+   - a problem, a hotkey another app has: the orange dot;
+   - a meeting transcript: the red dot before the rhombus;
+   - a dictation during a meeting.
+5. **The tooltip** shows the status, and VoiceOver reads it on the icon.
+6. **The `.icns` for macOS 14 and 15:** this Mac has only macOS 26, so Quick Look of the built `AppIcon.icns` shows B2. On a Mac with 14 or 15 it moves to "Need to test later".
 
 ## My calls (not confirmed one by one)
 
-- **The icon is an `.icon`, compiled by `actool`** (2026-11-26). macOS 26 shows a plain `.icns` on a white square (§5), and `actool` also writes the `.icns` that macOS 14 and 15 use. `build-app.sh` then needs Xcode's `actool`; Xcode 26.6 is this Mac's developer folder already. The `.icon` is kept as text (`icon.json` and SVG layers) in `app/Resources/`, so it can be changed without Icon Composer.
+- **The icon is an `.icon`, compiled by `actool`** (2026-11-26). macOS 26 shows a plain `.icns` on a white square (§5), and `actool` also writes the `.icns` that macOS 14 and 15 use. The `.icon` is kept as text in `app/Resources/`.
+- **Without `actool`, the build goes on without the icon**, so the Command Line Tools alone still build Shepit, as the README promises.
+- **`Info.plist` carries the icon keys itself**, instead of merging the ones `actool` writes, as the names don't change.
+- **The menu bar's rhombus has no stitches**, and is a template image when it has no colour (§6).
+- **"The 🎙 menu" becomes "the menu bar menu"** in the README and the new checks. The old checks keep their words.
+- **The letter logo is two stitches thick, with a lighter red on dark** (§7).
 
-## 6. Questions still open
+## 10. Questions still open
 
-1. The new name: Amergin for now (§2); set aside to think of other options.
-2. What the rename changes: what people see only (recommended), or the bundle id and the repository too.
-3. The icon's look: B2, the rhombus (§2). How it is made: an `.icon`, my call (above).
-4. The menu bar: emoji, the rhombus in place of 🎙, or the rhombus in every state (round 3, §5).
+1. **The name:** Amergin for now (§2); SPT proposed by the author (§4); the third look (§4). Set aside.
+2. **What the rename changes:** what people see only (recommended), or the bundle id and the repository too. Set aside with the name.
+3. **The letter logo:** W1 to W4 (round 4, §7), and where it goes once the name is settled.
